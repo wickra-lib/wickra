@@ -318,7 +318,38 @@ jobs:
       - name: Sync root README into bindings/python so it ships with the wheel
         shell: bash
         run: cp README.md bindings/python/README.md
+      # The container image comes from quay.io, which has failed whole
+      # afternoons (502/504 on the manifest). The first attempt may fail
+      # without failing the row; a pause and one identical retry follow, the
+      # family's retry pair. A second failure is the row's verdict.
       - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        id: wheel
+        continue-on-error: true
+        with:
+          working-directory: bindings/python
+          target: ${{ matrix.target }}
+          # The live-binance data layer links native-tls -> openssl-sys, which
+          # needs OpenSSL at build time. The manylinux containers lack the headers
+          # and the musllinux build cross-compiles against a musl sysroot with no
+          # OpenSSL at all, so build the Linux wheels with vendored OpenSSL
+          # (compiled from source, linked statically). No-op on the native
+          # macOS/Windows runners, where native-tls never pulls openssl-sys. The
+          # CI `python-wheel-container-smoke` job exercises both containers on PRs.
+          args: --release --strip --out dist --features vendored-tls
+          manylinux: ${{ matrix.manylinux }}
+          # Building OpenSSL from source needs Perl modules (IPC::Cmd,
+          # Time::Piece, ...) the minimal manylinux (CentOS 7) image lacks.
+          # perl-core pulls the full distribution; the explicit names document
+          # the ones OpenSSL's Configure has required. The musllinux cross image
+          # ships a complete Perl and has no yum, so this is a no-op there.
+          before-script-linux: |
+            if command -v yum >/dev/null 2>&1; then yum install -y perl-core perl-IPC-Cmd perl-Data-Dumper perl-Time-Piece; fi
+      - name: Pause before retrying the wheel build
+        if: steps.wheel.outcome == 'failure'
+        shell: bash
+        run: sleep 90
+      - if: steps.wheel.outcome == 'failure'
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           working-directory: bindings/python
           target: ${{ matrix.target }}
