@@ -119,11 +119,26 @@ jobs:
           # workflows by name would go stale -- codspeed.yml is path-filtered and
           # legitimately does not run for a version bump -- so the rule is about
           # outcomes rather than about a roster: whatever ran, none of it is red.
-          bad=$(gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100"                   -q '[.workflow_runs[]
-                       | select(.name != "Release")
-                       | select(.conclusion == "failure" or .conclusion == "timed_out"
-                                or .conclusion == "cancelled")
-                       | .name] | unique | join(", ")')
+          #
+          # Only the newest run of each workflow counts. ci.yml carries
+          # `concurrency: cancel-in-progress` off main, so a commit that receives
+          # two push events has its first run cancelled by its second; without
+          # the grouping any commit that ran CI twice is unreleasable however
+          # green the surviving run was (wickra-strategy-ci lost a release to
+          # exactly that: 51 superseded checks, zero real failures). Within the
+          # newest run, cancelled is red: a cancelled CI is not a green CI.
+          #
+          # Dependabot's own runs are not this repository's CI: when it tries a
+          # security update on the tagged commit and the update is impossible
+          # (a pin, a transitive dependency with no fixed line), that run is
+          # red on the SHA without a single job of ours having failed. They
+          # carry `event: dynamic`, which nothing of ours does.
+          bad=$(gh api "repos/${REPO}/actions/runs?head_sha=${SHA}&per_page=100" \
+                  -q '[.workflow_runs[] | select(.name != "Release" and .event != "dynamic")]
+                      | group_by(.name) | map(max_by(.id))
+                      | map(select(.conclusion == "failure" or .conclusion == "timed_out"
+                                   or .conclusion == "cancelled"))
+                      | map(.name) | unique | join(", ")')
           if [ -n "$bad" ]; then
             echo "::error::the tagged commit has failing runs (${bad}); refusing to publish"
             exit 1
