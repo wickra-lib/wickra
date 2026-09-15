@@ -30,8 +30,26 @@
 # superfluous-actions (release.yml):
 #   The GitHub release step uses softprops/action-gh-release. The runner ships
 #   `gh`, so this is replaceable by a script step, but the action is stable and
-#   battle-tested; we keep it deliberately.
+#   battle-tested; we keep it deliberately.#
+# self-repository (every workflow):
+#   zizmor asks for GitHub's `uses: $/.github/actions/...` form for the
+#   composite actions. No actionlint release parses that form, so adopting it
+#   would trade a note for a hard error in the Lint workflows job. The actions
+#   stay referenced as `./.github/actions/...`, which every runner resolves.
 rules:
+  self-repository:
+    ignore:
+      - actionlint.yml
+      - bench.yml
+      - check-indicator-count.yml
+      - ci.yml
+      - codeql.yml
+      - codspeed.yml
+      - links.yml
+      - release.yml
+      - scorecard.yml
+      - sync-metadata.yml
+      - zizmor.yml
   cache-poisoning:
     ignore:
       - release.yml
