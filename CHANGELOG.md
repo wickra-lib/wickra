@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the undecided case waits. `timeout-minutes` on the job moves from 10 to 60 to
   outlive that wait.
 
+### Changed
+
+- **uv 0.12.15 for the lockfile script.** `scripts/update-lockfiles.sh`
+  bootstraps 0.12.15 (was 0.12.7); the pin and all four release
+  checksums move together, taken from the release's `.sha256` files.
 
 ## [1.0.4] - 2026-09-01
 
