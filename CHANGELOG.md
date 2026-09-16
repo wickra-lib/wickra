@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The repository spells shared things the way the family does.** A cross-repo
+  scan lined the 24 wickra-lib repositories up and this one differed in: the R
+  floor (`R (>= 2.10)` in DESCRIPTION and README while every sibling requires
+  4.1, which the package's `configure` needs anyway), the Go and Java binding
+  jobs testing only the newest toolchain (a `go 1.23` / `release 22` floor row on
+  ubuntu now runs alongside stable / 25, as the siblings' example jobs do), the
+  Maven compiler and surefire plugins one line behind (3.16.0 / 3.6.0),
+  `@napi-rs/cli` at ^3.7.2 against the family's ^3.9.0, `proptest = "1.5"` and
+  `rayon = "1.10"` where the family writes the major, the Go binding module
+  absent from Dependabot, and `packaging` 26.2 in the Python locks where every
+  other lock has 26.3. The 3.9 requirement row now says `pytest<9` -- what it
+  resolved to all along, since pytest 9 requires 3.10 -- with the reason next
+  to it.
+
 ### Fixed
 
 - **The publish gate refused a tag whose CI had not finished yet.** It asked the

@@ -1016,13 +1016,17 @@ jobs:
           done
 
   go:
-    name: Go on ${{ matrix.os }}
+    name: Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ["stable"]
+        include:
+          - os: ubuntu-latest
+            go: "1.23"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1036,7 +1040,7 @@ jobs:
         continue-on-error: true
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "stable"
+          go-version: "${{ matrix.go }}"
           cache: false
 
       - name: Retry Go setup (CDN flake)
@@ -1050,7 +1054,7 @@ jobs:
         if: steps.setup-go.outcome == 'failure'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "stable"
+          go-version: "${{ matrix.go }}"
           cache: false
 
       - name: Install Rust toolchain
@@ -1253,13 +1257,17 @@ jobs:
         run: Rscript -e 'invisible(lapply(c("examples/r/fetch_btcusdt.R", "examples/r/live_binance.R"), parse)); cat("network R examples parse OK\n")'
 
   java:
-    name: Java on ${{ matrix.os }}
+    name: Java ${{ matrix.java }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        java: ["25"]
+        include:
+          - os: ubuntu-latest
+            java: "22"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1287,7 +1295,7 @@ jobs:
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
-          java-version: "25"
+          java-version: "${{ matrix.java }}"
           cache: maven
 
       - name: Retry JDK setup (CDN flake)
@@ -1302,7 +1310,7 @@ jobs:
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
-          java-version: "25"
+          java-version: "${{ matrix.java }}"
           cache: maven
 
       - name: Java info
