@@ -23,7 +23,7 @@ This produces, in `target/release/`:
 
 A static library (`libwickra.a` / `wickra.lib`) is emitted alongside.
 
-## Build and run the smoke example
+## Build and run the examples
 
 ### With CMake (portable, used by CI)
 

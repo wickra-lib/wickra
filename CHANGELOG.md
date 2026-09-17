@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The READMEs say what CI does.** `fuzz/README.md` names the family's pinned
+  `nightly-2026-07-01` instead of a rolling `nightly` the CI job stopped using,
+  with the reason beside it, and `examples/c/README.md` heads its CMake block
+  "Build and run the examples" -- it builds every example, not only the smoke
+  one. Both are the reference every sibling's README is now shaped after.
+
+### Changed
+
 - **The repository spells shared things the way the family does.** A cross-repo
   scan lined the 24 wickra-lib repositories up and this one differed in: the R
   floor (`R (>= 2.10)` in DESCRIPTION and README while every sibling requires
