@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "wickra"
-version = "1.0.4"
+version = "1.0.5"
 description = "Streaming-first technical indicators: incremental, fast, install-free."
 readme = "README.md"
 license = "MIT OR Apache-2.0"

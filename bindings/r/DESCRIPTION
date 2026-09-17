@@ -1,7 +1,7 @@
 Package: wickra
 Type: Package
 Title: Streaming-First Technical Indicators
-Version: 1.0.4
+Version: 1.0.5
 Authors@R: person("kingchenc", role = c("aut", "cre"), email = "support@wickra.org")
 Description: R bindings for the Wickra technical-analysis library over its C ABI
     hub. Exposes 514 indicators, each an incremental streaming state machine
