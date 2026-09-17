@@ -273,7 +273,7 @@ install — Go (cgo) and R (`.Call`) — also need a C compiler, and Java runs w
 | C#          | NuGet · `Wickra`                     | .NET 8 (`net8.0`)          |
 | Go          | module · `wickra-lib/wickra-go`      | Go 1.23 (cgo)              |
 | Java        | Maven Central · `org.wickra:wickra`  | Java 22 (FFM / Panama)     |
-| R           | source package                       | R ≥ 2.10 (Rtools on Win.)  |
+| R           | source package                       | R ≥ 4.1 (Rtools on Win.)   |
 
 Full per-language detail (runtime vs. build-from-source) is on the
 [Requirements page](https://docs.wickra.org/Requirements) in the docs.

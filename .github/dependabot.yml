@@ -215,8 +215,20 @@ updates:
       node-examples:
         patterns: ["*"]
 
-  # Go examples (Go modules). The binding's own go.mod has no external deps;
-  # the examples pull coder/websocket.
+  # Go modules: the binding (no external deps today, listed so a dependency
+  # it grows is covered like the sibling repos') and the examples, which pull
+  # coder/websocket.
+  - package-ecosystem: gomod
+    directory: "/bindings/go"
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "deps(gomod)"
   - package-ecosystem: gomod
     directory: "/examples/go"
     schedule:

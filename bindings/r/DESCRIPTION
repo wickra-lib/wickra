@@ -21,7 +21,7 @@ SystemRequirements: the Wickra C ABI shared library, downloaded automatically at
     Set WICKRA_INCLUDE_DIR and WICKRA_LIB_DIR to build against a locally built C
     ABI instead (e.g. after `cargo build -p wickra-c --release`).
 Roxygen: list(markdown = TRUE)
-Depends: R (>= 2.10)
+Depends: R (>= 4.1)
 Suggests: testthat (>= 3.0.0), knitr, rmarkdown
 VignetteBuilder: knitr
 LazyData: true

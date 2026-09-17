@@ -30,10 +30,10 @@ wickra-core = { path = "crates/wickra-core", version = "1.0.4" }
 wickra-data = { path = "crates/wickra-data", version = "1.0.4" }
 
 thiserror = "2"
-rayon = "1.10"
+rayon = "1"
 
 # Testing
-proptest = "1.5"
+proptest = "1"
 approx = "0.5"
 criterion = { version = "0.8", features = ["html_reports"] }
 

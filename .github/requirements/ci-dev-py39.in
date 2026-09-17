@@ -3,6 +3,10 @@
 # (>=2.1 dropped Python 3.9). Locked output: ci-dev-py39.txt
 # Refresh via scripts/update-lockfiles.sh.
 maturin
-pytest
+# pytest 9.x requires Python 3.10, so this row resolves 8.4.2 either way; the
+# bound makes that explicit. The suite uses fixtures, parametrize and
+# hypothesis, so it cannot run pytest-free like the family's simpler bindings;
+# GHSA-6w46-j5rx-g56g (pytest < 9.0.3) is acknowledged in osv-scanner.toml.
+pytest<9
 numpy<2.1
 hypothesis
