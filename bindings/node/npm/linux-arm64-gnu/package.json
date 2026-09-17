@@ -1,6 +1,6 @@
 {
   "name": "wickra-linux-arm64-gnu",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Native binding for wickra (linux arm64 GNU). Installed automatically as an optional dependency of wickra on matching platforms.",
   "main": "wickra.linux-arm64-gnu.node",
   "files": [

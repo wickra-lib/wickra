@@ -11,7 +11,7 @@
 
     <!-- NuGet package metadata -->
     <PackageId>Wickra</PackageId>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Authors>kingchenc</Authors>
     <Description>High-performance streaming technical-analysis indicators (514 indicators) for .NET, backed by the native Rust core via the Wickra C ABI.</Description>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
