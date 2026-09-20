@@ -45,12 +45,12 @@
     "node": ">= 22"
   },
   "optionalDependencies": {
-    "wickra-linux-x64-gnu": "1.0.5",
-    "wickra-linux-arm64-gnu": "1.0.5",
-    "wickra-darwin-x64": "1.0.5",
     "wickra-darwin-arm64": "1.0.5",
-    "wickra-win32-x64-msvc": "1.0.5",
-    "wickra-win32-arm64-msvc": "1.0.5"
+    "wickra-darwin-x64": "1.0.5",
+    "wickra-linux-arm64-gnu": "1.0.5",
+    "wickra-linux-x64-gnu": "1.0.5",
+    "wickra-win32-arm64-msvc": "1.0.5",
+    "wickra-win32-x64-msvc": "1.0.5"
   },
   "scripts": {
     "build": "napi build --platform --release && node scripts/prune-type-only-exports.mjs",
@@ -62,6 +62,6 @@
     "bench": "node benchmarks/throughput.js"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^3.9.0"
+    "@napi-rs/cli": "^3.10.4"
   }
 }
