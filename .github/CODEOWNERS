@@ -2,5 +2,9 @@
 #
 # The owner listed here is requested for review automatically on every pull
 # request. See https://docs.github.com/articles/about-code-owners.
+#
+# A code owner is a user or a team (@org/team); the organisation itself is not
+# one -- GitHub parses `@wickra-lib`, shows it, and never requests a review
+# from it. The maintainer handle is the owner, as in every sibling.
 
-*       @wickra-lib
+*       @kingchenc
