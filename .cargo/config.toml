@@ -1,0 +1,9 @@
+# The lockfile must resolve for the workspace's MSRV (rust-version in
+# Cargo.toml), not just for the newest stable. Without this, `cargo update`
+# takes a dependency's latest release even when it requires a newer compiler,
+# and the MSRV job is the first to notice -- the icu crates moved to Rust 1.88
+# under a routine refresh while the workspace stays at 1.86. With `fallback`,
+# cargo prefers the newest version the MSRV can build and only reaches past it
+# when nothing else satisfies the requirement.
+[resolver]
+incompatible-rust-versions = "fallback"
