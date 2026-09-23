@@ -1,6 +1,6 @@
 {
   "name": "wickra-darwin-x64",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Native binding for wickra (macOS Intel). Installed automatically as an optional dependency of wickra on matching platforms.",
   "main": "wickra.darwin-x64.node",
   "files": [

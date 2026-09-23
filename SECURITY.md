@@ -2,13 +2,13 @@
 
 ## Supported versions
 
-Security fixes are applied to the latest released version, `1.0.5`, only; please
+Security fixes are applied to the latest released version, `1.0.6`, only; please
 upgrade to the newest release before reporting an issue.
 
 | Version | Supported |
 | --- | --- |
-| 1.0.5 (latest) | :white_check_mark: |
-| < 1.0.5 | :x: |
+| 1.0.6 (latest) | :white_check_mark: |
+| < 1.0.6 | :x: |
 
 ## Reporting a vulnerability
 

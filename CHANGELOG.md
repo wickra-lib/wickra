@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-09-23
+
+A maintenance release: no crate, binding or indicator changed. It publishes the
+refreshed dependency tree and toolchain pins.
+
+### Changed
+
+- **Third-party dependencies refreshed.** `Cargo.lock` takes 102 crates to their
+  newest versions compatible with the Rust floor (the lock now resolves
+  MSRV-aware, see below), run across the family in one pass so every repository
+  resolves the same day's versions. No manifest changed, and every crate still
+  builds and tests on the 1.86 floor (1.88 for the Node binding).
+- **The lockfile resolves for the Rust floor.** `.cargo/config.toml` sets
+  `incompatible-rust-versions = "fallback"`, so `cargo update` takes the newest
+  version the workspace's `rust-version` can build rather than the newest
+  release -- the setting compile, copilot and shazam already carried, now
+  family-wide. Without it, a routine refresh elsewhere in the family raised the
+  icu crates to 2.3.0, which declares Rust 1.88, above a 1.86 floor. Re-resolved
+  under it, the lock steps back to the newest versions the floor can build for
+  `icu_collections`, `icu_locale_core`, `icu_normalizer`, `icu_normalizer_data`,
+  `icu_properties`, `icu_properties_data`, `icu_provider`, `wasip2`,
+  `wit-bindgen`.
+- **`@napi-rs/cli` 3.10.4** for the Node binding, the family's line.
+- **uv 0.12.18** for the lockfile bootstrap in `scripts/update-lockfiles.sh`,
+  with all four platform checksums moved together.
+- **The live-demo badge is served by the organization** rather than
+  hot-linked from shields.io, like every other badge in the README.
+- **`CODEOWNERS` names the maintainer's handle.** GitHub shows an organization
+  there but never requests a review from it; a user or a team is required.
+
+
 ## [1.0.5] - 2026-09-17
 
 ### Changed
@@ -3610,7 +3641,8 @@ public API changes.
   optional Binance live feed.
 - Bindings for Python, Node.js, and WebAssembly.
 
-[Unreleased]: https://github.com/wickra-lib/wickra/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/wickra-lib/wickra/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/wickra-lib/wickra/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/wickra-lib/wickra/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/wickra-lib/wickra/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/wickra-lib/wickra/compare/v1.0.2...v1.0.3
