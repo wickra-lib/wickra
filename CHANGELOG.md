@@ -17,7 +17,8 @@ refreshed dependency tree and toolchain pins.
 - **Third-party dependencies refreshed.** `Cargo.lock` takes 102 crates to their
   newest versions compatible with the Rust floor (the lock now resolves
   MSRV-aware, see below), run across the family in one pass so every repository
-  resolves the same day's versions. No manifest changed.
+  resolves the same day's versions. No manifest changed, and every crate still
+  builds and tests on the 1.86 floor (1.88 for the Node binding).
 - **The lockfile resolves for the Rust floor.** `.cargo/config.toml` sets
   `incompatible-rust-versions = "fallback"`, so `cargo update` takes the newest
   version the workspace's `rust-version` can build rather than the newest
