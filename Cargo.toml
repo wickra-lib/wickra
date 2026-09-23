@@ -14,7 +14,7 @@ members = [
 exclude = ["fuzz"]
 
 [workspace.package]
-version = "1.0.5"
+version = "1.0.6"
 authors = ["kingchenc <support@wickra.org>"]
 edition = "2021"
 rust-version = "1.86"
@@ -26,8 +26,8 @@ keywords = ["finance", "trading", "indicators", "technical-analysis", "ta"]
 categories = ["finance", "mathematics", "science"]
 
 [workspace.dependencies]
-wickra-core = { path = "crates/wickra-core", version = "1.0.5" }
-wickra-data = { path = "crates/wickra-data", version = "1.0.5" }
+wickra-core = { path = "crates/wickra-core", version = "1.0.6" }
+wickra-data = { path = "crates/wickra-data", version = "1.0.6" }
 
 thiserror = "2"
 rayon = "1"

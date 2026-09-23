@@ -27,7 +27,7 @@ workspace = true
 # (rayon) feature on — the WASM binding needs a rayon-free build and the data
 # layer never uses the parallel batch path. Native bindings re-enable `parallel`
 # through their own wickra-core dependency (cargo unifies the features).
-wickra-core = { path = "../wickra-core", version = "1.0.5", default-features = false }
+wickra-core = { path = "../wickra-core", version = "1.0.6", default-features = false }
 thiserror = { workspace = true }
 csv = "1.3"
 serde = { version = "1", features = ["derive"] }
