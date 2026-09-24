@@ -1092,12 +1092,37 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
 
+      # Idempotent, like the npm and PyPI steps: a version that is already on
+      # the repository is not deployed again. Central refuses a second
+      # deployment of the same version, so without this check a re-run of a
+      # release whose Maven step timed out -- while Central went on to publish
+      # the bundle it had accepted -- fails a second time on a duplicate, and
+      # the jobs behind it (assets, provenance, the GitHub Release) never run.
+      - name: Skip the deploy when this version is already on Maven Central
+        id: central
+        shell: bash
+        run: |
+          version=$(mvn -B -q -f bindings/java help:evaluate -Dexpression=project.version -DforceStdout)
+          url="https://repo1.maven.org/maven2/org/wickra/wickra/${version}/wickra-${version}.pom"
+          if curl -sSf -o /dev/null "$url"; then
+            echo "skip: org.wickra:wickra:${version} is already on Maven Central"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "org.wickra:wickra:${version} is not on Maven Central yet"
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to Maven Central
+        if: steps.central.outputs.published != 'true'
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: mvn -B -f bindings/java -Prelease deploy -DskipTests
+      # The jar the attestation job signs has to exist whether or not this run
+      # deployed it.
+      - name: Build the jar when the deploy was skipped
+        if: steps.central.outputs.published == 'true'
+        run: mvn -B -f bindings/java package -DskipTests
 
       # `deploy` packages before it uploads, so the signed jar is already under
       # target/. Only the main artefact is kept: the sources and javadoc jars
