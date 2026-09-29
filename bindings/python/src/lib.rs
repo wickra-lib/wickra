@@ -260,6 +260,19 @@ fn f64_batch(
     ARRAY_TYPE.import(py, "array", "array")?.call1(("d", bytes))
 }
 
+/// Whether every bar has finite `high`, `low` and `close` with
+/// `low <= close <= high` -- what `Candle::new` enforces when the close doubles
+/// as the open. Each block is folded without an early exit, so the check
+/// vectorizes instead of branching once per bar.
+fn hlc_valid(high: &[f64], low: &[f64], close: &[f64]) -> bool {
+    let blocks = high.chunks(512).zip(low.chunks(512)).zip(close.chunks(512));
+    blocks.into_iter().all(|((hb, lb), cb)| {
+        hb.iter().zip(lb).zip(cb).fold(true, |ok, ((&h, &l), &c)| {
+            ok & h.is_finite() & l.is_finite() & c.is_finite() & (h >= l) & (h >= c) & (l <= c)
+        })
+    })
+}
+
 /// A row-major, two-dimensional `f64` result returned by multi-output batch helpers.
 ///
 /// Rows come back as flat, buffer-protocol `array.array('d')` values, so it
@@ -856,18 +869,12 @@ impl PyAtr {
         }
         // Validate the OHLC invariants once (the streaming path gets this from
         // `Candle::new`); ATR uses the close as open, so `high >= close >= low`.
-        for i in 0..h.len() {
-            if !(h[i].is_finite() && l[i].is_finite() && c[i].is_finite())
-                || h[i] < l[i]
-                || h[i] < c[i]
-                || l[i] > c[i]
-            {
-                return Err(PyValueError::new_err(
-                    "high, low, close must be finite with low <= close <= high",
-                ));
-            }
+        if !hlc_valid(h, l, c) {
+            return Err(PyValueError::new_err(
+                "high, low, close must be finite with low <= close <= high",
+            ));
         }
-        self.inner.batch_atr(h, l, c).into_pydata(py)
+        f64_batch(py, h.len(), |out| self.inner.batch_atr_into(h, l, c, out))
     }
     fn batch_fast<'py>(
         &mut self,
@@ -886,18 +893,14 @@ impl PyAtr {
         }
         // Validate the OHLC invariants once (the streaming path gets this from
         // `Candle::new`); ATR uses the close as open, so `high >= close >= low`.
-        for i in 0..h.len() {
-            if !(h[i].is_finite() && l[i].is_finite() && c[i].is_finite())
-                || h[i] < l[i]
-                || h[i] < c[i]
-                || l[i] > c[i]
-            {
-                return Err(PyValueError::new_err(
-                    "high, low, close must be finite with low <= close <= high",
-                ));
-            }
+        if !hlc_valid(h, l, c) {
+            return Err(PyValueError::new_err(
+                "high, low, close must be finite with low <= close <= high",
+            ));
         }
-        self.inner.batch_atr_fast(h, l, c).into_pydata(py)
+        f64_batch(py, h.len(), |out| {
+            self.inner.batch_atr_fast_into(h, l, c, out);
+        })
     }
     #[getter]
     fn period(&self) -> usize {
