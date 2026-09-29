@@ -12,14 +12,10 @@
 use js_sys::{Array, Float64Array, Object, Reflect};
 use wasm_bindgen::prelude::*;
 use wickra_core as wc;
-use wickra_core::{BarBuilder, BatchExt, Indicator};
+use wickra_core::{BarBuilder, BatchNanExt, Indicator};
 
 fn map_err(e: wc::Error) -> JsError {
     JsError::new(&e.to_string())
-}
-
-fn flatten(values: Vec<Option<f64>>) -> Vec<f64> {
-    values.into_iter().map(|v| v.unwrap_or(f64::NAN)).collect()
 }
 
 #[wasm_bindgen]
@@ -571,8 +567,29 @@ macro_rules! wasm_scalar_indicator {
                 self.inner.update(value)
             }
             pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-                let out = flatten(self.inner.batch(prices));
-                Float64Array::from(out.as_slice())
+                Float64Array::from(self.inner.batch_nan(prices).as_slice())
+            }
+            /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+            /// agrees with `batch` to within a few units in the last place rather than bit for
+            /// bit; NaN placement and length are identical, and the result is the same on
+            /// every platform. Without a kernel it is exactly `batch`.
+            #[wasm_bindgen(js_name = batchFast)]
+            pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+                Float64Array::from(self.inner.batch_fast(prices).as_slice())
+            }
+            /// `batch` into a caller `Float64Array` exactly as long as the input.
+            #[wasm_bindgen(js_name = batchInto)]
+            pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+                check_rows(out, prices.len())?;
+                self.inner.batch_nan_into(prices, out);
+                Ok(())
+            }
+            /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+            #[wasm_bindgen(js_name = batchFastInto)]
+            pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+                check_rows(out, prices.len())?;
+                self.inner.batch_fast_into(prices, out);
+                Ok(())
             }
             pub fn reset(&mut self) { self.inner.reset(); }
             pub fn name(&self) -> String { self.inner.name().to_string() }
@@ -1086,6 +1103,48 @@ wasm_pair_indicator!(
     "PearsonCorrelation",
     wc::PearsonCorrelation
 );
+
+#[wasm_bindgen(js_class = PearsonCorrelation)]
+impl WasmPearsonCorrelation {
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, x: &[f64], y: &[f64]) -> Result<Float64Array, JsError> {
+        if x.len() != y.len() {
+            return Err(JsError::new("x and y must be equal length"));
+        }
+        let mut out = vec![0.0; x.len()];
+        self.inner.batch_pairs_fast_into(x, y, &mut out);
+        Ok(Float64Array::from(out.as_slice()))
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, x: &[f64], y: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        if x.len() != y.len() {
+            return Err(JsError::new("x and y must be equal length"));
+        }
+        check_rows(out, x.len())?;
+        self.inner.batch_pairs_into(x, y, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(
+        &mut self,
+        x: &[f64],
+        y: &[f64],
+        out: &mut [f64],
+    ) -> Result<(), JsError> {
+        if x.len() != y.len() {
+            return Err(JsError::new("x and y must be equal length"));
+        }
+        check_rows(out, x.len())?;
+        self.inner.batch_pairs_fast_into(x, y, out);
+        Ok(())
+    }
+}
 wasm_pair_indicator!(WasmBeta, "Beta", wc::Beta);
 wasm_pair_indicator!(WasmPairwiseBeta, "PairwiseBeta", wc::PairwiseBeta);
 wasm_pair_indicator!(
@@ -1594,8 +1653,29 @@ impl WasmKama {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let out = flatten(self.inner.batch(prices));
-        Float64Array::from(out.as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -1644,16 +1724,33 @@ impl WasmMacd {
     /// Returns a flat `Float64Array` of length `3 * n`: `[macd0, sig0, hist0, macd1, sig1, hist1, ...]`.
     /// Use `result[3*i + 0/1/2]` to read each column. Warmup positions are NaN.
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let n = prices.len();
-        let mut out = vec![f64::NAN; n * 3];
-        for (i, p) in prices.iter().enumerate() {
-            if let Some(o) = self.inner.update(*p) {
-                out[i * 3] = o.macd;
-                out[i * 3 + 1] = o.signal;
-                out[i * 3 + 2] = o.histogram;
-            }
-        }
+        let mut out = vec![0.0; prices.len() * 3];
+        self.inner.batch_macd_into(prices, &mut out);
         Float64Array::from(out.as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each field
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        let mut out = vec![0.0; prices.len() * 3];
+        self.inner.batch_macd_fast_into(prices, &mut out);
+        Float64Array::from(out.as_slice())
+    }
+    /// `batch` into a caller `Float64Array` of `3 * n` values.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len() * 3)?;
+        self.inner.batch_macd_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` of `3 * n` values.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len() * 3)?;
+        self.inner.batch_macd_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -1703,17 +1800,33 @@ impl WasmBb {
     }
     /// Returns `[u0, m0, l0, sd0, u1, m1, l1, sd1, ...]`, length `4 * n`.
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let n = prices.len();
-        let mut out = vec![f64::NAN; n * 4];
-        for (i, p) in prices.iter().enumerate() {
-            if let Some(o) = self.inner.update(*p) {
-                out[i * 4] = o.upper;
-                out[i * 4 + 1] = o.middle;
-                out[i * 4 + 2] = o.lower;
-                out[i * 4 + 3] = o.stddev;
-            }
-        }
+        let mut out = vec![0.0; prices.len() * 4];
+        self.inner.batch_bands_into(prices, &mut out);
         Float64Array::from(out.as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each field
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        let mut out = vec![0.0; prices.len() * 4];
+        self.inner.batch_bands_fast_into(prices, &mut out);
+        Float64Array::from(out.as_slice())
+    }
+    /// `batch` into a caller `Float64Array` of `4 * n` values.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len() * 4)?;
+        self.inner.batch_bands_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` of `4 * n` values.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len() * 4)?;
+        self.inner.batch_bands_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -1735,6 +1848,17 @@ impl WasmBb {
 }
 
 // ---------- Candle-input indicators ----------
+
+/// A caller output buffer must hold exactly `rows` values.
+fn check_rows(out: &[f64], rows: usize) -> Result<(), JsError> {
+    if out.len() != rows {
+        return Err(JsError::new(&format!(
+            "the output must hold {rows} values, got {}",
+            out.len()
+        )));
+    }
+    Ok(())
+}
 
 fn make_candle(h: f64, l: f64, c: f64, v: f64) -> Result<wc::Candle, JsError> {
     wc::Candle::new(c, h, l, c, v, 0).map_err(map_err)
@@ -1986,15 +2110,86 @@ impl WasmAtr {
         low: &[f64],
         close: &[f64],
     ) -> Result<Float64Array, JsError> {
-        if high.len() != low.len() || low.len() != close.len() {
+        let n = high.len();
+        if low.len() != n || close.len() != n {
             return Err(JsError::new("high, low, close must be equal length"));
         }
-        let mut out = Vec::with_capacity(high.len());
-        for i in 0..high.len() {
-            let c = make_candle(high[i], low[i], close[i], 0.0)?;
-            out.push(self.inner.update(c).unwrap_or(f64::NAN));
+        // Every bar is validated first, as `update` would build it, so a bad
+        // bar is refused before the indicator consumes anything.
+        for i in 0..n {
+            make_candle(high[i], low[i], close[i], 0.0)?;
         }
+        let mut out = vec![0.0; n];
+        self.inner.batch_atr_into(high, low, close, &mut out);
         Ok(Float64Array::from(out.as_slice()))
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+    ) -> Result<Float64Array, JsError> {
+        let n = high.len();
+        if low.len() != n || close.len() != n {
+            return Err(JsError::new("high, low, close must be equal length"));
+        }
+        // Every bar is validated first, as `update` would build it, so a bad
+        // bar is refused before the indicator consumes anything.
+        for i in 0..n {
+            make_candle(high[i], low[i], close[i], 0.0)?;
+        }
+        let mut out = vec![0.0; n];
+        self.inner.batch_atr_fast_into(high, low, close, &mut out);
+        Ok(Float64Array::from(out.as_slice()))
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        out: &mut [f64],
+    ) -> Result<(), JsError> {
+        let n = high.len();
+        if low.len() != n || close.len() != n {
+            return Err(JsError::new("high, low, close must be equal length"));
+        }
+        // Every bar is validated first, as `update` would build it, so a bad
+        // bar is refused before the indicator consumes anything.
+        for i in 0..n {
+            make_candle(high[i], low[i], close[i], 0.0)?;
+        }
+        check_rows(out, n)?;
+        self.inner.batch_atr_into(high, low, close, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        out: &mut [f64],
+    ) -> Result<(), JsError> {
+        let n = high.len();
+        if low.len() != n || close.len() != n {
+            return Err(JsError::new("high, low, close must be equal length"));
+        }
+        // Every bar is validated first, as `update` would build it, so a bad
+        // bar is refused before the indicator consumes anything.
+        for i in 0..n {
+            make_candle(high[i], low[i], close[i], 0.0)?;
+        }
+        check_rows(out, n)?;
+        self.inner.batch_atr_fast_into(high, low, close, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -4001,12 +4196,94 @@ impl WasmChaikinOscillator {
                 "high, low, close, volume must be equal length",
             ));
         }
-        let mut out = Vec::with_capacity(n);
+        // Every bar is validated first, as `update` would build it, so a bad
+        // bar is refused before the indicator consumes anything.
         for i in 0..n {
-            let c = make_candle(high[i], low[i], close[i], volume[i])?;
-            out.push(self.inner.update(c).unwrap_or(f64::NAN));
+            make_candle(high[i], low[i], close[i], volume[i])?;
         }
+        let mut out = vec![0.0; n];
+        self.inner
+            .batch_hlcv_into(high, low, close, volume, &mut out);
         Ok(Float64Array::from(out.as_slice()))
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+    ) -> Result<Float64Array, JsError> {
+        let n = high.len();
+        if low.len() != n || close.len() != n || volume.len() != n {
+            return Err(JsError::new(
+                "high, low, close, volume must be equal length",
+            ));
+        }
+        // Every bar is validated first, as `update` would build it, so a bad
+        // bar is refused before the indicator consumes anything.
+        for i in 0..n {
+            make_candle(high[i], low[i], close[i], volume[i])?;
+        }
+        let mut out = vec![0.0; n];
+        self.inner
+            .batch_hlcv_fast_into(high, low, close, volume, &mut out);
+        Ok(Float64Array::from(out.as_slice()))
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+        out: &mut [f64],
+    ) -> Result<(), JsError> {
+        let n = high.len();
+        if low.len() != n || close.len() != n || volume.len() != n {
+            return Err(JsError::new(
+                "high, low, close, volume must be equal length",
+            ));
+        }
+        // Every bar is validated first, as `update` would build it, so a bad
+        // bar is refused before the indicator consumes anything.
+        for i in 0..n {
+            make_candle(high[i], low[i], close[i], volume[i])?;
+        }
+        check_rows(out, n)?;
+        self.inner.batch_hlcv_into(high, low, close, volume, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+        out: &mut [f64],
+    ) -> Result<(), JsError> {
+        let n = high.len();
+        if low.len() != n || close.len() != n || volume.len() != n {
+            return Err(JsError::new(
+                "high, low, close, volume must be equal length",
+            ));
+        }
+        // Every bar is validated first, as `update` would build it, so a bad
+        // bar is refused before the indicator consumes anything.
+        for i in 0..n {
+            make_candle(high[i], low[i], close[i], volume[i])?;
+        }
+        check_rows(out, n)?;
+        self.inner
+            .batch_hlcv_fast_into(high, low, close, volume, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -4350,8 +4627,29 @@ impl WasmAnchoredRsi {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let out = flatten(self.inner.batch(prices));
-        Float64Array::from(out.as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -5219,8 +5517,29 @@ impl WasmPercentageTrailingStop {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let out = flatten(self.inner.batch(prices));
-        Float64Array::from(out.as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -5258,8 +5577,29 @@ impl WasmStepTrailingStop {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let out = flatten(self.inner.batch(prices));
-        Float64Array::from(out.as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -5297,8 +5637,29 @@ impl WasmRenkoTrailingStop {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let out = flatten(self.inner.batch(prices));
-        Float64Array::from(out.as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -7410,7 +7771,29 @@ impl WasmHtDcPhase {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        Float64Array::from(flatten(self.inner.batch(prices)).as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -7447,7 +7830,29 @@ impl WasmHtTrendMode {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        Float64Array::from(flatten(self.inner.batch(prices)).as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -7484,7 +7889,29 @@ impl WasmHilbertDominantCycle {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        Float64Array::from(flatten(self.inner.batch(prices)).as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -7521,7 +7948,29 @@ impl WasmAdaptiveCycle {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        Float64Array::from(flatten(self.inner.batch(prices)).as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -7558,7 +8007,29 @@ impl WasmSineWave {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        Float64Array::from(flatten(self.inner.batch(prices)).as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn lead(&self) -> f64 {
         self.inner.lead()
@@ -16453,8 +16924,29 @@ impl WasmRecoveryFactor {
         self.inner.update(value)
     }
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let out = flatten(self.inner.batch(prices));
-        Float64Array::from(out.as_slice())
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
