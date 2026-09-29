@@ -127,6 +127,9 @@ impl Candle {
     /// # Panics
     ///
     /// Panics if the columns differ in length.
+    // `&` rather than `&&` on purpose: every rule is evaluated for every bar,
+    // which is what lets the fold vectorize instead of branching.
+    #[allow(clippy::needless_bitwise_bool)]
     pub fn all_valid(
         open: &[f64],
         high: &[f64],
