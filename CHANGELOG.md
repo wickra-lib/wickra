@@ -44,7 +44,8 @@ definition (see Fixed).
   MACD, Bollinger and every other multi-output indicator), `BatchInto(dst, ...)` / `BatchFastInto` in Go,
   `batchInto` / `batchFastInto` in Java over arrays and over native
   `MemorySegment`s (handed to the C ABI without a copy, after checking they are
-  off-heap, equally long and aligned), and `batchInto` / `batchFastInto` into a
+  off-heap, equally long and aligned; a multi-output indicator's rows are laid
+  out flat, MACD three doubles per input), and `batchInto` / `batchFastInto` into a
   `Float64Array` in Node and WASM. C# allocating batches use
   `GC.AllocateUninitializedArray`, since the native side writes every element.
 - **Node batches take a `Float64Array`,** read in place without a copy, as well
@@ -115,6 +116,14 @@ definition (see Fixed).
   out like the native struct, so the native side fills the result directly
   instead of an intermediate array copied row by row (MACD batch 170 -> 400
   million updates per second, 638 into a reused span).
+- **Java: streaming updates, 3-8x faster.** The library is loaded into the
+  global arena instead of a shared one (a downcall into a library of a
+  closeable arena acquires and releases it around every call, 6 of 9 ns); each
+  indicator holds its update handle as a static final, linked critical (no
+  thread-state transition, valid for a short native call that never calls back);
+  and a multi-output update writes into a buffer allocated once per instance
+  instead of opening an arena per call (SMA 60 -> 233, ATR 51 -> 155, MACD
+  12 -> 104 million updates per second).
 - **Node ATR and Chaikin batches validate every bar before consuming any,**
   where they used to fail part-way with the state advanced; the same holds for
   WASM, and for the Python Chaikin batch.

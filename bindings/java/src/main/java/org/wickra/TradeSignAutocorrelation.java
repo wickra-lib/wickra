@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class TradeSignAutocorrelation implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_TRADE_SIGN_AUTOCORRELATION_UPDATE;
 
     public TradeSignAutocorrelation(int period) {
         if (period < 0) {
@@ -35,7 +37,7 @@ public final class TradeSignAutocorrelation implements AutoCloseable {
     /** Push one observation; returns the indicator value (NaN during warmup). */
     public double update(double price, double size, boolean isBuy, long timestamp) {
         try {
-            return (double) NativeMethods.WICKRA_TRADE_SIGN_AUTOCORRELATION_UPDATE.invokeExact(handle(), price, size, (byte) (isBuy ? 1 : 0), timestamp);
+            return (double) UPDATE.invokeExact(handle(), price, size, (byte) (isBuy ? 1 : 0), timestamp);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class McClellanSummationIndex implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_MC_CLELLAN_SUMMATION_INDEX_UPDATE;
 
     public McClellanSummationIndex() {
         MemorySegment h;
@@ -53,7 +55,7 @@ public final class McClellanSummationIndex implements AutoCloseable {
             MemorySegment newLowSeg = WickraNative.boolSegment(a, newLow);
             MemorySegment aboveMaSeg = WickraNative.boolSegment(a, aboveMa);
             MemorySegment onBuySignalSeg = WickraNative.boolSegment(a, onBuySignal);
-            return (double) NativeMethods.WICKRA_MC_CLELLAN_SUMMATION_INDEX_UPDATE.invokeExact(handle(), changeSeg, volumeSeg, newHighSeg, newLowSeg, aboveMaSeg, onBuySignalSeg, (long) change.length, timestamp);
+            return (double) UPDATE.invokeExact(handle(), changeSeg, volumeSeg, newHighSeg, newLowSeg, aboveMaSeg, onBuySignalSeg, (long) change.length, timestamp);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

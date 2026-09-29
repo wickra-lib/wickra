@@ -106,6 +106,17 @@ try (Ema fast = new Ema(20); Arena arena = Arena.ofConfined()) {
 Segments must be off-heap, aligned for their element type and all hold the same
 number of elements; anything else throws `IllegalArgumentException`.
 
+A multi-output indicator's `batchInto` writes its rows flat, one row of the
+record's components per input — `MacdIndicator` three doubles (`macd`, `signal`,
+`histogram`), so the buffer holds `3 * n` — without allocating the records:
+
+```java
+double[] rows = new double[prices.length * 3];
+try (MacdIndicator macd = new MacdIndicator(12, 26, 9)) {
+    macd.batchInto(prices, rows);      // rows[3 * i + 1] is the signal line at i
+}
+```
+
 `batchFast` runs a SIMD kernel where the indicator has one (moving averages,
 RSI, ATR, MACD, Bollinger, Chaikin, skewness, Pearson and more). The kernel
 reassociates the arithmetic, so each value agrees with `batch` to within a few

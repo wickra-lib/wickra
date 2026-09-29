@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class ElderImpulse implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_ELDER_IMPULSE_UPDATE;
 
     public ElderImpulse(int emaPeriod, int macdFast, int macdSlow, int macdSignal) {
         if (emaPeriod < 0) {
@@ -44,7 +46,7 @@ public final class ElderImpulse implements AutoCloseable {
     /** Push one observation; returns the indicator value (NaN during warmup). */
     public double update(double value) {
         try {
-            return (double) NativeMethods.WICKRA_ELDER_IMPULSE_UPDATE.invokeExact(handle(), value);
+            return (double) UPDATE.invokeExact(handle(), value);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

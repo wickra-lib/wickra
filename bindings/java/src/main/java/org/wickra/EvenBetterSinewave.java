@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class EvenBetterSinewave implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_EVEN_BETTER_SINEWAVE_UPDATE;
 
     public EvenBetterSinewave(int hpPeriod, int ssfLength) {
         if (hpPeriod < 0) {
@@ -38,7 +40,7 @@ public final class EvenBetterSinewave implements AutoCloseable {
     /** Push one observation; returns the indicator value (NaN during warmup). */
     public double update(double value) {
         try {
-            return (double) NativeMethods.WICKRA_EVEN_BETTER_SINEWAVE_UPDATE.invokeExact(handle(), value);
+            return (double) UPDATE.invokeExact(handle(), value);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

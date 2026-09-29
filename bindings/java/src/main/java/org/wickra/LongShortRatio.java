@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class LongShortRatio implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_LONG_SHORT_RATIO_UPDATE;
 
     public LongShortRatio() {
         MemorySegment h;
@@ -32,7 +34,7 @@ public final class LongShortRatio implements AutoCloseable {
     /** Push one observation; returns the indicator value (NaN during warmup). */
     public double update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp) {
         try {
-            return (double) NativeMethods.WICKRA_LONG_SHORT_RATIO_UPDATE.invokeExact(handle(), fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+            return (double) UPDATE.invokeExact(handle(), fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

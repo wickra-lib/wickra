@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class OrderBookImbalanceTopN implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_ORDER_BOOK_IMBALANCE_TOP_N_UPDATE;
 
     public OrderBookImbalanceTopN(int levels) {
         if (levels < 0) {
@@ -45,7 +47,7 @@ public final class OrderBookImbalanceTopN implements AutoCloseable {
             MemorySegment bidSizeSeg = a.allocateFrom(JAVA_DOUBLE, bidSize);
             MemorySegment askPriceSeg = a.allocateFrom(JAVA_DOUBLE, askPrice);
             MemorySegment askSizeSeg = a.allocateFrom(JAVA_DOUBLE, askSize);
-            return (double) NativeMethods.WICKRA_ORDER_BOOK_IMBALANCE_TOP_N_UPDATE.invokeExact(handle(), bidPriceSeg, bidSizeSeg, (long) bidPrice.length, askPriceSeg, askSizeSeg, (long) askPrice.length);
+            return (double) UPDATE.invokeExact(handle(), bidPriceSeg, bidSizeSeg, (long) bidPrice.length, askPriceSeg, askSizeSeg, (long) askPrice.length);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class HomingPigeon implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_HOMING_PIGEON_UPDATE;
 
     public HomingPigeon() {
         MemorySegment h;
@@ -32,7 +34,7 @@ public final class HomingPigeon implements AutoCloseable {
     /** Push one observation; returns the indicator value (NaN during warmup). */
     public double update(double open, double high, double low, double close, double volume, long timestamp) {
         try {
-            return (double) NativeMethods.WICKRA_HOMING_PIGEON_UPDATE.invokeExact(handle(), open, high, low, close, volume, timestamp);
+            return (double) UPDATE.invokeExact(handle(), open, high, low, close, volume, timestamp);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

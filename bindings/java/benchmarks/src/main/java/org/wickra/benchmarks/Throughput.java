@@ -27,7 +27,7 @@ import org.wickra.Sma;
  *
  * <p>Three indicators are timed, chosen by FFI call-signature archetype rather
  * than algorithm: SMA (1-in -&gt; 1-out), ATR (multi-in -&gt; 1-out), and MACD
- * (1-in -&gt; multi-out, whose batches return records and have no Into form).
+ * (1-in -&gt; multi-out, whose into forms write three doubles per input).
  *
  * <p>Install the binding and build the C ABI library first, then run from the
  * repo root:
@@ -85,6 +85,8 @@ public final class Throughput {
             MemorySegment volumeSeg = arena.allocateFrom(JAVA_DOUBLE, volume);
             MemorySegment timestampSeg = arena.allocateFrom(JAVA_LONG, timestamp);
             MemorySegment outSeg = arena.allocate(JAVA_DOUBLE, n);
+            double[] macdOut = new double[n * 3];
+            MemorySegment macdOutSeg = arena.allocate(JAVA_DOUBLE, n * 3L);
 
             // SMA (scalar 1-in/1-out), ATR (multi-in/1-out), MACD (1-in/multi-out).
             Indicator[] indicators = {
@@ -134,9 +136,9 @@ public final class Throughput {
                     },
                     () -> { try (MacdIndicator ind = new MacdIndicator(12, 26, 9)) { ind.batch(close); } },
                     () -> { try (MacdIndicator ind = new MacdIndicator(12, 26, 9)) { ind.batchFast(close); } },
-                    null,
-                    null,
-                    null,
+                    () -> { try (MacdIndicator ind = new MacdIndicator(12, 26, 9)) { ind.batchInto(close, macdOut); } },
+                    () -> { try (MacdIndicator ind = new MacdIndicator(12, 26, 9)) { ind.batchInto(closeSeg, macdOutSeg); } },
+                    () -> { try (MacdIndicator ind = new MacdIndicator(12, 26, 9)) { ind.batchFastInto(closeSeg, macdOutSeg); } },
                 }),
             };
 

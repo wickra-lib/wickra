@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class DepthSlope implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_DEPTH_SLOPE_UPDATE;
 
     public DepthSlope() {
         MemorySegment h;
@@ -42,7 +44,7 @@ public final class DepthSlope implements AutoCloseable {
             MemorySegment bidSizeSeg = a.allocateFrom(JAVA_DOUBLE, bidSize);
             MemorySegment askPriceSeg = a.allocateFrom(JAVA_DOUBLE, askPrice);
             MemorySegment askSizeSeg = a.allocateFrom(JAVA_DOUBLE, askSize);
-            return (double) NativeMethods.WICKRA_DEPTH_SLOPE_UPDATE.invokeExact(handle(), bidPriceSeg, bidSizeSeg, (long) bidPrice.length, askPriceSeg, askSizeSeg, (long) askPrice.length);
+            return (double) UPDATE.invokeExact(handle(), bidPriceSeg, bidSizeSeg, (long) bidPrice.length, askPriceSeg, askSizeSeg, (long) askPrice.length);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,9 @@ public final class DoubleBollinger implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_DOUBLE_BOLLINGER_UPDATE;
+    /** Where update receives its result, allocated once. */
+    private final MemorySegment updateOut = Arena.ofAuto().allocate(40L);
 
     public DoubleBollinger(int period, double kInner, double kOuter) {
         if (period < 0) {
@@ -34,9 +38,9 @@ public final class DoubleBollinger implements AutoCloseable {
 
     /** Push one observation; returns the result, or null during warmup. */
     public DoubleBollingerOutput update(double value) {
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment out = a.allocate(40L);
-            byte ok = (byte) NativeMethods.WICKRA_DOUBLE_BOLLINGER_UPDATE.invokeExact(handle(), value, out);
+        try {
+            MemorySegment out = updateOut;
+            byte ok = (byte) UPDATE.invokeExact(handle(), value, out);
             if (ok == 0) {
                 return null;
             }
@@ -74,6 +78,52 @@ public final class DoubleBollinger implements AutoCloseable {
                         outSeg.get(JAVA_DOUBLE, i * 40L + 32L));
             }
             return out;
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * The batch into a flat buffer of
+     * 5 doubles per input, one row per input in the order of {@link DoubleBollingerOutput}'s
+     * components (NaN rows during warmup), without allocating the records.
+     * 
+     * <p>{@code output} must hold 5 values per input.
+     */
+    public void batchInto(double[] input, double[] output) {
+        int n = input.length;
+        if (output.length != (long) n * 5) {
+            throw new IllegalArgumentException("the output array must hold 5 values per input");
+        }
+        try (Arena a = Arena.ofConfined()) {
+            MemorySegment inputSeg = a.allocateFrom(JAVA_DOUBLE, input);
+            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, output.length);
+            NativeMethods.WICKRA_DOUBLE_BOLLINGER_BATCH.invokeExact(handle(), inputSeg, outSeg, (long) n);
+            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, output.length);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * The batch into a flat buffer of
+     * 5 doubles per input, one row per input in the order of {@link DoubleBollingerOutput}'s
+     * components (NaN rows during warmup), without allocating the records.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every input segment must be
+     * off-heap, aligned for its element type and hold the same number of elements,
+     * {@code output} 5 doubles per input. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment input, MemorySegment output) {
+        long n = input.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(input, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n * 5);
+        try {
+            NativeMethods.WICKRA_DOUBLE_BOLLINGER_BATCH.invokeExact(handle(), input, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

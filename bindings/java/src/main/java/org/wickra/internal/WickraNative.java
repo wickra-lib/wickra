@@ -43,7 +43,11 @@ public final class WickraNative {
 
     static final Cleaner CLEANER = Cleaner.create();
     private static final Linker LINKER = Linker.nativeLinker();
-    private static final Arena LIB_ARENA = Arena.ofShared();
+    // The global arena, not a shared one: the library is never unloaded either
+    // way, but a downcall into a library of a closeable arena acquires and
+    // releases that arena around every call to keep it loaded -- 6 of the 9 ns
+    // a streaming update took.
+    private static final Arena LIB_ARENA = Arena.global();
     private static final SymbolLookup LOOKUP = loadLibrary();
 
     /** Build a downcall handle for one C function. Internal use by the generated code. */
@@ -51,6 +55,18 @@ public final class WickraNative {
         MemorySegment symbol = LOOKUP.find(name)
                 .orElseThrow(() -> new UnsatisfiedLinkError("wickra: missing symbol " + name));
         return LINKER.downcallHandle(symbol, descriptor);
+    }
+
+    /**
+     * A downcall handle for a per-tick {@code _update} function, linked as
+     * critical: no thread-state transition around the call, which halves its
+     * cost. Valid because an update is short, never calls back into Java and is
+     * passed only native memory; the garbage collector waits for it to return.
+     */
+    public static MethodHandle downcallCritical(String name, FunctionDescriptor descriptor) {
+        MemorySegment symbol = LOOKUP.find(name)
+                .orElseThrow(() -> new UnsatisfiedLinkError("wickra: missing symbol " + name));
+        return LINKER.downcallHandle(symbol, descriptor, Linker.Option.critical(false));
     }
 
     /**
