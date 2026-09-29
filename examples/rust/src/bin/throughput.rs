@@ -17,7 +17,7 @@
 use std::time::Instant;
 
 use std::hint::black_box;
-use wickra::{Atr, BatchNanExt, Candle, Indicator, MacdIndicator, Sma};
+use wickra::{Atr, Candle, Indicator, MacdIndicator, Sma};
 
 /// Median elapsed-ns over a few repetitions, after one warmup pass.
 fn time_ns(mut run: impl FnMut()) -> u128 {
@@ -70,7 +70,10 @@ fn main() {
         .collect();
 
     // SMA (scalar 1-in/1-out), ATR (multi-in/1-out), MACD (1-in/multi-out).
-    // Every batch allocates its result, as a caller of `batch` gets it.
+    // Every batch writes into a buffer reused across runs, as the C ABI's
+    // callers do, so the table is the ceiling rather than an allocator test.
+    let mut out = vec![0.0; bars];
+    let mut rows = vec![0.0; bars * 3];
     let sma_stream = time_ns(|| {
         let mut ind = Sma::new(20).unwrap();
         for &price in &close {
@@ -79,11 +82,13 @@ fn main() {
     });
     let sma_batch = time_ns(|| {
         let mut ind = Sma::new(20).unwrap();
-        black_box(ind.batch_nan(&close));
+        ind.batch_nan_into(&close, &mut out);
+        black_box(&out);
     });
     let sma_fast = time_ns(|| {
         let mut ind = Sma::new(20).unwrap();
-        black_box(ind.batch_fast(&close));
+        ind.batch_fast_into(&close, &mut out);
+        black_box(&out);
     });
     let atr_stream = time_ns(|| {
         let mut ind = Atr::new(14).unwrap();
@@ -93,11 +98,13 @@ fn main() {
     });
     let atr_batch = time_ns(|| {
         let mut ind = Atr::new(14).unwrap();
-        black_box(ind.batch_atr(&high, &low, &close));
+        ind.batch_atr_into(&high, &low, &close, &mut out);
+        black_box(&out);
     });
     let atr_fast = time_ns(|| {
         let mut ind = Atr::new(14).unwrap();
-        black_box(ind.batch_atr_fast(&high, &low, &close));
+        ind.batch_atr_fast_into(&high, &low, &close, &mut out);
+        black_box(&out);
     });
     let macd_stream = time_ns(|| {
         let mut ind = MacdIndicator::new(12, 26, 9).unwrap();
@@ -107,11 +114,13 @@ fn main() {
     });
     let macd_batch = time_ns(|| {
         let mut ind = MacdIndicator::new(12, 26, 9).unwrap();
-        black_box(ind.batch_macd(&close));
+        ind.batch_macd_into(&close, &mut rows);
+        black_box(&rows);
     });
     let macd_fast = time_ns(|| {
         let mut ind = MacdIndicator::new(12, 26, 9).unwrap();
-        black_box(ind.batch_macd_fast(&close));
+        ind.batch_macd_fast_into(&close, &mut rows);
+        black_box(&rows);
     });
 
     report(
