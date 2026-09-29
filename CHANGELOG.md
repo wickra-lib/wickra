@@ -132,6 +132,12 @@ definition (see Fixed).
   second). wasm-pack leaves the helper's `snippets/` out of the package's
   `files`; the release adds it, and CI now loads the module from its packed
   tarball, the way npm ships it.
+- **R: native routines resolved once.** `.Call` given a routine's name searches
+  the DLL's registration table (thousands of entries) on every call, 11 us of
+  the 12.8 us a streaming `update` took. Every method now calls a routine
+  resolved once and cached, and `update` reads its fields with `.subset2`,
+  since `$` on a classed object first looks for a method (update 12.8 -> 3.2
+  us; what is left is R's own S3 dispatch of `update`).
 - **Node ATR and Chaikin batches validate every bar before consuming any,**
   where they used to fail part-way with the state advanced; the same holds for
   WASM, and for the Python Chaikin batch.

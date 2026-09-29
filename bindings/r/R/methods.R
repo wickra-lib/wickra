@@ -27,12 +27,47 @@
 #' v # 4
 #' @export
 update.wickra_indicator <- function(object, ...) {
-  args <- list(object$ptr, ...)
-  if (!is.na(object$values_cap)) {
-    args <- c(args, object$values_cap)
+  # `.subset2` rather than `$`: on a classed object every `$` first looks for a
+  # `$` method, which cost more per tick than the rest of this function.
+  prefix <- .subset2(object, "prefix")
+  routine <- .wk_update_routines[[prefix]]
+  if (is.null(routine)) {
+    routine <- .wk_update_routine(prefix)
   }
-  do.call(".Call", c(list(paste0("wk_", object$prefix, "_update")), args,
-                     list(PACKAGE = "wickra")))
+  cap <- .subset2(object, "values_cap")
+  if (is.na(cap)) {
+    .Call(routine, .subset2(object, "ptr"), ...)
+  } else {
+    .Call(routine, .subset2(object, "ptr"), ..., cap)
+  }
+}
+
+# Native routines, resolved once. `.Call` given a routine's name searches the
+# DLL's registration table -- thousands of entries -- on every call: 11 us, some
+# 200 times the call itself, which made streaming `update` cost that much per
+# tick. A resolved routine is called directly.
+.wk_routines <- new.env(parent = emptyenv())
+
+.wk_routine <- function(name) {
+  routine <- .wk_routines[[name]]
+  if (is.null(routine)) {
+    routine <- getNativeSymbolInfo(name, PACKAGE = "wickra")
+    assign(name, routine, envir = .wk_routines)
+  }
+  routine
+}
+
+# `update` keyed by the indicator's prefix, so a tick does not pay for building
+# the routine's name either.
+.wk_update_routines <- new.env(parent = emptyenv())
+
+.wk_update_routine <- function(prefix) {
+  routine <- .wk_update_routines[[prefix]]
+  if (is.null(routine)) {
+    routine <- .wk_routine(paste0("wk_", prefix, "_update"))
+    assign(prefix, routine, envir = .wk_update_routines)
+  }
+  routine
 }
 
 #' Run an indicator over a whole series in one call
@@ -135,8 +170,8 @@ batch_call <- function(object, op, args) {
                    paste(sizes, collapse = ", ")), call. = FALSE)
     }
   }
-  do.call(".Call", c(list(paste0("wk_", object$prefix, "_", op), object$ptr),
-                     unname(args), list(PACKAGE = "wickra")))
+  do.call(.Call, c(list(.wk_routine(paste0("wk_", object$prefix, "_", op)), object$ptr),
+                   unname(args)))
 }
 
 #' Reset an indicator to its warmup state
@@ -155,7 +190,7 @@ reset <- function(object) {
 #' @rdname reset
 #' @export
 reset.wickra_indicator <- function(object) {
-  .Call(paste0("wk_", object$prefix, "_reset"), object$ptr, PACKAGE = "wickra")
+  .Call(.wk_routine(paste0("wk_", object$prefix, "_reset")), object$ptr)
   invisible(object)
 }
 
@@ -176,7 +211,7 @@ warmup_period <- function(object) {
 #' @rdname warmup_period
 #' @export
 warmup_period.wickra_indicator <- function(object) {
-  .Call(paste0("wk_", object$prefix, "_warmup_period"), object$ptr, PACKAGE = "wickra")
+  .Call(.wk_routine(paste0("wk_", object$prefix, "_warmup_period")), object$ptr)
 }
 
 #' Whether an indicator has consumed enough input to emit a value
@@ -198,7 +233,7 @@ is_ready <- function(object) {
 #' @rdname is_ready
 #' @export
 is_ready.wickra_indicator <- function(object) {
-  .Call(paste0("wk_", object$prefix, "_is_ready"), object$ptr, PACKAGE = "wickra")
+  .Call(.wk_routine(paste0("wk_", object$prefix, "_is_ready")), object$ptr)
 }
 
 #' Canonical name of an indicator
@@ -218,7 +253,7 @@ name <- function(object) {
 #' @rdname name
 #' @export
 name.wickra_indicator <- function(object) {
-  .Call(paste0("wk_", object$prefix, "_name"), object$ptr, PACKAGE = "wickra")
+  .Call(.wk_routine(paste0("wk_", object$prefix, "_name")), object$ptr)
 }
 
 #' Push one input into a streaming aggregator
@@ -252,12 +287,8 @@ push <- function(object, ...) {
 #' @export
 push.wickra_indicator <- function(object, ...) {
   out <- do.call(
-    ".Call",
-    c(
-      list(paste0("wk_", object$prefix, "_push"), object$ptr),
-      list(...),
-      list(PACKAGE = "wickra")
-    )
+    .Call,
+    c(list(.wk_routine(paste0("wk_", object$prefix, "_push")), object$ptr), list(...))
   )
   colnames(out) <- c("open", "high", "low", "close", "volume", "timestamp")
   out
@@ -278,7 +309,7 @@ push.wickra_indicator <- function(object, ...) {
 #' flush(r)
 #' @exportS3Method base::flush
 flush.wickra_indicator <- function(con) {
-  out <- .Call(paste0("wk_", con$prefix, "_flush"), con$ptr, PACKAGE = "wickra")
+  out <- .Call(.wk_routine(paste0("wk_", con$prefix, "_flush")), con$ptr)
   out
 }
 
@@ -300,7 +331,7 @@ read <- function(object) {
 #' @rdname read
 #' @export
 read.wickra_indicator <- function(object) {
-  out <- .Call(paste0("wk_", object$prefix, "_read"), object$ptr, PACKAGE = "wickra")
+  out <- .Call(.wk_routine(paste0("wk_", object$prefix, "_read")), object$ptr)
   colnames(out) <- c("open", "high", "low", "close", "volume", "timestamp")
   out
 }
