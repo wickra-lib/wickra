@@ -57,7 +57,11 @@ definition (see Fixed).
   the CPU has both, the portable build otherwise, with the same bits either way.
   `wickra-core` stays `#![forbid(unsafe_code)]`.
 - **`Candle::all_valid`** holds a set of OHLCV columns to the rules of
-  `Candle::new` as a branch-free fold; the C ABI's column batches use it.
+  `Candle::new` in eight branch-free lanes over fixed-size blocks, dispatched
+  to AVX2 where the CPU has it (0.57 ns a bar; a per-element check cost as much
+  as the ATR batch it guards). The C ABI's column batches use it, so ATR from
+  C, C#, Go, Java and R batches at 482 instead of 348 million bars a second,
+  772 instead of 471 with the fast batch.
 - **Tests:** an adversarial-input test replays all 149 scalar indicators of
   the fuzz list over nine hostile series (NaN, infinities, 1e150, flat, steps,
   subnormals, signed noise) and requires `batch_nan` to equal streaming bit for

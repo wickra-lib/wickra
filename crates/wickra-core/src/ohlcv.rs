@@ -120,16 +120,14 @@ impl Candle {
     /// low[i], close[i], volume[i])`: all finite, a non-negative volume, and
     /// `low <= open, close <= high`.
     ///
-    /// Each block of bars is folded without an early exit, so the check
-    /// vectorizes rather than branching once per rule per bar -- which is what
-    /// a batch over OHLCV columns spends most of its time on otherwise.
+    /// The bars are checked in eight independent lanes reduced at the end, with
+    /// no early exit and no branch per rule, inside a kernel compiled for AVX2
+    /// where the CPU has it: a batch over OHLCV columns otherwise spends as long
+    /// validating as computing.
     ///
     /// # Panics
     ///
     /// Panics if the columns differ in length.
-    // `&` rather than `&&` on purpose: every rule is evaluated for every bar,
-    // which is what lets the fold vectorize instead of branching.
-    #[allow(clippy::needless_bitwise_bool)]
     pub fn all_valid(
         open: &[f64],
         high: &[f64],
@@ -137,25 +135,17 @@ impl Candle {
         close: &[f64],
         volume: &[f64],
     ) -> bool {
-        const BLOCK: usize = 512;
         let n = open.len();
         assert!(
             high.len() == n && low.len() == n && close.len() == n && volume.len() == n,
             "every column must be equally long"
         );
-        (0..n).step_by(BLOCK).all(|start| {
-            let end = (start + BLOCK).min(n);
-            let bars = open[start..end]
-                .iter()
-                .zip(&high[start..end])
-                .zip(&low[start..end])
-                .zip(&close[start..end])
-                .zip(&volume[start..end]);
-            bars.fold(true, |ok, ((((&o, &h), &l), &c), &v)| {
-                let finite = o.is_finite() & h.is_finite() & l.is_finite() & c.is_finite();
-                let ordered = (h >= l) & (h >= o) & (h >= c) & (l <= o) & (l <= c);
-                ok & finite & v.is_finite() & (v >= 0.0) & ordered
-            })
+        wickra_simd::dispatch(AllValid {
+            open,
+            high: &high[..n],
+            low: &low[..n],
+            close: &close[..n],
+            volume: &volume[..n],
         })
     }
 
@@ -249,6 +239,68 @@ impl Tick {
     }
 }
 
+/// [`Candle::all_valid`] over equally long columns, as a dispatched kernel:
+/// compiled into its own function, it vectorizes the same whatever calls it,
+/// where inlined into a caller it did or did not depending on the caller.
+struct AllValid<'a> {
+    open: &'a [f64],
+    high: &'a [f64],
+    low: &'a [f64],
+    close: &'a [f64],
+    volume: &'a [f64],
+}
+
+// Inlining into the dispatching function is what compiles the body with its
+// features; see `wickra_simd::Kernel`. `&` rather than `&&` on purpose: every
+// rule is evaluated for every bar, which is what lets the loop vectorize
+// instead of branching.
+#[allow(clippy::inline_always, clippy::needless_bitwise_bool)]
+impl wickra_simd::Kernel for AllValid<'_> {
+    type Output = bool;
+
+    #[inline(always)]
+    fn run<S: wickra_simd::Simd>(self, _simd: S) -> bool {
+        const LANES: usize = 8;
+        // Whole blocks as fixed-size arrays: their length is in the type, so
+        // the loop carries no bounds check and vectorizes; indexing the slices
+        // directly kept a check per element, which no reslicing removed.
+        fn blocks(col: &[f64]) -> impl Iterator<Item = &[f64; LANES]> {
+            col.chunks_exact(LANES)
+                .map(|block| <&[f64; LANES]>::try_from(block).expect("a whole block"))
+        }
+        let (open, high, low, close, volume) =
+            (self.open, self.high, self.low, self.close, self.volume);
+        let n = open.len();
+        // `x * 0.0 == 0.0` is `x.is_finite()` -- false exactly for NaN and the
+        // infinities -- as a plain comparison, which vectorizes where
+        // `is_finite` did not.
+        let bar = |o: f64, h: f64, l: f64, c: f64, v: f64| {
+            let finite = (o * 0.0 == 0.0)
+                & (h * 0.0 == 0.0)
+                & (l * 0.0 == 0.0)
+                & (c * 0.0 == 0.0)
+                & (v * 0.0 == 0.0);
+            let ordered = (h >= l) & (h >= o) & (h >= c) & (l <= o) & (l <= c);
+            finite & (v >= 0.0) & ordered
+        };
+        let mut lanes = [true; LANES];
+        for ((((o, h), l), c), v) in blocks(open)
+            .zip(blocks(high))
+            .zip(blocks(low))
+            .zip(blocks(close))
+            .zip(blocks(volume))
+        {
+            for (k, lane) in lanes.iter_mut().enumerate() {
+                *lane &= bar(o[k], h[k], l[k], c[k], v[k]);
+            }
+        }
+        let full = n - n % LANES;
+        (full..n).fold(lanes.iter().all(|&ok| ok), |ok, i| {
+            ok & bar(open[i], high[i], low[i], close[i], volume[i])
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -278,7 +330,28 @@ mod tests {
                 "{o} {h} {l} {c} {v}"
             );
         }
-        // A long run of valid bars spans several blocks; one bad bar anywhere fails it.
+        // The same bars at every position of a 21-bar run of valid ones: every
+        // lane of the vector loop and every slot of its tail.
+        let fine = bars[0];
+        for &(o, h, l, c, v) in &bars {
+            let want = Candle::new(o, h, l, c, v, 0).is_ok();
+            for at in 0..21 {
+                let mut run = [fine; 21];
+                run[at] = (o, h, l, c, v);
+                let column = |pick: fn(&(f64, f64, f64, f64, f64)) -> f64| {
+                    run.iter().map(pick).collect::<Vec<_>>()
+                };
+                let got = Candle::all_valid(
+                    &column(|b| b.0),
+                    &column(|b| b.1),
+                    &column(|b| b.2),
+                    &column(|b| b.3),
+                    &column(|b| b.4),
+                );
+                assert_eq!(got, want, "bar {o} {h} {l} {c} {v} at {at}");
+            }
+        }
+        // A long run of valid bars; one bad bar anywhere fails it.
         let n = 1_300;
         let close: Vec<f64> = (0..n).map(|i| 100.0 + f64::from(i % 17)).collect();
         let high: Vec<f64> = close.iter().map(|c| c + 1.0).collect();
