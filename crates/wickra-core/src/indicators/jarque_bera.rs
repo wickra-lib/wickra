@@ -104,7 +104,9 @@ impl JarqueBera {
         if m2 == 0.0 {
             return 0.0;
         }
-        let skew = m3 / m2.powf(1.5);
+        // `m2^1.5` as `m2 * sqrt(m2)`, correctly rounded on every platform
+        // where `powf` is the platform libm's.
+        let skew = m3 / (m2 * m2.sqrt());
         let excess_kurt = m4 / (m2 * m2) - 3.0;
         (n / 6.0) * (skew * skew + excess_kurt * excess_kurt / 4.0)
     }

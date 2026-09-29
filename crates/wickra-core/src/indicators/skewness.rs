@@ -103,7 +103,10 @@ impl Indicator for Skewness {
             // A window with no dispersion has no defined shape; return 0.
             return Some(0.0);
         }
-        Some(m3 / m2.powf(1.5))
+        // `m2^1.5` as `m2 * sqrt(m2)`: `sqrt` is correctly rounded on every
+        // platform, where `powf` is the platform libm's and differs in the last
+        // bit between them -- and costs most of an update.
+        Some(m3 / (m2 * m2.sqrt()))
     }
 
     fn reset(&mut self) {

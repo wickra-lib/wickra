@@ -26,7 +26,6 @@ HtPhasor
 HtTrendMode
 HurstExponent
 InverseFisherTransform
-JarqueBera
 JumpIndicator
 LinRegAngle
 LogReturn
@@ -43,7 +42,6 @@ SampleEntropy
 ShannonEntropy
 SineWave
 SineWeightedMa
-Skewness
 SpreadHurst
 SuperSmoother
 Trendflex

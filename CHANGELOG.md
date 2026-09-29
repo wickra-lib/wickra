@@ -158,6 +158,13 @@ definition (see Fixed).
 
 ### Fixed
 
+- **Skewness and Jarque-Bera differed between platforms.** Both took `m2^1.5`
+  as `m2.powf(1.5)`, which is the platform libm's `pow` and differs in the last
+  bit between glibc, the MSVC runtime and macOS; they now compute
+  `m2 * m2.sqrt()`, correctly rounded everywhere, so the golden fixtures hold
+  them to 1e-12 like every IEEE-exact indicator instead of 1e-6. Values move
+  by at most two units in the last place, and Skewness streams 2.8x faster
+  (15.3 -> 5.5 ns per update), `pow` having been most of its cost.
 - **WMA's running sums drifted.** The weighted sum was updated as
   `W - S + period * x` and never recomputed, so rounding accumulated without
   bound: on 500,000 prices WMA(14) ended 6.4e-10 (relative) from its
