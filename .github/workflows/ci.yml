@@ -1036,6 +1036,42 @@ jobs:
             dotnet run --project "examples/csharp/$d" -c Release --no-build
           done
 
+      # The cross-library benchmark (bindings/csharp/cross-library) targets .NET
+      # 10, as QuanTAlib does. Build it so it cannot rot, and run its numerical
+      # cross-check, which fails when Wickra disagrees with TA-Lib or a two-pass
+      # reference. Linux only: the check is the same on every OS. Last in the
+      # job, so the extra SDK touches none of the steps above.
+      - name: Set up .NET 10 for the cross-library harness
+        if: runner.os == 'Linux'
+        id: setup_dotnet
+        continue-on-error: true
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Wait before .NET retry
+        if: runner.os == 'Linux' && steps.setup_dotnet.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::setup-dotnet failed (likely CDN flake), waiting 30s before retry..."
+          sleep 30
+
+      - name: Set up .NET 10 (retry)
+        if: runner.os == 'Linux' && steps.setup_dotnet.outcome == 'failure'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cross-library harness — build and verify against the other libraries
+        if: runner.os == 'Linux'
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 15
+          max_attempts: 2
+          retry_wait_seconds: 20
+          command: dotnet run -c Release --project bindings/csharp/cross-library -- verify
+          shell: bash
+
   go:
     name: Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

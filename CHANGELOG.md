@@ -65,6 +65,12 @@ definition (see Fixed).
   same check for the candles a high/low/close series builds (open = close, no
   volume); the Python, Node and WASM high/low/close batches validate with it,
   and walk the bars one by one only to name a bad one.
+- **A .NET cross-library benchmark** (`bindings/csharp/cross-library`): Wickra
+  against QuanTAlib, TA-Lib, Skender and OoplesFinance on QuanTAlib's own setup
+  (500,000 GBM bars, period 220, BenchmarkDotNet), timing Wickra's allocating
+  batch, its batch and fast batch into a `Span`, and streaming. Its `verify`
+  mode checks the libraries agree before their times are compared; CI runs it
+  and fails if Wickra disagrees with TA-Lib or a two-pass reference.
 - **Tests:** an adversarial-input test replays all 149 scalar indicators of
   the fuzz list over nine hostile series (NaN, infinities, 1e150, flat, steps,
   subnormals, signed noise) and requires `batch_nan` to equal streaming bit for
