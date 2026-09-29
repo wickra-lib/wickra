@@ -56,6 +56,24 @@ for price in live_feed:
 `batch(prices)` and feeding the same prices through `update()` produce
 identical values — the equivalence is enforced by the test suite.
 
+### The opt-in fast batch
+
+Every single-output indicator (and MACD, Bollinger Bands, ATR, the Chaikin
+oscillator and Pearson correlation) also has `batch_fast`, with the same
+arguments and the same return shape:
+
+```python
+values = ta.EMA(20).batch_fast(prices)
+```
+
+It runs a SIMD kernel where the indicator has one (moving averages, RSI, ATR,
+MACD, Bollinger, Chaikin, skewness, Pearson and more). The kernel reassociates
+the arithmetic, so each value agrees with `batch` to within a few units in the
+last place rather than bit for bit; NaN placement and length are identical, and
+the result is the same on every platform. Where there is no kernel,
+`batch_fast` is `batch` exactly. Use `batch` when you need reproducible bits
+against streaming; use `batch_fast` for throughput.
+
 ## Benchmark
 
 Two benchmarks ship with the binding:
