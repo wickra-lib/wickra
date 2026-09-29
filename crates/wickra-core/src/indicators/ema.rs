@@ -34,7 +34,14 @@ pub struct Ema {
     current: f64,
     /// Whether `current` holds a real value yet (warmup complete).
     seeded: bool,
-    warmup_buf: Vec<f64>,
+    /// Running sum of the warmup inputs, the numerator of the seed mean. It
+    /// starts at `-0.0`, the neutral element `f64::sum` folds from, and adds in
+    /// input order, so the seed is bit-for-bit the mean a buffered
+    /// `iter().sum()` would give — without a heap buffer that would keep the
+    /// state out of registers on the per-tick path.
+    warmup_sum: f64,
+    /// Number of warmup inputs taken so far (saturates at `period` on seeding).
+    warmup_count: usize,
 }
 
 impl Ema {
@@ -59,7 +66,8 @@ impl Ema {
             one_minus_alpha: 1.0 - alpha,
             current: 0.0,
             seeded: false,
-            warmup_buf: Vec::with_capacity(period),
+            warmup_sum: -0.0,
+            warmup_count: 0,
         })
     }
 
@@ -84,7 +92,8 @@ impl Ema {
             one_minus_alpha: 1.0 - alpha,
             current: 0.0,
             seeded: false,
-            warmup_buf: Vec::with_capacity(1),
+            warmup_sum: -0.0,
+            warmup_count: 0,
         })
     }
 
@@ -110,14 +119,14 @@ impl Ema {
     /// Whether the EMA has seen no input yet (neither seeded nor mid-warmup).
     /// Lets composite indicators (e.g. MACD) decide if a fast batch path is safe.
     pub(crate) fn is_fresh(&self) -> bool {
-        !self.seeded && self.warmup_buf.is_empty()
+        !self.seeded && self.warmup_count == 0
     }
 
     /// Force the EMA into its seeded steady state with `current` as the latest
     /// value. Used by composite fused batch paths (MACD) to leave each sub-EMA
     /// where a per-tick `update` replay would, so a later `update` continues
-    /// correctly. The post-seed recurrence never re-reads `warmup_buf`, so it is
-    /// left as-is.
+    /// correctly. The post-seed recurrence never re-reads the warmup sum, so it
+    /// is left as-is.
     pub(crate) fn seed_to(&mut self, current: f64) {
         self.current = current;
         self.seeded = true;
@@ -125,48 +134,11 @@ impl Ema {
 
     /// Vectorized batch returning one `f64` per input (`NaN` during warmup).
     ///
-    /// Shadows the generic [`BatchNanExt::batch_nan`](crate::BatchNanExt) blanket
-    /// default via inherent-method resolution. For a fresh indicator over an
-    /// all-finite slice it runs the seed (mean of the first `period`) once and
-    /// then the bare `alpha * x + (1 - alpha) * prev` recurrence in a tight loop
-    /// with no per-element `is_finite`/`seeded` branch and no `Option` — yet uses
-    /// the identical `mul_add`, so the result is *bit-for-bit* equal to replaying
-    /// `update`. Any other state, or a non-finite element, defers to the exact
-    /// `update` replay.
+    /// Kept as an inherent method so existing callers need no trait import; it
+    /// allocates the result and fills it through
+    /// [`batch_nan_into`](Indicator::batch_nan_into), which carries the fast path.
     pub fn batch_nan(&mut self, inputs: &[f64]) -> Vec<f64> {
-        let p = self.period;
-        if self.seeded || !self.warmup_buf.is_empty() || !inputs.iter().all(|x| x.is_finite()) {
-            return inputs
-                .iter()
-                .map(|&x| self.update(x).unwrap_or(f64::NAN))
-                .collect();
-        }
-
-        let n = inputs.len();
-        if n < p {
-            // Not enough to seed; mirror `update` stashing inputs for warmup.
-            self.warmup_buf.extend_from_slice(inputs);
-            return vec![f64::NAN; n];
-        }
-
-        // Warmup `[0, p-1)` is `NaN`; values from the seed on are pushed once each.
-        let mut out = vec![f64::NAN; p - 1];
-        out.reserve(n - (p - 1));
-        let seed = inputs[..p].iter().copied().sum::<f64>() / p as f64;
-        let mut cur = seed;
-        out.push(seed);
-        let (alpha, oma) = (self.alpha, self.one_minus_alpha);
-        for &x in &inputs[p..] {
-            cur = alpha.mul_add(x, oma * cur);
-            out.push(cur);
-        }
-
-        // Leave state exactly where `update` would: seeded on `current`, with the
-        // first `period` inputs retained in `warmup_buf` (never cleared post-seed).
-        self.current = cur;
-        self.seeded = true;
-        self.warmup_buf.extend_from_slice(&inputs[..p]);
-        out
+        crate::traits::BatchNanExt::batch_nan(self, inputs)
     }
 
     /// Internal helper that feeds a value without finiteness validation. The caller
@@ -179,9 +151,10 @@ impl Ema {
             self.current = new;
             return Some(new);
         }
-        self.warmup_buf.push(input);
-        if self.warmup_buf.len() == self.period {
-            let seed = self.warmup_buf.iter().copied().sum::<f64>() / self.period as f64;
+        self.warmup_sum += input;
+        self.warmup_count += 1;
+        if self.warmup_count == self.period {
+            let seed = self.warmup_sum / self.period as f64;
             self.current = seed;
             self.seeded = true;
             return Some(seed);
@@ -205,7 +178,8 @@ impl Indicator for Ema {
     fn reset(&mut self) {
         self.current = 0.0;
         self.seeded = false;
-        self.warmup_buf.clear();
+        self.warmup_sum = -0.0;
+        self.warmup_count = 0;
     }
 
     #[inline]
@@ -221,6 +195,58 @@ impl Indicator for Ema {
     #[inline]
     fn name(&self) -> &'static str {
         "EMA"
+    }
+
+    /// For a fresh indicator over an all-finite slice this runs the seed (mean
+    /// of the first `period`) once and then the bare
+    /// `alpha * x + (1 - alpha) * prev` recurrence in a tight loop with no
+    /// per-element `is_finite`/`seeded` branch and no `Option` — yet uses the
+    /// identical `mul_add`, so every value is *bit-for-bit* equal to replaying
+    /// `update`. Any other state, or a non-finite element, defers to the exact
+    /// `update` replay.
+    fn batch_nan_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        if self.seeded || self.warmup_count != 0 || !inputs.iter().all(|x| x.is_finite()) {
+            for (slot, &x) in out.iter_mut().zip(inputs) {
+                *slot = self.update(x).unwrap_or(f64::NAN);
+            }
+            return;
+        }
+
+        let n = inputs.len();
+        if n < p {
+            // Not enough to seed; mirror `update` accumulating the warmup.
+            for &x in inputs {
+                self.warmup_sum += x;
+            }
+            self.warmup_count = n;
+            out.fill(f64::NAN);
+            return;
+        }
+
+        // Warmup `[0, p-1)` is `NaN`; the seed lands on `p-1`, the recurrence after.
+        out[..p - 1].fill(f64::NAN);
+        let seed_sum = inputs[..p].iter().copied().sum::<f64>();
+        let seed = seed_sum / p as f64;
+        out[p - 1] = seed;
+        let mut cur = seed;
+        let (alpha, oma) = (self.alpha, self.one_minus_alpha);
+        for (slot, &x) in out[p..].iter_mut().zip(&inputs[p..]) {
+            cur = alpha.mul_add(x, oma * cur);
+            *slot = cur;
+        }
+
+        // Leave state exactly where `update` would: seeded on `current`, the
+        // warmup sum and count covering the first `period` inputs.
+        self.current = cur;
+        self.seeded = true;
+        self.warmup_sum = seed_sum;
+        self.warmup_count = p;
     }
 }
 
@@ -413,6 +439,44 @@ mod tests {
         assert_eq!(ema.update(7.5), ref_ema.update(7.5));
     }
 
+    /// The seed comes from a running sum rather than a buffered
+    /// `iter().sum()`; the two must agree to the bit on every toolchain the
+    /// crate supports, the sign of an all-negative-zero window included.
+    #[test]
+    fn seed_matches_a_buffered_sum_bit_for_bit() {
+        let windows: [&[f64]; 3] = [
+            &[-0.0, -0.0, -0.0],
+            &[1e16, 1.0, -1e16, 3.5, 0.1],
+            &[0.3, 0.1, 0.7, 0.2, 0.9, 0.4, 0.6],
+        ];
+        for window in windows {
+            let buffered = window.iter().copied().sum::<f64>() / window.len() as f64;
+            let mut ema = Ema::new(window.len()).unwrap();
+            let seed = window.iter().filter_map(|&x| ema.update(x)).last().unwrap();
+            assert_eq!(seed.to_bits(), buffered.to_bits());
+            let mut out = vec![0.0; window.len()];
+            Ema::new(window.len())
+                .unwrap()
+                .batch_nan_into(window, &mut out);
+            assert_eq!(out[window.len() - 1].to_bits(), buffered.to_bits());
+        }
+    }
+
+    /// Into a caller buffer that already holds values, both the seeded path and
+    /// the sub-period path must write every cell exactly as the replay would.
+    #[test]
+    fn batch_nan_into_overwrites_a_dirty_buffer() {
+        let series: Vec<f64> = (0..120).map(|i| f64::from(i % 11) * 0.75 + 20.0).collect();
+        let mut out = vec![-1.0; series.len()];
+        Ema::new(10).unwrap().batch_nan_into(&series, &mut out);
+        assert!(bits_eq(&out, &ema_replay(10, &series)));
+        let mut short = [-1.0; 4];
+        Ema::new(10)
+            .unwrap()
+            .batch_nan_into(&series[..4], &mut short);
+        assert!(short.iter().all(|x| x.is_nan()));
+    }
+
     #[test]
     fn batch_nan_falls_back_on_non_finite() {
         let series = [1.0, 2.0, 3.0, f64::INFINITY, 5.0, 6.0, 7.0];
@@ -423,7 +487,7 @@ mod tests {
     #[test]
     fn batch_nan_falls_back_when_warming() {
         let mut ema = Ema::new(3).unwrap();
-        ema.update(10.0); // mid-warmup: warmup_buf non-empty, not seeded
+        ema.update(10.0); // mid-warmup: one input taken, not seeded
         let series = [1.0, 2.0, 3.0, 4.0];
         let mut ref_ema = Ema::new(3).unwrap();
         ref_ema.update(10.0);

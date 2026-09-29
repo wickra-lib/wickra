@@ -49,6 +49,59 @@ pub trait Indicator {
 
     /// Stable, human-readable indicator name. Used by chaining and diagnostics.
     fn name(&self) -> &'static str;
+
+    /// Run a scalar indicator over `inputs`, writing one output per input into
+    /// the caller-owned `out` buffer (`NaN` where [`update`](Indicator::update)
+    /// returns `None`).
+    ///
+    /// This is the exact batch: every value is *bit-for-bit* the one a replay of
+    /// `update` produces, and the indicator is left in the state that replay
+    /// leaves it in. The default replays `update`; indicators with a faster exact
+    /// formulation override it, and every binding and extension method routes
+    /// through here, so the override reaches all of them. Writing into a buffer
+    /// the caller owns skips the output allocation, which on a large series costs
+    /// more than the arithmetic of a simple indicator.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out.len() != inputs.len()`.
+    fn batch_nan_into(&mut self, inputs: &[f64], out: &mut [f64])
+    where
+        Self: Indicator<Input = f64, Output = f64>,
+    {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        for (slot, &x) in out.iter_mut().zip(inputs) {
+            *slot = self.update(x).unwrap_or(f64::NAN);
+        }
+    }
+
+    /// Opt-in fast batch: like [`batch_nan_into`](Indicator::batch_nan_into), but
+    /// an indicator with a vectorised kernel may reassociate its arithmetic to
+    /// run it in SIMD lanes. Each value then agrees with the exact batch to within
+    /// the tolerance the indicator documents (a few units in the last place), not
+    /// bit for bit; warmup positions, `NaN` placement and the output length are
+    /// identical. The kernels are deterministic: the same input produces the same
+    /// bits on every platform, with or without SIMD hardware.
+    ///
+    /// The kernel only runs from a fresh (just constructed or reset) indicator
+    /// over an all-finite slice; any other call is served by the exact batch.
+    /// Afterwards the indicator continues streaming from the kernel's final
+    /// state. The default is the exact batch, so every scalar indicator offers
+    /// this method and the ones without a kernel simply return exact values.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out.len() != inputs.len()`.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64])
+    where
+        Self: Indicator<Input = f64, Output = f64>,
+    {
+        self.batch_nan_into(inputs, out);
+    }
 }
 
 /// Blanket extension that adds batch evaluation to every [`Indicator`].
@@ -106,17 +159,24 @@ impl<T: Indicator> BatchExt for T {}
 /// element (no niche fits an arbitrary `f64`), which a caller wanting a dense
 /// `f64` series then has to walk a second time to map warmup `None`s to `NaN`.
 /// This skips both the wide intermediate and the second pass: one allocation,
-/// one pass, warmup encoded as `NaN`. The default body is bit-identical to
-/// replaying `update`; indicators with a vectorizable closed form override it
-/// with an inherent `batch_nan` of the same name, which wins method resolution
-/// over this trait default.
+/// one pass, warmup encoded as `NaN`. Both methods allocate the result and fill
+/// it through [`Indicator::batch_nan_into`] / [`Indicator::batch_fast_into`],
+/// so an indicator's faster formulation reaches them too.
 pub trait BatchNanExt: Indicator<Input = f64, Output = f64> {
-    /// One `f64` per input, warmup positions filled with `NaN`.
+    /// One `f64` per input, warmup positions filled with `NaN`, bit-for-bit equal
+    /// to replaying `update`.
     fn batch_nan(&mut self, inputs: &[f64]) -> Vec<f64> {
-        let mut out = Vec::with_capacity(inputs.len());
-        for &x in inputs {
-            out.push(self.update(x).unwrap_or(f64::NAN));
-        }
+        let mut out = vec![0.0; inputs.len()];
+        self.batch_nan_into(inputs, &mut out);
+        out
+    }
+
+    /// The opt-in fast batch ([`Indicator::batch_fast_into`]) into a fresh
+    /// vector: within the indicator's documented tolerance of
+    /// [`batch_nan`](BatchNanExt::batch_nan), deterministic across platforms.
+    fn batch_fast(&mut self, inputs: &[f64]) -> Vec<f64> {
+        let mut out = vec![0.0; inputs.len()];
+        self.batch_fast_into(inputs, &mut out);
         out
     }
 }
@@ -345,6 +405,37 @@ mod tests {
         let mut id = Identity::default();
         let out = id.batch_nan(&[1.0, 2.0, 3.0]);
         assert_eq!(out, vec![1.0, 2.0, 3.0]);
+    }
+
+    /// The default `batch_nan_into` writes one value per input into the
+    /// caller's buffer, overwriting whatever was there.
+    #[test]
+    fn batch_nan_into_default_fills_caller_buffer() {
+        let mut id = Identity::default();
+        let mut out = [f64::INFINITY; 3];
+        id.batch_nan_into(&[4.0, 5.0, 6.0], &mut out);
+        assert_eq!(out, [4.0, 5.0, 6.0]);
+    }
+
+    /// A length mismatch is a caller bug, not something to truncate silently.
+    #[test]
+    #[should_panic(expected = "batch output length must equal input length")]
+    fn batch_nan_into_rejects_mismatched_lengths() {
+        let mut id = Identity::default();
+        let mut out = [0.0; 2];
+        id.batch_nan_into(&[1.0, 2.0, 3.0], &mut out);
+    }
+
+    /// An indicator without a vectorised kernel serves `batch_fast` from the
+    /// exact batch, so the two agree bit for bit.
+    #[test]
+    fn batch_fast_default_is_the_exact_batch() {
+        let exact = Doubler::default().batch_nan(&[1.5, -2.0, 3.25]);
+        let fast = Doubler::default().batch_fast(&[1.5, -2.0, 3.25]);
+        assert_eq!(exact, fast);
+        let mut out = [0.0; 3];
+        Doubler::default().batch_fast_into(&[1.5, -2.0, 3.25], &mut out);
+        assert_eq!(out.to_vec(), exact);
     }
 
     #[test]
