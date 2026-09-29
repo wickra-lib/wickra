@@ -738,6 +738,25 @@ jobs:
       - name: WASM suite — golden parity, batch parity, data layer, completeness
         run: node --test bindings/wasm/tests/*.test.js
 
+      # The suite above loads pkg/ as a directory; a consumer gets the packed
+      # tarball, which holds only what package.json's `files` lists. wasm-pack
+      # leaves `snippets/` (the inline_js helpers) out of that list, so load the
+      # module from the tarball the way npm would ship it.
+      - name: Load the WASM package from its packed tarball
+        shell: bash
+        run: |
+          node bindings/wasm/scripts/package-files.mjs bindings/wasm/pkg
+          tarball=$(cd bindings/wasm/pkg && npm pack --silent)
+          mkdir -p "$RUNNER_TEMP/wasm-packed"
+          tar -xzf "bindings/wasm/pkg/$tarball" -C "$RUNNER_TEMP/wasm-packed"
+          node -e "
+            const w = require(process.argv[1]);
+            const macd = new w.MACD(12, 26, 9);
+            let v = null;
+            for (let i = 0; i < 40; i++) v = macd.update(100 + Math.sin(i));
+            if (!v || typeof v.signal !== 'number') throw new Error('MACD update returned no object');
+          " "$RUNNER_TEMP/wasm-packed/package"
+
   node:
     name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

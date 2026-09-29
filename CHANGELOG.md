@@ -124,6 +124,14 @@ definition (see Fixed).
   and a multi-output update writes into a buffer allocated once per instance
   instead of opening an arena per call (SMA 60 -> 233, ATR 51 -> 155, MACD
   12 -> 104 million updates per second).
+- **WASM: result objects in one call.** A multi-output `update` (MACD,
+  Bollinger, Ichimoku, … 112 of them) built its object field by field: a new
+  JS string per key, a boxed number and a `Reflect.set` per field. The keys are
+  now interned and cached per call site, and one inline JS helper builds the
+  object from plain numbers (MACD streaming 1.0 -> 16.8 million updates per
+  second). wasm-pack leaves the helper's `snippets/` out of the package's
+  `files`; the release adds it, and CI now loads the module from its packed
+  tarball, the way npm ships it.
 - **Node ATR and Chaikin batches validate every bar before consuming any,**
   where they used to fail part-way with the state advanced; the same holds for
   WASM, and for the Python Chaikin batch.

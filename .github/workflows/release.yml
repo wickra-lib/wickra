@@ -822,6 +822,11 @@ jobs:
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
 
+      - name: List the inline_js snippets in the package files
+        # wasm-pack leaves snippets/ out of `files`; without it the packed
+        # module fails to load. CI loads the packed tarball to prove the fix.
+        run: node bindings/wasm/scripts/package-files.mjs bindings/wasm/pkg
+
       - name: Pack wickra-wasm for release attachment
         working-directory: bindings/wasm/pkg
         run: npm pack
