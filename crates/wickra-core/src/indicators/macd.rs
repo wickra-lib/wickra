@@ -90,111 +90,155 @@ impl MacdIndicator {
     /// Vectorized flat batch for bindings: `n * 3` values laid out as
     /// `[macd, signal, histogram]` per input row, warmup rows all `NaN`.
     ///
-    /// For a fresh, all-finite slice long enough for a full output it runs the
-    /// fast EMA, slow EMA and signal EMA as three recurrences fused into a single
-    /// pass with one allocation — no `Option` per tick, no per-EMA intermediate
-    /// buffers, identical SMA-mean seeds (division) and `mul_add` recurrences. The
-    /// result is *bit-for-bit* equal to replaying `update`. Anything else (not
-    /// fresh, non-finite, or too short to emit) defers to the exact `update`
+    /// Allocates the result and fills it through
+    /// [`batch_macd_into`](Self::batch_macd_into). Separate from the trait
+    /// [`batch`](crate::BatchExt::batch), which stays a bit-identical `update`
     /// replay.
-    ///
-    /// Separate from the trait [`batch`](crate::BatchExt::batch), which stays a
-    /// bit-identical `update` replay; only the bindings call this.
     pub fn batch_macd(&mut self, inputs: &[f64]) -> Vec<f64> {
+        let mut out = vec![0.0; inputs.len() * 3];
+        self.batch_macd_into(inputs, &mut out);
+        out
+    }
+
+    /// [`batch_macd`](Self::batch_macd) into a caller-owned buffer of
+    /// `inputs.len() * 3` values, overwriting every cell.
+    ///
+    /// For a fresh slice long enough for a full output, whose values are all
+    /// finite with magnitude at most `1e300`, it runs the fast EMA, slow EMA
+    /// and signal EMA as three recurrences in one pass: the warmup phases run
+    /// on their own so the steady-state loop has no per-row branch, and the
+    /// three independent chains overlap in the pipeline. The seeds are the same
+    /// running means `Ema` keeps (summed from `-0.0` in input order) and the
+    /// recurrences the same `mul_add`, so every value is *bit-for-bit* equal to
+    /// replaying `update`. The magnitude bound keeps every EMA, sum and MACD
+    /// difference finite, which is what lets the signal EMA take every MACD
+    /// value (streaming skips a non-finite one). Anything else (not fresh, a
+    /// value out of range, or too short to emit) replays `update`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out.len() != inputs.len() * 3`.
+    pub fn batch_macd_into(&mut self, inputs: &[f64], out: &mut [f64]) {
         let n = inputs.len();
+        assert_eq!(
+            out.len(),
+            n * 3,
+            "batch_macd output must hold three values per input"
+        );
         let (fp, sp, gp) = (self.fast_period, self.slow_period, self.signal_period);
         // First full output needs the slow EMA seeded (index sp-1) plus gp signal
-        // values: index sp + gp - 2. Below that, or non-fresh/non-finite, replay.
+        // values: index sp + gp - 2. Below that, or non-fresh/out-of-range, replay.
         if self.last.is_some()
             || !self.fast.is_fresh()
             || !self.slow.is_fresh()
             || !self.signal_ema.is_fresh()
             || n < sp + gp - 1
-            || !inputs.iter().all(|x| x.is_finite())
+            || !inputs.iter().all(|x| x.abs() <= 1e300)
         {
-            let mut out = vec![f64::NAN; n * 3];
-            for (i, &x) in inputs.iter().enumerate() {
-                if let Some(o) = self.update(x) {
-                    out[i * 3] = o.macd;
-                    out[i * 3 + 1] = o.signal;
-                    out[i * 3 + 2] = o.histogram;
+            for (row, &x) in out.chunks_exact_mut(3).zip(inputs) {
+                match self.update(x) {
+                    Some(o) => row.copy_from_slice(&[o.macd, o.signal, o.histogram]),
+                    None => row.fill(f64::NAN),
                 }
             }
-            return out;
+            return;
         }
 
-        // Pre-sized output: warmup rows stay NaN, full-output rows are written in
-        // place by index — no per-row `push` length/capacity check.
-        let mut out = vec![f64::NAN; n * 3];
-        let (fa, fo) = (self.fast.alpha(), 1.0 - self.fast.alpha());
-        let (sa, so) = (self.slow.alpha(), 1.0 - self.slow.alpha());
-        let (ga, go) = (self.signal_ema.alpha(), 1.0 - self.signal_ema.alpha());
-        let (fp_f, sp_f, gp_f) = (fp as f64, sp as f64, gp as f64);
-
-        let (mut fast_val, mut slow_val, mut sig) = (0.0_f64, 0.0_f64, 0.0_f64);
-        let (mut fsum, mut ssum, mut gsum) = (0.0_f64, 0.0_f64, 0.0_f64);
-        let mut sig_count = 0usize; // signal-EMA seed progress (raw MACD values seen)
-        let mut sig_seeded = false;
-        let mut last = MacdOutput {
-            macd: 0.0,
-            signal: 0.0,
-            histogram: 0.0,
-        };
-
-        for (i, &x) in inputs.iter().enumerate() {
-            // Fast EMA: SMA-seeded at index fp-1, then recurrence.
-            if i < fp {
-                fsum += x;
-                if i == fp - 1 {
-                    fast_val = fsum / fp_f;
-                }
-            } else {
-                fast_val = fa.mul_add(x, fo * fast_val);
-            }
-            // Slow EMA: SMA-seeded at index sp-1, then recurrence.
-            if i < sp {
-                ssum += x;
-                if i == sp - 1 {
-                    slow_val = ssum / sp_f;
-                }
-            } else {
-                slow_val = sa.mul_add(x, so * slow_val);
-            }
-            if i + 1 < sp {
-                continue; // slow EMA not seeded yet → no raw MACD line
-            }
-            let macd = fast_val - slow_val;
-            // Signal EMA over the MACD line: SMA-seeded over its first gp values.
-            let signal = if sig_seeded {
-                sig = ga.mul_add(macd, go * sig);
-                sig
-            } else {
-                gsum += macd;
-                sig_count += 1;
-                if sig_count < gp {
-                    continue; // signal EMA still seeding → no full output
-                }
-                sig = gsum / gp_f;
-                sig_seeded = true;
-                sig
-            };
-            let histogram = macd - signal;
-            out[i * 3] = macd;
-            out[i * 3 + 1] = signal;
-            out[i * 3 + 2] = histogram;
-            last = MacdOutput {
-                macd,
-                signal,
-                histogram,
-            };
-        }
+        let (fast_val, slow_val, sig) = wickra_simd::dispatch(FusedMacd {
+            inputs,
+            out,
+            periods: (fp, sp, gp),
+            alphas: (
+                self.fast.alpha(),
+                self.slow.alpha(),
+                self.signal_ema.alpha(),
+            ),
+        });
 
         // Leave every sub-EMA and `last` where a full `update` replay would.
         self.fast.seed_to(fast_val);
         self.slow.seed_to(slow_val);
         self.signal_ema.seed_to(sig);
-        self.last = Some(last);
-        out
+        let tail = &out[(n - 1) * 3..];
+        self.last = Some(MacdOutput {
+            macd: tail[0],
+            signal: tail[1],
+            histogram: tail[2],
+        });
+    }
+}
+
+/// The fused MACD fast path as a [`wickra_simd::Kernel`], so its three
+/// `mul_add` chains compile to hardware FMA where the CPU has it (the baseline
+/// build calls the C library's `fma`, which serialises the chains). Returns the
+/// final fast EMA, slow EMA and signal EMA.
+struct FusedMacd<'a> {
+    inputs: &'a [f64],
+    out: &'a mut [f64],
+    periods: (usize, usize, usize),
+    alphas: (f64, f64, f64),
+}
+
+// Inlining into the dispatching function is what compiles the body with its
+// features; see `wickra_simd::Kernel`.
+#[allow(clippy::inline_always)]
+impl wickra_simd::Kernel for FusedMacd<'_> {
+    type Output = (f64, f64, f64);
+
+    #[inline(always)]
+    fn run(self) -> (f64, f64, f64) {
+        let Self {
+            inputs,
+            out,
+            periods: (fp, sp, gp),
+            alphas: (fa, sa, ga),
+        } = self;
+        let (fo, so, go) = (1.0 - fa, 1.0 - sa, 1.0 - ga);
+        let first_full = sp + gp - 2;
+
+        // Warmup rows carry no full output.
+        out[..first_full * 3].fill(f64::NAN);
+
+        // Fast EMA seed (the mean of the first fp inputs), then its recurrence
+        // up to the slow seed; the slow EMA only accumulates until index sp-1.
+        let mut fsum = -0.0_f64;
+        for &x in &inputs[..fp] {
+            fsum += x;
+        }
+        let mut fast_val = fsum / fp as f64;
+        let mut ssum = -0.0_f64;
+        for &x in &inputs[..sp] {
+            ssum += x;
+        }
+        for &x in &inputs[fp..sp] {
+            fast_val = fa.mul_add(x, fo * fast_val);
+        }
+        let mut slow_val = ssum / sp as f64;
+
+        // The signal EMA seeds on the mean of the first gp MACD values
+        // (indices sp-1 ..= sp+gp-2).
+        let mut gsum = -0.0_f64 + (fast_val - slow_val);
+        for &x in &inputs[sp..=first_full] {
+            fast_val = fa.mul_add(x, fo * fast_val);
+            slow_val = sa.mul_add(x, so * slow_val);
+            gsum += fast_val - slow_val;
+        }
+        let mut sig = gsum / gp as f64;
+        let macd = fast_val - slow_val;
+        out[first_full * 3..first_full * 3 + 3].copy_from_slice(&[macd, sig, macd - sig]);
+
+        // Steady state: three independent recurrences per row, no branch.
+        for (row, &x) in out[(first_full + 1) * 3..]
+            .chunks_exact_mut(3)
+            .zip(&inputs[first_full + 1..])
+        {
+            fast_val = fa.mul_add(x, fo * fast_val);
+            slow_val = sa.mul_add(x, so * slow_val);
+            let macd = fast_val - slow_val;
+            sig = ga.mul_add(macd, go * sig);
+            row.copy_from_slice(&[macd, sig, macd - sig]);
+        }
+        (fast_val, slow_val, sig)
     }
 }
 
@@ -406,6 +450,99 @@ mod tests {
         let (a, b) = (macd.update(101.0), ref_macd.update(101.0));
         assert_eq!(a.is_some(), b.is_some());
         assert_relative_eq!(a.unwrap().macd, b.unwrap().macd, epsilon = 1e-12);
+    }
+
+    /// Strict bit equality (`-0.0` differs from `0.0`; the only `NaN`s here are
+    /// the warmup `f64::NAN`s both sides write).
+    fn to_bits(v: &[f64]) -> Vec<u64> {
+        v.iter().map(|x| x.to_bits()).collect()
+    }
+
+    /// The fused kernel run through the dispatcher (AVX2 + FMA where available)
+    /// and in the baseline build must write the same bits and end in the same
+    /// state.
+    #[test]
+    fn fused_kernel_is_identical_on_every_dispatch_path() {
+        let series: Vec<f64> = (0..3000)
+            .map(|i| (f64::from(i) * 0.093).sin() * 7.0 + f64::from(i % 13) * 0.4 + 80.0)
+            .collect();
+        let alphas = (2.0 / 13.0, 2.0 / 27.0, 2.0 / 10.0);
+        let mut dispatched = vec![0.0; series.len() * 3];
+        let mut baseline = vec![0.0; series.len() * 3];
+        let a = wickra_simd::dispatch(FusedMacd {
+            inputs: &series,
+            out: &mut dispatched,
+            periods: (12, 26, 9),
+            alphas,
+        });
+        let b = wickra_simd::run_baseline(FusedMacd {
+            inputs: &series,
+            out: &mut baseline,
+            periods: (12, 26, 9),
+            alphas,
+        });
+        assert_eq!(to_bits(&dispatched), to_bits(&baseline));
+        assert_eq!(
+            [a.0.to_bits(), a.1.to_bits(), a.2.to_bits()],
+            [b.0.to_bits(), b.1.to_bits(), b.2.to_bits()]
+        );
+    }
+
+    /// An all-negative-zero window must seed exactly like the streaming EMAs,
+    /// which sum from `-0.0`: every output keeps its sign bit.
+    #[test]
+    fn batch_macd_negative_zero_series_matches_to_the_bit() {
+        let series = vec![-0.0_f64; 60];
+        let got = MacdIndicator::classic().batch_macd(&series);
+        assert_eq!(to_bits(&got), to_bits(&macd_replay(&series)));
+    }
+
+    /// Into a buffer that already holds values, every cell is overwritten —
+    /// warmup rows with `NaN`, the rest with the replay's values.
+    #[test]
+    fn batch_macd_into_overwrites_a_dirty_buffer() {
+        let series: Vec<f64> = (0..200)
+            .map(|i| (f64::from(i) * 0.21).sin() * 3.0 + 50.0)
+            .collect();
+        let mut out = vec![9.0; series.len() * 3];
+        MacdIndicator::classic().batch_macd_into(&series, &mut out);
+        assert_eq!(to_bits(&out), to_bits(&macd_replay(&series)));
+    }
+
+    /// A signal period of one seeds the signal on the first MACD value, so the
+    /// signal-warmup phase is empty.
+    #[test]
+    fn batch_macd_with_signal_period_one_matches_replay() {
+        let series: Vec<f64> = (0..80).map(|i| f64::from(i % 9) * 1.25 + 30.0).collect();
+        let mut fused = MacdIndicator::new(3, 7, 1).unwrap();
+        let mut replay = MacdIndicator::new(3, 7, 1).unwrap();
+        let want: Vec<f64> = series
+            .iter()
+            .flat_map(|&x| match replay.update(x) {
+                Some(o) => [o.macd, o.signal, o.histogram],
+                None => [f64::NAN; 3],
+            })
+            .collect();
+        assert_eq!(to_bits(&fused.batch_macd(&series)), to_bits(&want));
+    }
+
+    /// Values beyond `1e300` could overflow a MACD difference, which the
+    /// streaming signal EMA would skip; the fused path must hand those to the
+    /// exact replay instead.
+    #[test]
+    fn batch_macd_hands_huge_values_to_the_replay() {
+        let mut series: Vec<f64> = (0..60).map(|i| f64::from(i) + 100.0).collect();
+        series[45] = 1.7e308;
+        series[46] = -1.7e308;
+        let got = MacdIndicator::classic().batch_macd(&series);
+        assert!(bits_eq(&got, &macd_replay(&series)));
+    }
+
+    #[test]
+    #[should_panic(expected = "batch_macd output must hold three values per input")]
+    fn batch_macd_into_rejects_a_short_buffer() {
+        let mut out = vec![0.0; 5];
+        MacdIndicator::classic().batch_macd_into(&[1.0, 2.0], &mut out);
     }
 
     #[test]

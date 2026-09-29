@@ -2075,6 +2075,7 @@ dependencies = [
  "proptest",
  "rayon",
  "thiserror",
+ "wickra-simd",
 ]
 
 [[package]]
@@ -2128,6 +2129,10 @@ dependencies = [
  "wickra-core",
  "wickra-data",
 ]
+
+[[package]]
+name = "wickra-simd"
+version = "1.0.6"
 
 [[package]]
 name = "wickra-wasm"

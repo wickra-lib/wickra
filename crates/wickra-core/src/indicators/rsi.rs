@@ -95,6 +95,7 @@ impl Rsi {
         crate::traits::BatchNanExt::batch_nan(self, inputs)
     }
 
+    #[inline]
     fn rsi_from_avgs(avg_gain: f64, avg_loss: f64) -> f64 {
         // Algebraically `100 - 100/(1 + ag/al)` collapses to `100·ag/(ag+al)`,
         // which needs a single division instead of two and removes the separate
@@ -107,6 +108,41 @@ impl Rsi {
         } else {
             100.0 * avg_gain / denom
         }
+    }
+}
+
+/// RSI's steady-state Wilder smoothing as a [`wickra_simd::Kernel`]: with a
+/// hardware FMA the two `mul_add` chains (gains and losses) overlap instead of
+/// queueing behind calls into the C library's `fma`. Same operations in the same
+/// order on every path. Returns the final previous close and the two averages.
+struct WilderTail<'a> {
+    inputs: &'a [f64],
+    out: &'a mut [f64],
+    state: (f64, f64, f64),
+    n_minus_1: f64,
+    inv_period: f64,
+}
+
+// Inlining into the dispatching function is what compiles the body with its
+// features; see `wickra_simd::Kernel`.
+#[allow(clippy::inline_always)]
+impl wickra_simd::Kernel for WilderTail<'_> {
+    type Output = (f64, f64, f64);
+
+    #[inline(always)]
+    fn run(self) -> (f64, f64, f64) {
+        let (mut prev, mut ag, mut al) = self.state;
+        let (n_minus_1, inv_period) = (self.n_minus_1, self.inv_period);
+        for (slot, &x) in self.out.iter_mut().zip(self.inputs) {
+            let diff = x - prev;
+            prev = x;
+            let gain = if diff > 0.0 { diff } else { 0.0 };
+            let loss = if diff < 0.0 { -diff } else { 0.0 };
+            ag = ag.mul_add(n_minus_1, gain) * inv_period;
+            al = al.mul_add(n_minus_1, loss) * inv_period;
+            *slot = Rsi::rsi_from_avgs(ag, al);
+        }
+        (prev, ag, al)
     }
 }
 
@@ -234,16 +270,15 @@ impl Indicator for Rsi {
         let mut al = sum_loss / p_f64;
         out[p] = Self::rsi_from_avgs(ag, al);
 
-        // Steady state: Wilder smoothing, reciprocal hoisted, one `rsi_from_avgs`.
-        for (slot, &x) in out[p + 1..].iter_mut().zip(&inputs[p + 1..]) {
-            let diff = x - prev;
-            prev = x;
-            let gain = if diff > 0.0 { diff } else { 0.0 };
-            let loss = if diff < 0.0 { -diff } else { 0.0 };
-            ag = ag.mul_add(self.n_minus_1, gain) * self.inv_period;
-            al = al.mul_add(self.n_minus_1, loss) * self.inv_period;
-            *slot = Self::rsi_from_avgs(ag, al);
-        }
+        // Steady state: Wilder smoothing, reciprocal hoisted, one `rsi_from_avgs`,
+        // dispatched so the two `mul_add` chains become hardware FMA.
+        (prev, ag, al) = wickra_simd::dispatch(WilderTail {
+            inputs: &inputs[p + 1..],
+            out: &mut out[p + 1..],
+            state: (prev, ag, al),
+            n_minus_1: self.n_minus_1,
+            inv_period: self.inv_period,
+        });
 
         // Leave state where a full `update` replay would.
         self.prev_close = prev;
@@ -491,6 +526,36 @@ mod tests {
             ref_rsi.update(x);
         }
         assert_eq!(rsi.update(123.0), ref_rsi.update(123.0));
+    }
+
+    /// The dispatched Wilder kernel (AVX2 + FMA where available) and the
+    /// baseline build must produce the same bits and the same final state.
+    #[test]
+    fn wilder_tail_is_identical_on_every_dispatch_path() {
+        let series: Vec<f64> = (0..3000)
+            .map(|i| (f64::from(i) * 0.071).sin() * 9.0 + f64::from(i % 11) * 0.3 + 70.0)
+            .collect();
+        let rsi = Rsi::new(14).unwrap();
+        let mut a = vec![0.0; series.len() - 1];
+        let mut b = vec![0.0; series.len() - 1];
+        let state = (series[0], 0.4, 0.6);
+        let ra = wickra_simd::dispatch(WilderTail {
+            inputs: &series[1..],
+            out: &mut a,
+            state,
+            n_minus_1: rsi.n_minus_1,
+            inv_period: rsi.inv_period,
+        });
+        let rb = wickra_simd::run_baseline(WilderTail {
+            inputs: &series[1..],
+            out: &mut b,
+            state,
+            n_minus_1: rsi.n_minus_1,
+            inv_period: rsi.inv_period,
+        });
+        let bits = |v: &[f64]| v.iter().map(|x| x.to_bits()).collect::<Vec<_>>();
+        assert_eq!(bits(&a), bits(&b));
+        assert_eq!(bits(&[ra.0, ra.1, ra.2]), bits(&[rb.0, rb.1, rb.2]));
     }
 
     /// Into a caller buffer that already holds values, the fast path must write

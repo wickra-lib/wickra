@@ -16,6 +16,9 @@
 //!   wherever they conceptually take a price, so they can be chained via
 //!   [`Chain`].
 //! - **No `unsafe`.** The crate forbids `unsafe_code` in the workspace lints.
+//!   Batch kernels that profit from AVX2 and FMA run through the small
+//!   `wickra-simd` crate, which holds the one `unsafe` runtime dispatch; the
+//!   kernels stay safe code here and return the same bits on every path.
 //!
 //! # Quick start
 //!

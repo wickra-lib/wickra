@@ -62,7 +62,10 @@ artifacts, and (4) a healthy dependency supply chain.
   ([`bindings/c`](bindings/c)), whose thin FFI shim is necessarily `unsafe`
   because it dereferences caller-supplied pointers; it adds no indicator logic,
   validates every handle for NULL, and never lets a panic cross the boundary, so
-  the safe core's guarantees still cover all computation.
+  the safe core's guarantees still cover all computation. The other is
+  [`crates/wickra-simd`](crates/wickra-simd), whose one `unsafe` call enters a
+  kernel compiled for AVX2 and FMA only after the CPU has been checked for
+  both; the kernels themselves are safe code in `wickra-core`.
 - *Input robustness* — every indicator validates its parameters and rejects
   non-finite inputs at construction; behaviour on edge cases (flat markets,
   warmup, reset) is pinned by unit tests, and the public update paths are

@@ -256,6 +256,9 @@ Each binding ships several runnable examples (streaming, backtest, live feed);
 The wickra-core crate is `unsafe`-forbidden, so the native bindings are
 memory-safe end to end. The C ABI runs the same safe core; only its thin FFI
 boundary uses `unsafe`, and the caller owns handle lifetimes (`_new` / `_free`).
+The core's batch kernels run with AVX2 and FMA where the CPU has them through
+[`wickra-simd`](crates/wickra-simd), whose single `unsafe` call is the runtime
+feature dispatch; the results are bit-identical on every path.
 
 ## Requirements
 

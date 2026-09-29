@@ -34,7 +34,9 @@ TOUCHPOINTS: list[tuple[str, str, str, int]] = [
         "Cargo.toml",
         "workspace dependency pins",
         r'path = "crates/wickra-[a-z]+", version = "@V@"',
-        2,
+        # wickra-simd, wickra-core, wickra-data: every published crate another
+        # workspace member depends on.
+        3,
     ),
     # wickra-data pins wickra-core by path AND version, so a bump that misses it
     # publishes a data crate depending on a core version that does not exist.
