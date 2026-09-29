@@ -50,9 +50,10 @@ pub trait Indicator {
     /// Stable, human-readable indicator name. Used by chaining and diagnostics.
     fn name(&self) -> &'static str;
 
-    /// Run a scalar indicator over `inputs`, writing one output per input into
-    /// the caller-owned `out` buffer (`NaN` where [`update`](Indicator::update)
-    /// returns `None`).
+    /// Run the indicator over `inputs`, writing one output per input into the
+    /// caller-owned `out` buffer (`NaN` where [`update`](Indicator::update)
+    /// returns `None`). It exists for every indicator whose output converts to an
+    /// `f64`; the batch pipelines use it for the scalar `f64 -> f64` ones.
     ///
     /// This is the exact batch: every value is *bit-for-bit* the one a replay of
     /// `update` produces, and the indicator is left in the state that replay
@@ -62,12 +63,17 @@ pub trait Indicator {
     /// the caller owns skips the output allocation, which on a large series costs
     /// more than the arithmetic of a simple indicator.
     ///
+    /// The bounds name only the associated types, so `Indicator` stays usable as
+    /// a trait object and the method, called through a `dyn Indicator`, reaches
+    /// the concrete indicator's override.
+    ///
     /// # Panics
     ///
     /// Panics if `out.len() != inputs.len()`.
-    fn batch_nan_into(&mut self, inputs: &[f64], out: &mut [f64])
+    fn batch_nan_into(&mut self, inputs: &[Self::Input], out: &mut [f64])
     where
-        Self: Indicator<Input = f64, Output = f64>,
+        Self::Input: Copy,
+        Self::Output: Into<f64>,
     {
         assert_eq!(
             inputs.len(),
@@ -75,7 +81,7 @@ pub trait Indicator {
             "batch output length must equal input length"
         );
         for (slot, &x) in out.iter_mut().zip(inputs) {
-            *slot = self.update(x).unwrap_or(f64::NAN);
+            *slot = self.update(x).map_or(f64::NAN, Into::into);
         }
     }
 
@@ -96,9 +102,10 @@ pub trait Indicator {
     /// # Panics
     ///
     /// Panics if `out.len() != inputs.len()`.
-    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64])
+    fn batch_fast_into(&mut self, inputs: &[Self::Input], out: &mut [f64])
     where
-        Self: Indicator<Input = f64, Output = f64>,
+        Self::Input: Copy,
+        Self::Output: Into<f64>,
     {
         self.batch_nan_into(inputs, out);
     }
@@ -436,6 +443,29 @@ mod tests {
         let mut out = [0.0; 3];
         Doubler::default().batch_fast_into(&[1.5, -2.0, 3.25], &mut out);
         assert_eq!(out.to_vec(), exact);
+    }
+
+    /// `Indicator` and `BatchNanExt` stay usable as trait objects, and a batch
+    /// called through one reaches the concrete indicator's implementation.
+    #[test]
+    fn batch_traits_are_dyn_compatible() {
+        let mut boxed: Box<dyn BatchNanExt<Input = f64, Output = f64>> =
+            Box::new(Doubler::default());
+        assert_eq!(boxed.batch_nan(&[1.0, 2.0]), vec![2.0, 4.0]);
+        assert_eq!(boxed.batch_fast(&[3.0]), vec![6.0]);
+        let series: Vec<f64> = (0..64).map(|i| f64::from(i % 7) * 1.25 + 2.0).collect();
+        let mut plain: Box<dyn Indicator<Input = f64, Output = f64>> =
+            Box::new(crate::Sma::new(5).unwrap());
+        let mut exact = vec![0.0; series.len()];
+        plain.batch_nan_into(&series, &mut exact);
+        let bits = |v: &[f64]| v.iter().map(|x| x.to_bits()).collect::<Vec<_>>();
+        let want = crate::Sma::new(5).unwrap().batch_nan(&series);
+        assert_eq!(bits(&exact), bits(&want));
+        plain.reset();
+        let mut fast = vec![0.0; series.len()];
+        plain.batch_fast_into(&series, &mut fast);
+        let want = crate::Sma::new(5).unwrap().batch_fast(&series);
+        assert_eq!(bits(&fast), bits(&want));
     }
 
     #[test]
