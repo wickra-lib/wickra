@@ -65,7 +65,38 @@ batch <- function(object, ...) {
 #' @rdname batch
 #' @export
 batch.wickra_indicator <- function(object, ...) {
-  args <- list(...)
+  batch_call(object, "batch", list(...))
+}
+
+#' Run an indicator over a whole series with its fast kernel
+#'
+#' The opt-in fast form of [batch()]. Where the indicator has a SIMD kernel
+#' (moving averages, RSI, ATR, MACD, Bollinger, Chaikin, skewness, Pearson and
+#' more), the kernel reassociates the arithmetic, so each value agrees with
+#' [batch()] to within a few units in the last place rather than bit for bit;
+#' `NA` placement and the shape are identical, and the result is the same on
+#' every platform. Where there is no kernel it is exactly [batch()].
+#'
+#' @inheritParams batch
+#' @return The same shape as [batch()].
+#' @examples
+#' batch_fast(Ema(3), c(1, 2, 3, 4, 5))
+#' @export
+batch_fast <- function(object, ...) {
+  UseMethod("batch_fast")
+}
+
+#' @rdname batch_fast
+#' @export
+batch_fast.wickra_indicator <- function(object, ...) {
+  routine <- paste0("wk_", object$prefix, "_batch_fast")
+  op <- if (is.loaded(routine, PACKAGE = "wickra", type = "Call")) "batch_fast" else "batch"
+  batch_call(object, op, list(...))
+}
+
+# The shared body of batch() and batch_fast(): validate the columns and call
+# `wk_<prefix>_<op>`.
+batch_call <- function(object, op, args) {
   if (length(args) == 0L) {
     stop("batch() needs at least one input column", call. = FALSE)
   }
@@ -104,7 +135,7 @@ batch.wickra_indicator <- function(object, ...) {
                    paste(sizes, collapse = ", ")), call. = FALSE)
     }
   }
-  do.call(".Call", c(list(paste0("wk_", object$prefix, "_batch"), object$ptr),
+  do.call(".Call", c(list(paste0("wk_", object$prefix, "_", op), object$ptr),
                      unname(args), list(PACKAGE = "wickra")))
 }
 

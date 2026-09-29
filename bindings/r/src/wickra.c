@@ -497,6 +497,16 @@ SEXP wk_adaptive_cycle_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_adaptive_cycle_batch_fast(SEXP e, SEXP a0) {
+  struct AdaptiveCycle *h = (struct AdaptiveCycle *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_adaptive_cycle_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_adaptive_cycle_warmup_period(SEXP e) {
   struct AdaptiveCycle *h = (struct AdaptiveCycle *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_adaptive_cycle_warmup_period(h));
@@ -542,6 +552,16 @@ SEXP wk_adaptive_laguerre_filter_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_adaptive_laguerre_filter_batch_fast(SEXP e, SEXP a0) {
+  struct AdaptiveLaguerreFilter *h = (struct AdaptiveLaguerreFilter *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_adaptive_laguerre_filter_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_adaptive_laguerre_filter_warmup_period(SEXP e) {
   struct AdaptiveLaguerreFilter *h = (struct AdaptiveLaguerreFilter *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_adaptive_laguerre_filter_warmup_period(h));
@@ -584,6 +604,16 @@ SEXP wk_adaptive_rsi_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_adaptive_rsi_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_adaptive_rsi_batch_fast(SEXP e, SEXP a0) {
+  struct AdaptiveRsi *h = (struct AdaptiveRsi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_adaptive_rsi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -1054,6 +1084,16 @@ SEXP wk_alma_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_alma_batch_fast(SEXP e, SEXP a0) {
+  struct Alma *h = (struct Alma *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_alma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_alma_warmup_period(SEXP e) {
   struct Alma *h = (struct Alma *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_alma_warmup_period(h));
@@ -1194,6 +1234,16 @@ SEXP wk_anchored_rsi_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_anchored_rsi_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_anchored_rsi_batch_fast(SEXP e, SEXP a0) {
+  struct AnchoredRsi *h = (struct AnchoredRsi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_anchored_rsi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -1372,6 +1422,16 @@ SEXP wk_apo_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_apo_batch_fast(SEXP e, SEXP a0) {
+  struct Apo *h = (struct Apo *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_apo_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_apo_warmup_period(SEXP e) {
   struct Apo *h = (struct Apo *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_apo_warmup_period(h));
@@ -1547,6 +1607,23 @@ SEXP wk_atr_batch(SEXP e, SEXP a0, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5) 
   int64_t *b5 = (int64_t *)R_alloc(n, sizeof(int64_t));
   for (R_xlen_t k = 0; k < n; k++) b5[k] = (int64_t)REAL(a5)[k];
   wickra_atr_batch(h, REAL(a0), REAL(a1), REAL(a2), REAL(a3), REAL(a4), b5, REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_atr_batch_fast(SEXP e, SEXP a0, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5) {
+  struct Atr *h = (struct Atr *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  if (TYPEOF(a1) != REALSXP || Rf_xlength(a1) != n) Rf_error("wickra: batch argument 2 must be a double vector of length %lld", (long long)n);
+  if (TYPEOF(a2) != REALSXP || Rf_xlength(a2) != n) Rf_error("wickra: batch argument 3 must be a double vector of length %lld", (long long)n);
+  if (TYPEOF(a3) != REALSXP || Rf_xlength(a3) != n) Rf_error("wickra: batch argument 4 must be a double vector of length %lld", (long long)n);
+  if (TYPEOF(a4) != REALSXP || Rf_xlength(a4) != n) Rf_error("wickra: batch argument 5 must be a double vector of length %lld", (long long)n);
+  if (TYPEOF(a5) != REALSXP || Rf_xlength(a5) != n) Rf_error("wickra: batch argument 6 must be a double vector of length %lld", (long long)n);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  int64_t *b5 = (int64_t *)R_alloc(n, sizeof(int64_t));
+  for (R_xlen_t k = 0; k < n; k++) b5[k] = (int64_t)REAL(a5)[k];
+  wickra_atr_batch_fast(h, REAL(a0), REAL(a1), REAL(a2), REAL(a3), REAL(a4), b5, REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -1893,6 +1970,16 @@ SEXP wk_autocorrelation_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_autocorrelation_batch_fast(SEXP e, SEXP a0) {
+  struct Autocorrelation *h = (struct Autocorrelation *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_autocorrelation_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_autocorrelation_warmup_period(SEXP e) {
   struct Autocorrelation *h = (struct Autocorrelation *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_autocorrelation_warmup_period(h));
@@ -1935,6 +2022,16 @@ SEXP wk_autocorrelation_periodogram_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_autocorrelation_periodogram_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_autocorrelation_periodogram_batch_fast(SEXP e, SEXP a0) {
+  struct AutocorrelationPeriodogram *h = (struct AutocorrelationPeriodogram *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_autocorrelation_periodogram_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -2032,6 +2129,16 @@ SEXP wk_average_drawdown_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_average_drawdown_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_average_drawdown_batch_fast(SEXP e, SEXP a0) {
+  struct AverageDrawdown *h = (struct AverageDrawdown *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_average_drawdown_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -2285,6 +2392,16 @@ SEXP wk_bandpass_filter_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_bandpass_filter_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_bandpass_filter_batch_fast(SEXP e, SEXP a0) {
+  struct BandpassFilter *h = (struct BandpassFilter *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_bandpass_filter_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -2581,6 +2698,16 @@ SEXP wk_bipower_variation_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_bipower_variation_batch_fast(SEXP e, SEXP a0) {
+  struct BipowerVariation *h = (struct BipowerVariation *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_bipower_variation_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_bipower_variation_warmup_period(SEXP e) {
   struct BipowerVariation *h = (struct BipowerVariation *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_bipower_variation_warmup_period(h));
@@ -2708,6 +2835,32 @@ SEXP wk_bollinger_bands_batch(SEXP e, SEXP a0) {
   UNPROTECT(3);
   return out;
 }
+SEXP wk_bollinger_bands_batch_fast(SEXP e, SEXP a0) {
+  struct BollingerBands *h = (struct BollingerBands *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  struct WickraBollingerOutput *rows = (struct WickraBollingerOutput *)R_alloc(n, sizeof(struct WickraBollingerOutput));
+  wickra_bollinger_bands_batch_fast(h, REAL(a0), rows, (uintptr_t)n);
+  SEXP out = PROTECT(Rf_allocMatrix(REALSXP, (int)n, 4));
+  for (R_xlen_t i = 0; i < n; i++) {
+    REAL(out)[i + n * 0] = (double)rows[i].upper;
+    REAL(out)[i + n * 1] = (double)rows[i].middle;
+    REAL(out)[i + n * 2] = (double)rows[i].lower;
+    REAL(out)[i + n * 3] = (double)rows[i].stddev;
+  }
+  SEXP cn = PROTECT(Rf_allocVector(STRSXP, 4));
+  SET_STRING_ELT(cn, 0, Rf_mkChar("upper"));
+  SET_STRING_ELT(cn, 1, Rf_mkChar("middle"));
+  SET_STRING_ELT(cn, 2, Rf_mkChar("lower"));
+  SET_STRING_ELT(cn, 3, Rf_mkChar("stddev"));
+  SEXP dn = PROTECT(Rf_allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(dn, 0, R_NilValue);
+  SET_VECTOR_ELT(dn, 1, cn);
+  Rf_setAttrib(out, R_DimNamesSymbol, dn);
+  UNPROTECT(3);
+  return out;
+}
 SEXP wk_bollinger_bands_warmup_period(SEXP e) {
   struct BollingerBands *h = (struct BollingerBands *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_bollinger_bands_warmup_period(h));
@@ -2750,6 +2903,16 @@ SEXP wk_bollinger_bandwidth_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_bollinger_bandwidth_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_bollinger_bandwidth_batch_fast(SEXP e, SEXP a0) {
+  struct BollingerBandwidth *h = (struct BollingerBandwidth *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_bollinger_bandwidth_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -3031,6 +3194,16 @@ SEXP wk_burke_ratio_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_burke_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct BurkeRatio *h = (struct BurkeRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_burke_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_burke_ratio_warmup_period(SEXP e) {
   struct BurkeRatio *h = (struct BurkeRatio *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_burke_ratio_warmup_period(h));
@@ -3183,6 +3356,16 @@ SEXP wk_calmar_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_calmar_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_calmar_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct CalmarRatio *h = (struct CalmarRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_calmar_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -3493,6 +3676,16 @@ SEXP wk_center_of_gravity_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_center_of_gravity_batch_fast(SEXP e, SEXP a0) {
+  struct CenterOfGravity *h = (struct CenterOfGravity *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_center_of_gravity_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_center_of_gravity_warmup_period(SEXP e) {
   struct CenterOfGravity *h = (struct CenterOfGravity *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_center_of_gravity_warmup_period(h));
@@ -3616,6 +3809,16 @@ SEXP wk_cfo_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_cfo_batch_fast(SEXP e, SEXP a0) {
+  struct Cfo *h = (struct Cfo *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_cfo_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_cfo_warmup_period(SEXP e) {
   struct Cfo *h = (struct Cfo *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_cfo_warmup_period(h));
@@ -3717,6 +3920,23 @@ SEXP wk_chaikin_oscillator_batch(SEXP e, SEXP a0, SEXP a1, SEXP a2, SEXP a3, SEX
   int64_t *b5 = (int64_t *)R_alloc(n, sizeof(int64_t));
   for (R_xlen_t k = 0; k < n; k++) b5[k] = (int64_t)REAL(a5)[k];
   wickra_chaikin_oscillator_batch(h, REAL(a0), REAL(a1), REAL(a2), REAL(a3), REAL(a4), b5, REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_chaikin_oscillator_batch_fast(SEXP e, SEXP a0, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5) {
+  struct ChaikinOscillator *h = (struct ChaikinOscillator *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  if (TYPEOF(a1) != REALSXP || Rf_xlength(a1) != n) Rf_error("wickra: batch argument 2 must be a double vector of length %lld", (long long)n);
+  if (TYPEOF(a2) != REALSXP || Rf_xlength(a2) != n) Rf_error("wickra: batch argument 3 must be a double vector of length %lld", (long long)n);
+  if (TYPEOF(a3) != REALSXP || Rf_xlength(a3) != n) Rf_error("wickra: batch argument 4 must be a double vector of length %lld", (long long)n);
+  if (TYPEOF(a4) != REALSXP || Rf_xlength(a4) != n) Rf_error("wickra: batch argument 5 must be a double vector of length %lld", (long long)n);
+  if (TYPEOF(a5) != REALSXP || Rf_xlength(a5) != n) Rf_error("wickra: batch argument 6 must be a double vector of length %lld", (long long)n);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  int64_t *b5 = (int64_t *)R_alloc(n, sizeof(int64_t));
+  for (R_xlen_t k = 0; k < n; k++) b5[k] = (int64_t)REAL(a5)[k];
+  wickra_chaikin_oscillator_batch_fast(h, REAL(a0), REAL(a1), REAL(a2), REAL(a3), REAL(a4), b5, REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -4215,6 +4435,16 @@ SEXP wk_cmo_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_cmo_batch_fast(SEXP e, SEXP a0) {
+  struct Cmo *h = (struct Cmo *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_cmo_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_cmo_warmup_period(SEXP e) {
   struct Cmo *h = (struct Cmo *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_cmo_warmup_period(h));
@@ -4257,6 +4487,16 @@ SEXP wk_coefficient_of_variation_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_coefficient_of_variation_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_coefficient_of_variation_batch_fast(SEXP e, SEXP a0) {
+  struct CoefficientOfVariation *h = (struct CoefficientOfVariation *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_coefficient_of_variation_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -4374,6 +4614,16 @@ SEXP wk_common_sense_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_common_sense_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_common_sense_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct CommonSenseRatio *h = (struct CommonSenseRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_common_sense_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -4552,6 +4802,16 @@ SEXP wk_conditional_value_at_risk_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_conditional_value_at_risk_batch_fast(SEXP e, SEXP a0) {
+  struct ConditionalValueAtRisk *h = (struct ConditionalValueAtRisk *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_conditional_value_at_risk_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_conditional_value_at_risk_warmup_period(SEXP e) {
   struct ConditionalValueAtRisk *h = (struct ConditionalValueAtRisk *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_conditional_value_at_risk_warmup_period(h));
@@ -4594,6 +4854,16 @@ SEXP wk_connors_rsi_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_connors_rsi_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_connors_rsi_batch_fast(SEXP e, SEXP a0) {
+  struct ConnorsRsi *h = (struct ConnorsRsi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_connors_rsi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -4642,6 +4912,16 @@ SEXP wk_coppock_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_coppock_batch_fast(SEXP e, SEXP a0) {
+  struct Coppock *h = (struct Coppock *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_coppock_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_coppock_warmup_period(SEXP e) {
   struct Coppock *h = (struct Coppock *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_coppock_warmup_period(h));
@@ -4684,6 +4964,16 @@ SEXP wk_correlation_trend_indicator_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_correlation_trend_indicator_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_correlation_trend_indicator_batch_fast(SEXP e, SEXP a0) {
+  struct CorrelationTrendIndicator *h = (struct CorrelationTrendIndicator *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_correlation_trend_indicator_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -4995,6 +5285,16 @@ SEXP wk_cybernetic_cycle_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_cybernetic_cycle_batch_fast(SEXP e, SEXP a0) {
+  struct CyberneticCycle *h = (struct CyberneticCycle *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_cybernetic_cycle_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_cybernetic_cycle_warmup_period(SEXP e) {
   struct CyberneticCycle *h = (struct CyberneticCycle *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_cybernetic_cycle_warmup_period(h));
@@ -5158,6 +5458,16 @@ SEXP wk_decycler_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_decycler_batch_fast(SEXP e, SEXP a0) {
+  struct Decycler *h = (struct Decycler *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_decycler_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_decycler_warmup_period(SEXP e) {
   struct Decycler *h = (struct Decycler *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_decycler_warmup_period(h));
@@ -5203,6 +5513,16 @@ SEXP wk_decycler_oscillator_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_decycler_oscillator_batch_fast(SEXP e, SEXP a0) {
+  struct DecyclerOscillator *h = (struct DecyclerOscillator *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_decycler_oscillator_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_decycler_oscillator_warmup_period(SEXP e) {
   struct DecyclerOscillator *h = (struct DecyclerOscillator *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_decycler_oscillator_warmup_period(h));
@@ -5245,6 +5565,16 @@ SEXP wk_dema_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_dema_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_dema_batch_fast(SEXP e, SEXP a0) {
+  struct Dema *h = (struct Dema *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_dema_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -5476,6 +5806,16 @@ SEXP wk_derivative_oscillator_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_derivative_oscillator_batch_fast(SEXP e, SEXP a0) {
+  struct DerivativeOscillator *h = (struct DerivativeOscillator *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_derivative_oscillator_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_derivative_oscillator_warmup_period(SEXP e) {
   struct DerivativeOscillator *h = (struct DerivativeOscillator *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_derivative_oscillator_warmup_period(h));
@@ -5521,6 +5861,16 @@ SEXP wk_detrended_std_dev_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_detrended_std_dev_batch_fast(SEXP e, SEXP a0) {
+  struct DetrendedStdDev *h = (struct DetrendedStdDev *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_detrended_std_dev_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_detrended_std_dev_warmup_period(SEXP e) {
   struct DetrendedStdDev *h = (struct DetrendedStdDev *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_detrended_std_dev_warmup_period(h));
@@ -5563,6 +5913,16 @@ SEXP wk_disparity_index_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_disparity_index_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_disparity_index_batch_fast(SEXP e, SEXP a0) {
+  struct DisparityIndex *h = (struct DisparityIndex *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_disparity_index_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -6196,6 +6556,16 @@ SEXP wk_dpo_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_dpo_batch_fast(SEXP e, SEXP a0) {
+  struct Dpo *h = (struct Dpo *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_dpo_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_dpo_warmup_period(SEXP e) {
   struct Dpo *h = (struct Dpo *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_dpo_warmup_period(h));
@@ -6442,6 +6812,16 @@ SEXP wk_dynamic_momentum_index_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_dynamic_momentum_index_batch_fast(SEXP e, SEXP a0) {
+  struct DynamicMomentumIndex *h = (struct DynamicMomentumIndex *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_dynamic_momentum_index_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_dynamic_momentum_index_warmup_period(SEXP e) {
   struct DynamicMomentumIndex *h = (struct DynamicMomentumIndex *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_dynamic_momentum_index_warmup_period(h));
@@ -6592,6 +6972,16 @@ SEXP wk_ehlers_stochastic_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_ehlers_stochastic_batch_fast(SEXP e, SEXP a0) {
+  struct EhlersStochastic *h = (struct EhlersStochastic *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ehlers_stochastic_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_ehlers_stochastic_warmup_period(SEXP e) {
   struct EhlersStochastic *h = (struct EhlersStochastic *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_ehlers_stochastic_warmup_period(h));
@@ -6637,6 +7027,16 @@ SEXP wk_ehma_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_ehma_batch_fast(SEXP e, SEXP a0) {
+  struct Ehma *h = (struct Ehma *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ehma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_ehma_warmup_period(SEXP e) {
   struct Ehma *h = (struct Ehma *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_ehma_warmup_period(h));
@@ -6679,6 +7079,16 @@ SEXP wk_elder_impulse_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_elder_impulse_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_elder_impulse_batch_fast(SEXP e, SEXP a0) {
+  struct ElderImpulse *h = (struct ElderImpulse *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_elder_impulse_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -6875,6 +7285,16 @@ SEXP wk_ema_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_ema_batch_fast(SEXP e, SEXP a0) {
+  struct Ema *h = (struct Ema *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ema_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_ema_warmup_period(SEXP e) {
   struct Ema *h = (struct Ema *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_ema_warmup_period(h));
@@ -6917,6 +7337,16 @@ SEXP wk_empirical_mode_decomposition_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_empirical_mode_decomposition_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_empirical_mode_decomposition_batch_fast(SEXP e, SEXP a0) {
+  struct EmpiricalModeDecomposition *h = (struct EmpiricalModeDecomposition *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_empirical_mode_decomposition_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -7149,6 +7579,16 @@ SEXP wk_even_better_sinewave_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_even_better_sinewave_batch_fast(SEXP e, SEXP a0) {
+  struct EvenBetterSinewave *h = (struct EvenBetterSinewave *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_even_better_sinewave_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_even_better_sinewave_warmup_period(SEXP e) {
   struct EvenBetterSinewave *h = (struct EvenBetterSinewave *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_even_better_sinewave_warmup_period(h));
@@ -7298,6 +7738,16 @@ SEXP wk_ewma_volatility_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_ewma_volatility_batch_fast(SEXP e, SEXP a0) {
+  struct EwmaVolatility *h = (struct EwmaVolatility *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ewma_volatility_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_ewma_volatility_warmup_period(SEXP e) {
   struct EwmaVolatility *h = (struct EwmaVolatility *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_ewma_volatility_warmup_period(h));
@@ -7340,6 +7790,16 @@ SEXP wk_expectancy_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_expectancy_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_expectancy_batch_fast(SEXP e, SEXP a0) {
+  struct Expectancy *h = (struct Expectancy *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_expectancy_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -7437,6 +7897,16 @@ SEXP wk_fama_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_fama_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_fama_batch_fast(SEXP e, SEXP a0) {
+  struct Fama *h = (struct Fama *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_fama_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -8227,6 +8697,16 @@ SEXP wk_fisher_rsi_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_fisher_rsi_batch_fast(SEXP e, SEXP a0) {
+  struct FisherRsi *h = (struct FisherRsi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_fisher_rsi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_fisher_rsi_warmup_period(SEXP e) {
   struct FisherRsi *h = (struct FisherRsi *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_fisher_rsi_warmup_period(h));
@@ -8269,6 +8749,16 @@ SEXP wk_fisher_transform_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_fisher_transform_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_fisher_transform_batch_fast(SEXP e, SEXP a0) {
+  struct FisherTransform *h = (struct FisherTransform *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_fisher_transform_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -8583,6 +9073,16 @@ SEXP wk_frama_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_frama_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_frama_batch_fast(SEXP e, SEXP a0) {
+  struct Frama *h = (struct Frama *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_frama_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -8973,6 +9473,16 @@ SEXP wk_gain_loss_ratio_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_gain_loss_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct GainLossRatio *h = (struct GainLossRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_gain_loss_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_gain_loss_ratio_warmup_period(SEXP e) {
   struct GainLossRatio *h = (struct GainLossRatio *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_gain_loss_ratio_warmup_period(h));
@@ -9015,6 +9525,16 @@ SEXP wk_gain_to_pain_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_gain_to_pain_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_gain_to_pain_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct GainToPainRatio *h = (struct GainToPainRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_gain_to_pain_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -9112,6 +9632,16 @@ SEXP wk_garch11_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_garch11_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_garch11_batch_fast(SEXP e, SEXP a0) {
+  struct Garch11 *h = (struct Garch11 *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_garch11_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -9338,6 +9868,16 @@ SEXP wk_generalized_dema_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_generalized_dema_batch_fast(SEXP e, SEXP a0) {
+  struct GeneralizedDema *h = (struct GeneralizedDema *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_generalized_dema_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_generalized_dema_warmup_period(SEXP e) {
   struct GeneralizedDema *h = (struct GeneralizedDema *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_generalized_dema_warmup_period(h));
@@ -9380,6 +9920,16 @@ SEXP wk_geometric_ma_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_geometric_ma_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_geometric_ma_batch_fast(SEXP e, SEXP a0) {
+  struct GeometricMa *h = (struct GeometricMa *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_geometric_ma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -10329,6 +10879,16 @@ SEXP wk_highpass_filter_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_highpass_filter_batch_fast(SEXP e, SEXP a0) {
+  struct HighpassFilter *h = (struct HighpassFilter *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_highpass_filter_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_highpass_filter_warmup_period(SEXP e) {
   struct HighpassFilter *h = (struct HighpassFilter *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_highpass_filter_warmup_period(h));
@@ -10478,6 +11038,16 @@ SEXP wk_hilbert_dominant_cycle_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_hilbert_dominant_cycle_batch_fast(SEXP e, SEXP a0) {
+  struct HilbertDominantCycle *h = (struct HilbertDominantCycle *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_hilbert_dominant_cycle_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_hilbert_dominant_cycle_warmup_period(SEXP e) {
   struct HilbertDominantCycle *h = (struct HilbertDominantCycle *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_hilbert_dominant_cycle_warmup_period(h));
@@ -10520,6 +11090,16 @@ SEXP wk_historical_volatility_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_historical_volatility_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_historical_volatility_batch_fast(SEXP e, SEXP a0) {
+  struct HistoricalVolatility *h = (struct HistoricalVolatility *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_historical_volatility_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -10568,6 +11148,16 @@ SEXP wk_hma_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_hma_batch_fast(SEXP e, SEXP a0) {
+  struct Hma *h = (struct Hma *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_hma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_hma_warmup_period(SEXP e) {
   struct Hma *h = (struct Hma *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_hma_warmup_period(h));
@@ -10610,6 +11200,16 @@ SEXP wk_holt_winters_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_holt_winters_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_holt_winters_batch_fast(SEXP e, SEXP a0) {
+  struct HoltWinters *h = (struct HoltWinters *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_holt_winters_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -10707,6 +11307,16 @@ SEXP wk_ht_dc_phase_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_ht_dc_phase_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_ht_dc_phase_batch_fast(SEXP e, SEXP a0) {
+  struct HtDcPhase *h = (struct HtDcPhase *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ht_dc_phase_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -10819,6 +11429,16 @@ SEXP wk_ht_trend_mode_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_ht_trend_mode_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_ht_trend_mode_batch_fast(SEXP e, SEXP a0) {
+  struct HtTrendMode *h = (struct HtTrendMode *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ht_trend_mode_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -10942,6 +11562,16 @@ SEXP wk_hurst_exponent_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_hurst_exponent_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_hurst_exponent_batch_fast(SEXP e, SEXP a0) {
+  struct HurstExponent *h = (struct HurstExponent *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_hurst_exponent_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -11452,6 +12082,16 @@ SEXP wk_instantaneous_trendline_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_instantaneous_trendline_batch_fast(SEXP e, SEXP a0) {
+  struct InstantaneousTrendline *h = (struct InstantaneousTrendline *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_instantaneous_trendline_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_instantaneous_trendline_warmup_period(SEXP e) {
   struct InstantaneousTrendline *h = (struct InstantaneousTrendline *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_instantaneous_trendline_warmup_period(h));
@@ -11667,6 +12307,16 @@ SEXP wk_inverse_fisher_transform_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_inverse_fisher_transform_batch_fast(SEXP e, SEXP a0) {
+  struct InverseFisherTransform *h = (struct InverseFisherTransform *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_inverse_fisher_transform_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_inverse_fisher_transform_warmup_period(SEXP e) {
   struct InverseFisherTransform *h = (struct InverseFisherTransform *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_inverse_fisher_transform_warmup_period(h));
@@ -11764,6 +12414,16 @@ SEXP wk_jarque_bera_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_jarque_bera_batch_fast(SEXP e, SEXP a0) {
+  struct JarqueBera *h = (struct JarqueBera *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_jarque_bera_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_jarque_bera_warmup_period(SEXP e) {
   struct JarqueBera *h = (struct JarqueBera *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_jarque_bera_warmup_period(h));
@@ -11806,6 +12466,16 @@ SEXP wk_jma_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_jma_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_jma_batch_fast(SEXP e, SEXP a0) {
+  struct Jma *h = (struct Jma *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_jma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -11854,6 +12524,16 @@ SEXP wk_jump_indicator_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_jump_indicator_batch_fast(SEXP e, SEXP a0) {
+  struct JumpIndicator *h = (struct JumpIndicator *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_jump_indicator_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_jump_indicator_warmup_period(SEXP e) {
   struct JumpIndicator *h = (struct JumpIndicator *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_jump_indicator_warmup_period(h));
@@ -11896,6 +12576,16 @@ SEXP wk_k_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_k_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_k_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct KRatio *h = (struct KRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_k_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -12101,6 +12791,16 @@ SEXP wk_kama_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_kama_batch_fast(SEXP e, SEXP a0) {
+  struct Kama *h = (struct Kama *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_kama_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_kama_warmup_period(SEXP e) {
   struct Kama *h = (struct Kama *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_kama_warmup_period(h));
@@ -12291,6 +12991,16 @@ SEXP wk_kelly_criterion_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_kelly_criterion_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_kelly_criterion_batch_fast(SEXP e, SEXP a0) {
+  struct KellyCriterion *h = (struct KellyCriterion *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_kelly_criterion_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -12634,6 +13344,16 @@ SEXP wk_kurtosis_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_kurtosis_batch_fast(SEXP e, SEXP a0) {
+  struct Kurtosis *h = (struct Kurtosis *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_kurtosis_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_kurtosis_warmup_period(SEXP e) {
   struct Kurtosis *h = (struct Kurtosis *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_kurtosis_warmup_period(h));
@@ -12836,6 +13556,16 @@ SEXP wk_laguerre_rsi_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_laguerre_rsi_batch_fast(SEXP e, SEXP a0) {
+  struct LaguerreRsi *h = (struct LaguerreRsi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_laguerre_rsi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_laguerre_rsi_warmup_period(SEXP e) {
   struct LaguerreRsi *h = (struct LaguerreRsi *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_laguerre_rsi_warmup_period(h));
@@ -12946,6 +13676,16 @@ SEXP wk_lin_reg_angle_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_lin_reg_angle_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_lin_reg_angle_batch_fast(SEXP e, SEXP a0) {
+  struct LinRegAngle *h = (struct LinRegAngle *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_lin_reg_angle_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -13065,6 +13805,16 @@ SEXP wk_lin_reg_intercept_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_lin_reg_intercept_batch_fast(SEXP e, SEXP a0) {
+  struct LinRegIntercept *h = (struct LinRegIntercept *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_lin_reg_intercept_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_lin_reg_intercept_warmup_period(SEXP e) {
   struct LinRegIntercept *h = (struct LinRegIntercept *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_lin_reg_intercept_warmup_period(h));
@@ -13110,6 +13860,16 @@ SEXP wk_lin_reg_slope_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_lin_reg_slope_batch_fast(SEXP e, SEXP a0) {
+  struct LinRegSlope *h = (struct LinRegSlope *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_lin_reg_slope_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_lin_reg_slope_warmup_period(SEXP e) {
   struct LinRegSlope *h = (struct LinRegSlope *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_lin_reg_slope_warmup_period(h));
@@ -13152,6 +13912,16 @@ SEXP wk_linear_regression_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_linear_regression_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_linear_regression_batch_fast(SEXP e, SEXP a0) {
+  struct LinearRegression *h = (struct LinearRegression *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_linear_regression_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -13289,6 +14059,16 @@ SEXP wk_log_return_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_log_return_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_log_return_batch_fast(SEXP e, SEXP a0) {
+  struct LogReturn *h = (struct LogReturn *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_log_return_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -13496,6 +14276,16 @@ SEXP wk_m2_measure_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_m2_measure_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_m2_measure_batch_fast(SEXP e, SEXP a0) {
+  struct M2Measure *h = (struct M2Measure *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_m2_measure_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -13757,6 +14547,16 @@ SEXP wk_macd_histogram_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_macd_histogram_batch_fast(SEXP e, SEXP a0) {
+  struct MacdHistogram *h = (struct MacdHistogram *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_macd_histogram_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_macd_histogram_warmup_period(SEXP e) {
   struct MacdHistogram *h = (struct MacdHistogram *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_macd_histogram_warmup_period(h));
@@ -13811,6 +14611,30 @@ SEXP wk_macd_indicator_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   struct WickraMacdOutput *rows = (struct WickraMacdOutput *)R_alloc(n, sizeof(struct WickraMacdOutput));
   wickra_macd_indicator_batch(h, REAL(a0), rows, (uintptr_t)n);
+  SEXP out = PROTECT(Rf_allocMatrix(REALSXP, (int)n, 3));
+  for (R_xlen_t i = 0; i < n; i++) {
+    REAL(out)[i + n * 0] = (double)rows[i].macd;
+    REAL(out)[i + n * 1] = (double)rows[i].signal;
+    REAL(out)[i + n * 2] = (double)rows[i].histogram;
+  }
+  SEXP cn = PROTECT(Rf_allocVector(STRSXP, 3));
+  SET_STRING_ELT(cn, 0, Rf_mkChar("macd"));
+  SET_STRING_ELT(cn, 1, Rf_mkChar("signal"));
+  SET_STRING_ELT(cn, 2, Rf_mkChar("histogram"));
+  SEXP dn = PROTECT(Rf_allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(dn, 0, R_NilValue);
+  SET_VECTOR_ELT(dn, 1, cn);
+  Rf_setAttrib(out, R_DimNamesSymbol, dn);
+  UNPROTECT(3);
+  return out;
+}
+SEXP wk_macd_indicator_batch_fast(SEXP e, SEXP a0) {
+  struct MacdIndicator *h = (struct MacdIndicator *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  struct WickraMacdOutput *rows = (struct WickraMacdOutput *)R_alloc(n, sizeof(struct WickraMacdOutput));
+  wickra_macd_indicator_batch_fast(h, REAL(a0), rows, (uintptr_t)n);
   SEXP out = PROTECT(Rf_allocMatrix(REALSXP, (int)n, 3));
   for (R_xlen_t i = 0; i < n; i++) {
     REAL(out)[i + n * 0] = (double)rows[i].macd;
@@ -13989,6 +14813,16 @@ SEXP wk_martin_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_martin_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_martin_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct MartinRatio *h = (struct MartinRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_martin_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -14245,6 +15079,16 @@ SEXP wk_max_drawdown_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_max_drawdown_batch_fast(SEXP e, SEXP a0) {
+  struct MaxDrawdown *h = (struct MaxDrawdown *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_max_drawdown_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_max_drawdown_warmup_period(SEXP e) {
   struct MaxDrawdown *h = (struct MaxDrawdown *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_max_drawdown_warmup_period(h));
@@ -14400,6 +15244,16 @@ SEXP wk_mc_ginley_dynamic_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_mc_ginley_dynamic_batch_fast(SEXP e, SEXP a0) {
+  struct McGinleyDynamic *h = (struct McGinleyDynamic *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_mc_ginley_dynamic_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_mc_ginley_dynamic_warmup_period(SEXP e) {
   struct McGinleyDynamic *h = (struct McGinleyDynamic *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_mc_ginley_dynamic_warmup_period(h));
@@ -14442,6 +15296,16 @@ SEXP wk_median_absolute_deviation_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_median_absolute_deviation_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_median_absolute_deviation_batch_fast(SEXP e, SEXP a0) {
+  struct MedianAbsoluteDeviation *h = (struct MedianAbsoluteDeviation *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_median_absolute_deviation_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -14558,6 +15422,16 @@ SEXP wk_median_ma_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_median_ma_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_median_ma_batch_fast(SEXP e, SEXP a0) {
+  struct MedianMa *h = (struct MedianMa *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_median_ma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -14760,6 +15634,16 @@ SEXP wk_mid_point_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_mid_point_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_mid_point_batch_fast(SEXP e, SEXP a0) {
+  struct MidPoint *h = (struct MidPoint *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_mid_point_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -15035,6 +15919,16 @@ SEXP wk_mom_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_mom_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_mom_batch_fast(SEXP e, SEXP a0) {
+  struct Mom *h = (struct Mom *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_mom_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -15852,6 +16746,16 @@ SEXP wk_omega_ratio_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_omega_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct OmegaRatio *h = (struct OmegaRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_omega_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_omega_ratio_warmup_period(SEXP e) {
   struct OmegaRatio *h = (struct OmegaRatio *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_omega_ratio_warmup_period(h));
@@ -16579,6 +17483,16 @@ SEXP wk_pain_index_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_pain_index_batch_fast(SEXP e, SEXP a0) {
+  struct PainIndex *h = (struct PainIndex *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_pain_index_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_pain_index_warmup_period(SEXP e) {
   struct PainIndex *h = (struct PainIndex *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_pain_index_warmup_period(h));
@@ -16769,6 +17683,17 @@ SEXP wk_pearson_correlation_batch(SEXP e, SEXP a0, SEXP a1) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_pearson_correlation_batch_fast(SEXP e, SEXP a0, SEXP a1) {
+  struct PearsonCorrelation *h = (struct PearsonCorrelation *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  if (TYPEOF(a1) != REALSXP || Rf_xlength(a1) != n) Rf_error("wickra: batch argument 2 must be a double vector of length %lld", (long long)n);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_pearson_correlation_batch_fast(h, REAL(a0), REAL(a1), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_pearson_correlation_warmup_period(SEXP e) {
   struct PearsonCorrelation *h = (struct PearsonCorrelation *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_pearson_correlation_warmup_period(h));
@@ -16869,6 +17794,16 @@ SEXP wk_percent_b_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_percent_b_batch_fast(SEXP e, SEXP a0) {
+  struct PercentB *h = (struct PercentB *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_percent_b_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_percent_b_warmup_period(SEXP e) {
   struct PercentB *h = (struct PercentB *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_percent_b_warmup_period(h));
@@ -16911,6 +17846,16 @@ SEXP wk_percentage_trailing_stop_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_percentage_trailing_stop_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_percentage_trailing_stop_batch_fast(SEXP e, SEXP a0) {
+  struct PercentageTrailingStop *h = (struct PercentageTrailingStop *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_percentage_trailing_stop_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -17329,6 +18274,16 @@ SEXP wk_pmo_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_pmo_batch_fast(SEXP e, SEXP a0) {
+  struct Pmo *h = (struct Pmo *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_pmo_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_pmo_warmup_period(SEXP e) {
   struct Pmo *h = (struct Pmo *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_pmo_warmup_period(h));
@@ -17459,6 +18414,16 @@ SEXP wk_polarized_fractal_efficiency_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_polarized_fractal_efficiency_batch_fast(SEXP e, SEXP a0) {
+  struct PolarizedFractalEfficiency *h = (struct PolarizedFractalEfficiency *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_polarized_fractal_efficiency_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_polarized_fractal_efficiency_warmup_period(SEXP e) {
   struct PolarizedFractalEfficiency *h = (struct PolarizedFractalEfficiency *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_polarized_fractal_efficiency_warmup_period(h));
@@ -17504,6 +18469,16 @@ SEXP wk_ppo_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_ppo_batch_fast(SEXP e, SEXP a0) {
+  struct Ppo *h = (struct Ppo *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ppo_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_ppo_warmup_period(SEXP e) {
   struct Ppo *h = (struct Ppo *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_ppo_warmup_period(h));
@@ -17546,6 +18521,16 @@ SEXP wk_ppo_histogram_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_ppo_histogram_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_ppo_histogram_batch_fast(SEXP e, SEXP a0) {
+  struct PpoHistogram *h = (struct PpoHistogram *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ppo_histogram_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -17643,6 +18628,16 @@ SEXP wk_profit_factor_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_profit_factor_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_profit_factor_batch_fast(SEXP e, SEXP a0) {
+  struct ProfitFactor *h = (struct ProfitFactor *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_profit_factor_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -18168,6 +19163,16 @@ SEXP wk_r_squared_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_r_squared_batch_fast(SEXP e, SEXP a0) {
+  struct RSquared *h = (struct RSquared *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_r_squared_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_r_squared_warmup_period(SEXP e) {
   struct RSquared *h = (struct RSquared *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_r_squared_warmup_period(h));
@@ -18351,6 +19356,16 @@ SEXP wk_realized_volatility_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_realized_volatility_batch_fast(SEXP e, SEXP a0) {
+  struct RealizedVolatility *h = (struct RealizedVolatility *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_realized_volatility_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_realized_volatility_warmup_period(SEXP e) {
   struct RealizedVolatility *h = (struct RealizedVolatility *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_realized_volatility_warmup_period(h));
@@ -18393,6 +19408,16 @@ SEXP wk_recovery_factor_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_recovery_factor_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_recovery_factor_batch_fast(SEXP e, SEXP a0) {
+  struct RecoveryFactor *h = (struct RecoveryFactor *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_recovery_factor_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -18493,6 +19518,16 @@ SEXP wk_reflex_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_reflex_batch_fast(SEXP e, SEXP a0) {
+  struct Reflex *h = (struct Reflex *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_reflex_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_reflex_warmup_period(SEXP e) {
   struct Reflex *h = (struct Reflex *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_reflex_warmup_period(h));
@@ -18535,6 +19570,16 @@ SEXP wk_regime_label_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_regime_label_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_regime_label_batch_fast(SEXP e, SEXP a0) {
+  struct RegimeLabel *h = (struct RegimeLabel *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_regime_label_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -18737,6 +19782,16 @@ SEXP wk_renko_trailing_stop_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_renko_trailing_stop_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_renko_trailing_stop_batch_fast(SEXP e, SEXP a0) {
+  struct RenkoTrailingStop *h = (struct RenkoTrailingStop *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_renko_trailing_stop_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -18943,6 +19998,16 @@ SEXP wk_rmi_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_rmi_batch_fast(SEXP e, SEXP a0) {
+  struct Rmi *h = (struct Rmi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rmi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_rmi_warmup_period(SEXP e) {
   struct Rmi *h = (struct Rmi *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_rmi_warmup_period(h));
@@ -18985,6 +20050,16 @@ SEXP wk_roc_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_roc_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_roc_batch_fast(SEXP e, SEXP a0) {
+  struct Roc *h = (struct Roc *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_roc_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -19033,6 +20108,16 @@ SEXP wk_rocp_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_rocp_batch_fast(SEXP e, SEXP a0) {
+  struct Rocp *h = (struct Rocp *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rocp_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_rocp_warmup_period(SEXP e) {
   struct Rocp *h = (struct Rocp *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_rocp_warmup_period(h));
@@ -19078,6 +20163,16 @@ SEXP wk_rocr_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_rocr_batch_fast(SEXP e, SEXP a0) {
+  struct Rocr *h = (struct Rocr *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rocr_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_rocr_warmup_period(SEXP e) {
   struct Rocr *h = (struct Rocr *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_rocr_warmup_period(h));
@@ -19120,6 +20215,16 @@ SEXP wk_rocr100_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_rocr100_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_rocr100_batch_fast(SEXP e, SEXP a0) {
+  struct Rocr100 *h = (struct Rocr100 *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rocr100_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -19364,6 +20469,16 @@ SEXP wk_rolling_iqr_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_rolling_iqr_batch_fast(SEXP e, SEXP a0) {
+  struct RollingIqr *h = (struct RollingIqr *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rolling_iqr_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_rolling_iqr_warmup_period(SEXP e) {
   struct RollingIqr *h = (struct RollingIqr *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_rolling_iqr_warmup_period(h));
@@ -19406,6 +20521,16 @@ SEXP wk_rolling_min_max_scaler_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_rolling_min_max_scaler_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_rolling_min_max_scaler_batch_fast(SEXP e, SEXP a0) {
+  struct RollingMinMaxScaler *h = (struct RollingMinMaxScaler *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rolling_min_max_scaler_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -19454,6 +20579,16 @@ SEXP wk_rolling_percentile_rank_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_rolling_percentile_rank_batch_fast(SEXP e, SEXP a0) {
+  struct RollingPercentileRank *h = (struct RollingPercentileRank *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rolling_percentile_rank_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_rolling_percentile_rank_warmup_period(SEXP e) {
   struct RollingPercentileRank *h = (struct RollingPercentileRank *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_rolling_percentile_rank_warmup_period(h));
@@ -19496,6 +20631,16 @@ SEXP wk_rolling_quantile_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_rolling_quantile_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_rolling_quantile_batch_fast(SEXP e, SEXP a0) {
+  struct RollingQuantile *h = (struct RollingQuantile *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rolling_quantile_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -19596,6 +20741,16 @@ SEXP wk_roofing_filter_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_roofing_filter_batch_fast(SEXP e, SEXP a0) {
+  struct RoofingFilter *h = (struct RoofingFilter *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_roofing_filter_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_roofing_filter_warmup_period(SEXP e) {
   struct RoofingFilter *h = (struct RoofingFilter *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_roofing_filter_warmup_period(h));
@@ -19641,6 +20796,16 @@ SEXP wk_rsi_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_rsi_batch_fast(SEXP e, SEXP a0) {
+  struct Rsi *h = (struct Rsi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rsi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_rsi_warmup_period(SEXP e) {
   struct Rsi *h = (struct Rsi *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_rsi_warmup_period(h));
@@ -19683,6 +20848,16 @@ SEXP wk_rsx_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_rsx_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_rsx_batch_fast(SEXP e, SEXP a0) {
+  struct Rsx *h = (struct Rsx *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rsx_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -19883,6 +21058,16 @@ SEXP wk_rvi_volatility_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_rvi_volatility_batch_fast(SEXP e, SEXP a0) {
+  struct RviVolatility *h = (struct RviVolatility *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_rvi_volatility_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_rvi_volatility_warmup_period(SEXP e) {
   struct RviVolatility *h = (struct RviVolatility *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_rvi_volatility_warmup_period(h));
@@ -19999,6 +21184,16 @@ SEXP wk_sample_entropy_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_sample_entropy_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_sample_entropy_batch_fast(SEXP e, SEXP a0) {
+  struct SampleEntropy *h = (struct SampleEntropy *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_sample_entropy_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -20407,6 +21602,16 @@ SEXP wk_shannon_entropy_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_shannon_entropy_batch_fast(SEXP e, SEXP a0) {
+  struct ShannonEntropy *h = (struct ShannonEntropy *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_shannon_entropy_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_shannon_entropy_warmup_period(SEXP e) {
   struct ShannonEntropy *h = (struct ShannonEntropy *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_shannon_entropy_warmup_period(h));
@@ -20501,6 +21706,16 @@ SEXP wk_sharpe_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_sharpe_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_sharpe_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct SharpeRatio *h = (struct SharpeRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_sharpe_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -20705,6 +21920,16 @@ SEXP wk_sine_wave_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_sine_wave_batch_fast(SEXP e, SEXP a0) {
+  struct SineWave *h = (struct SineWave *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_sine_wave_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_sine_wave_warmup_period(SEXP e) {
   struct SineWave *h = (struct SineWave *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_sine_wave_warmup_period(h));
@@ -20747,6 +21972,16 @@ SEXP wk_sine_weighted_ma_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_sine_weighted_ma_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_sine_weighted_ma_batch_fast(SEXP e, SEXP a0) {
+  struct SineWeightedMa *h = (struct SineWeightedMa *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_sine_weighted_ma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -20847,6 +22082,16 @@ SEXP wk_skewness_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_skewness_batch_fast(SEXP e, SEXP a0) {
+  struct Skewness *h = (struct Skewness *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_skewness_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_skewness_warmup_period(SEXP e) {
   struct Skewness *h = (struct Skewness *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_skewness_warmup_period(h));
@@ -20889,6 +22134,16 @@ SEXP wk_sma_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_sma_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_sma_batch_fast(SEXP e, SEXP a0) {
+  struct Sma *h = (struct Sma *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_sma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -20986,6 +22241,16 @@ SEXP wk_smma_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_smma_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_smma_batch_fast(SEXP e, SEXP a0) {
+  struct Smma *h = (struct Smma *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_smma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -21113,6 +22378,16 @@ SEXP wk_sortino_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_sortino_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_sortino_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct SortinoRatio *h = (struct SortinoRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_sortino_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -21479,6 +22754,16 @@ SEXP wk_standard_error_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_standard_error_batch_fast(SEXP e, SEXP a0) {
+  struct StandardError *h = (struct StandardError *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_standard_error_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_standard_error_warmup_period(SEXP e) {
   struct StandardError *h = (struct StandardError *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_standard_error_warmup_period(h));
@@ -21673,6 +22958,16 @@ SEXP wk_stc_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_stc_batch_fast(SEXP e, SEXP a0) {
+  struct Stc *h = (struct Stc *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_stc_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_stc_warmup_period(SEXP e) {
   struct Stc *h = (struct Stc *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_stc_warmup_period(h));
@@ -21715,6 +23010,16 @@ SEXP wk_std_dev_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_std_dev_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_std_dev_batch_fast(SEXP e, SEXP a0) {
+  struct StdDev *h = (struct StdDev *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_std_dev_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -21763,6 +23068,16 @@ SEXP wk_step_trailing_stop_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_step_trailing_stop_batch_fast(SEXP e, SEXP a0) {
+  struct StepTrailingStop *h = (struct StepTrailingStop *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_step_trailing_stop_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_step_trailing_stop_warmup_period(SEXP e) {
   struct StepTrailingStop *h = (struct StepTrailingStop *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_step_trailing_stop_warmup_period(h));
@@ -21805,6 +23120,16 @@ SEXP wk_sterling_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_sterling_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_sterling_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct SterlingRatio *h = (struct SterlingRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_sterling_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -21902,6 +23227,16 @@ SEXP wk_stoch_rsi_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_stoch_rsi_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_stoch_rsi_batch_fast(SEXP e, SEXP a0) {
+  struct StochRsi *h = (struct StochRsi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_stoch_rsi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -22076,6 +23411,16 @@ SEXP wk_super_smoother_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_super_smoother_batch_fast(SEXP e, SEXP a0) {
+  struct SuperSmoother *h = (struct SuperSmoother *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_super_smoother_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_super_smoother_warmup_period(SEXP e) {
   struct SuperSmoother *h = (struct SuperSmoother *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_super_smoother_warmup_period(h));
@@ -22195,6 +23540,16 @@ SEXP wk_t3_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_t3_batch_fast(SEXP e, SEXP a0) {
+  struct T3 *h = (struct T3 *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_t3_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_t3_warmup_period(SEXP e) {
   struct T3 *h = (struct T3 *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_t3_warmup_period(h));
@@ -22237,6 +23592,16 @@ SEXP wk_tail_ratio_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_tail_ratio_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_tail_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct TailRatio *h = (struct TailRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_tail_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -23549,6 +24914,16 @@ SEXP wk_tema_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_tema_batch_fast(SEXP e, SEXP a0) {
+  struct Tema *h = (struct Tema *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_tema_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_tema_warmup_period(SEXP e) {
   struct Tema *h = (struct Tema *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_tema_warmup_period(h));
@@ -24335,6 +25710,16 @@ SEXP wk_tii_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_tii_batch_fast(SEXP e, SEXP a0) {
+  struct Tii *h = (struct Tii *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_tii_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_tii_warmup_period(SEXP e) {
   struct Tii *h = (struct Tii *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_tii_warmup_period(h));
@@ -24785,6 +26170,16 @@ SEXP wk_trend_label_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_trend_label_batch_fast(SEXP e, SEXP a0) {
+  struct TrendLabel *h = (struct TrendLabel *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_trend_label_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_trend_label_warmup_period(SEXP e) {
   struct TrendLabel *h = (struct TrendLabel *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_trend_label_warmup_period(h));
@@ -24830,6 +26225,16 @@ SEXP wk_trend_strength_index_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_trend_strength_index_batch_fast(SEXP e, SEXP a0) {
+  struct TrendStrengthIndex *h = (struct TrendStrengthIndex *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_trend_strength_index_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_trend_strength_index_warmup_period(SEXP e) {
   struct TrendStrengthIndex *h = (struct TrendStrengthIndex *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_trend_strength_index_warmup_period(h));
@@ -24872,6 +26277,16 @@ SEXP wk_trendflex_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_trendflex_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_trendflex_batch_fast(SEXP e, SEXP a0) {
+  struct Trendflex *h = (struct Trendflex *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_trendflex_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -25015,6 +26430,16 @@ SEXP wk_trima_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_trima_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_trima_batch_fast(SEXP e, SEXP a0) {
+  struct Trima *h = (struct Trima *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_trima_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -25222,6 +26647,16 @@ SEXP wk_trix_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_trix_batch_fast(SEXP e, SEXP a0) {
+  struct Trix *h = (struct Trix *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_trix_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_trix_warmup_period(SEXP e) {
   struct Trix *h = (struct Trix *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_trix_warmup_period(h));
@@ -25319,6 +26754,16 @@ SEXP wk_tsf_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_tsf_batch_fast(SEXP e, SEXP a0) {
+  struct Tsf *h = (struct Tsf *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_tsf_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_tsf_warmup_period(SEXP e) {
   struct Tsf *h = (struct Tsf *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_tsf_warmup_period(h));
@@ -25364,6 +26809,16 @@ SEXP wk_tsf_oscillator_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_tsf_oscillator_batch_fast(SEXP e, SEXP a0) {
+  struct TsfOscillator *h = (struct TsfOscillator *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_tsf_oscillator_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_tsf_oscillator_warmup_period(SEXP e) {
   struct TsfOscillator *h = (struct TsfOscillator *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_tsf_oscillator_warmup_period(h));
@@ -25406,6 +26861,16 @@ SEXP wk_tsi_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_tsi_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_tsi_batch_fast(SEXP e, SEXP a0) {
+  struct Tsi *h = (struct Tsi *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_tsi_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -25892,6 +27357,16 @@ SEXP wk_ulcer_index_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_ulcer_index_batch_fast(SEXP e, SEXP a0) {
+  struct UlcerIndex *h = (struct UlcerIndex *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_ulcer_index_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_ulcer_index_warmup_period(SEXP e) {
   struct UlcerIndex *h = (struct UlcerIndex *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_ulcer_index_warmup_period(h));
@@ -26038,6 +27513,16 @@ SEXP wk_universal_oscillator_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_universal_oscillator_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_universal_oscillator_batch_fast(SEXP e, SEXP a0) {
+  struct UniversalOscillator *h = (struct UniversalOscillator *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_universal_oscillator_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -26245,6 +27730,16 @@ SEXP wk_upside_potential_ratio_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_upside_potential_ratio_batch_fast(SEXP e, SEXP a0) {
+  struct UpsidePotentialRatio *h = (struct UpsidePotentialRatio *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_upside_potential_ratio_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_upside_potential_ratio_warmup_period(SEXP e) {
   struct UpsidePotentialRatio *h = (struct UpsidePotentialRatio *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_upside_potential_ratio_warmup_period(h));
@@ -26368,6 +27863,16 @@ SEXP wk_value_at_risk_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_value_at_risk_batch_fast(SEXP e, SEXP a0) {
+  struct ValueAtRisk *h = (struct ValueAtRisk *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_value_at_risk_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_value_at_risk_warmup_period(SEXP e) {
   struct ValueAtRisk *h = (struct ValueAtRisk *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_value_at_risk_warmup_period(h));
@@ -26410,6 +27915,16 @@ SEXP wk_variance_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_variance_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_variance_batch_fast(SEXP e, SEXP a0) {
+  struct Variance *h = (struct Variance *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_variance_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -26504,6 +28019,16 @@ SEXP wk_vertical_horizontal_filter_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_vertical_horizontal_filter_batch_fast(SEXP e, SEXP a0) {
+  struct VerticalHorizontalFilter *h = (struct VerticalHorizontalFilter *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_vertical_horizontal_filter_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_vertical_horizontal_filter_warmup_period(SEXP e) {
   struct VerticalHorizontalFilter *h = (struct VerticalHorizontalFilter *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_vertical_horizontal_filter_warmup_period(h));
@@ -26546,6 +28071,16 @@ SEXP wk_vidya_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_vidya_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_vidya_batch_fast(SEXP e, SEXP a0) {
+  struct Vidya *h = (struct Vidya *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_vidya_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -26677,6 +28212,16 @@ SEXP wk_volatility_of_volatility_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_volatility_of_volatility_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_volatility_of_volatility_batch_fast(SEXP e, SEXP a0) {
+  struct VolatilityOfVolatility *h = (struct VolatilityOfVolatility *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_volatility_of_volatility_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -27793,6 +29338,16 @@ SEXP wk_wave_pm_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_wave_pm_batch_fast(SEXP e, SEXP a0) {
+  struct WavePm *h = (struct WavePm *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_wave_pm_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_wave_pm_warmup_period(SEXP e) {
   struct WavePm *h = (struct WavePm *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_wave_pm_warmup_period(h));
@@ -28194,6 +29749,16 @@ SEXP wk_win_rate_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_win_rate_batch_fast(SEXP e, SEXP a0) {
+  struct WinRate *h = (struct WinRate *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_win_rate_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_win_rate_warmup_period(SEXP e) {
   struct WinRate *h = (struct WinRate *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_win_rate_warmup_period(h));
@@ -28236,6 +29801,16 @@ SEXP wk_wma_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
   wickra_wma_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_wma_batch_fast(SEXP e, SEXP a0) {
+  struct Wma *h = (struct Wma *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_wma_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -28474,6 +30049,16 @@ SEXP wk_z_score_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_z_score_batch_fast(SEXP e, SEXP a0) {
+  struct ZScore *h = (struct ZScore *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_z_score_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_z_score_warmup_period(SEXP e) {
   struct ZScore *h = (struct ZScore *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_z_score_warmup_period(h));
@@ -28664,6 +30249,16 @@ SEXP wk_zlema_batch(SEXP e, SEXP a0) {
   UNPROTECT(1);
   return out;
 }
+SEXP wk_zlema_batch_fast(SEXP e, SEXP a0) {
+  struct Zlema *h = (struct Zlema *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_zlema_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
 SEXP wk_zlema_warmup_period(SEXP e) {
   struct Zlema *h = (struct Zlema *)R_ExternalPtrAddr(e);
   return Rf_ScalarInteger((int)wickra_zlema_warmup_period(h));
@@ -28816,6 +30411,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_adaptive_cycle_new", (DL_FUNC)&wk_adaptive_cycle_new, 0},
   {"wk_adaptive_cycle_update", (DL_FUNC)&wk_adaptive_cycle_update, 2},
   {"wk_adaptive_cycle_batch", (DL_FUNC)&wk_adaptive_cycle_batch, 2},
+  {"wk_adaptive_cycle_batch_fast", (DL_FUNC)&wk_adaptive_cycle_batch_fast, 2},
   {"wk_adaptive_cycle_warmup_period", (DL_FUNC)&wk_adaptive_cycle_warmup_period, 1},
   {"wk_adaptive_cycle_is_ready", (DL_FUNC)&wk_adaptive_cycle_is_ready, 1},
   {"wk_adaptive_cycle_name", (DL_FUNC)&wk_adaptive_cycle_name, 1},
@@ -28823,6 +30419,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_adaptive_laguerre_filter_new", (DL_FUNC)&wk_adaptive_laguerre_filter_new, 1},
   {"wk_adaptive_laguerre_filter_update", (DL_FUNC)&wk_adaptive_laguerre_filter_update, 2},
   {"wk_adaptive_laguerre_filter_batch", (DL_FUNC)&wk_adaptive_laguerre_filter_batch, 2},
+  {"wk_adaptive_laguerre_filter_batch_fast", (DL_FUNC)&wk_adaptive_laguerre_filter_batch_fast, 2},
   {"wk_adaptive_laguerre_filter_warmup_period", (DL_FUNC)&wk_adaptive_laguerre_filter_warmup_period, 1},
   {"wk_adaptive_laguerre_filter_is_ready", (DL_FUNC)&wk_adaptive_laguerre_filter_is_ready, 1},
   {"wk_adaptive_laguerre_filter_name", (DL_FUNC)&wk_adaptive_laguerre_filter_name, 1},
@@ -28830,6 +30427,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_adaptive_rsi_new", (DL_FUNC)&wk_adaptive_rsi_new, 1},
   {"wk_adaptive_rsi_update", (DL_FUNC)&wk_adaptive_rsi_update, 2},
   {"wk_adaptive_rsi_batch", (DL_FUNC)&wk_adaptive_rsi_batch, 2},
+  {"wk_adaptive_rsi_batch_fast", (DL_FUNC)&wk_adaptive_rsi_batch_fast, 2},
   {"wk_adaptive_rsi_warmup_period", (DL_FUNC)&wk_adaptive_rsi_warmup_period, 1},
   {"wk_adaptive_rsi_is_ready", (DL_FUNC)&wk_adaptive_rsi_is_ready, 1},
   {"wk_adaptive_rsi_name", (DL_FUNC)&wk_adaptive_rsi_name, 1},
@@ -28886,6 +30484,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_alma_new", (DL_FUNC)&wk_alma_new, 3},
   {"wk_alma_update", (DL_FUNC)&wk_alma_update, 2},
   {"wk_alma_batch", (DL_FUNC)&wk_alma_batch, 2},
+  {"wk_alma_batch_fast", (DL_FUNC)&wk_alma_batch_fast, 2},
   {"wk_alma_warmup_period", (DL_FUNC)&wk_alma_warmup_period, 1},
   {"wk_alma_is_ready", (DL_FUNC)&wk_alma_is_ready, 1},
   {"wk_alma_name", (DL_FUNC)&wk_alma_name, 1},
@@ -28907,6 +30506,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_anchored_rsi_new", (DL_FUNC)&wk_anchored_rsi_new, 0},
   {"wk_anchored_rsi_update", (DL_FUNC)&wk_anchored_rsi_update, 2},
   {"wk_anchored_rsi_batch", (DL_FUNC)&wk_anchored_rsi_batch, 2},
+  {"wk_anchored_rsi_batch_fast", (DL_FUNC)&wk_anchored_rsi_batch_fast, 2},
   {"wk_anchored_rsi_warmup_period", (DL_FUNC)&wk_anchored_rsi_warmup_period, 1},
   {"wk_anchored_rsi_is_ready", (DL_FUNC)&wk_anchored_rsi_is_ready, 1},
   {"wk_anchored_rsi_name", (DL_FUNC)&wk_anchored_rsi_name, 1},
@@ -28928,6 +30528,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_apo_new", (DL_FUNC)&wk_apo_new, 2},
   {"wk_apo_update", (DL_FUNC)&wk_apo_update, 2},
   {"wk_apo_batch", (DL_FUNC)&wk_apo_batch, 2},
+  {"wk_apo_batch_fast", (DL_FUNC)&wk_apo_batch_fast, 2},
   {"wk_apo_warmup_period", (DL_FUNC)&wk_apo_warmup_period, 1},
   {"wk_apo_is_ready", (DL_FUNC)&wk_apo_is_ready, 1},
   {"wk_apo_name", (DL_FUNC)&wk_apo_name, 1},
@@ -28949,6 +30550,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_atr_new", (DL_FUNC)&wk_atr_new, 1},
   {"wk_atr_update", (DL_FUNC)&wk_atr_update, 7},
   {"wk_atr_batch", (DL_FUNC)&wk_atr_batch, 7},
+  {"wk_atr_batch_fast", (DL_FUNC)&wk_atr_batch_fast, 7},
   {"wk_atr_warmup_period", (DL_FUNC)&wk_atr_warmup_period, 1},
   {"wk_atr_is_ready", (DL_FUNC)&wk_atr_is_ready, 1},
   {"wk_atr_name", (DL_FUNC)&wk_atr_name, 1},
@@ -28984,6 +30586,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_autocorrelation_new", (DL_FUNC)&wk_autocorrelation_new, 2},
   {"wk_autocorrelation_update", (DL_FUNC)&wk_autocorrelation_update, 2},
   {"wk_autocorrelation_batch", (DL_FUNC)&wk_autocorrelation_batch, 2},
+  {"wk_autocorrelation_batch_fast", (DL_FUNC)&wk_autocorrelation_batch_fast, 2},
   {"wk_autocorrelation_warmup_period", (DL_FUNC)&wk_autocorrelation_warmup_period, 1},
   {"wk_autocorrelation_is_ready", (DL_FUNC)&wk_autocorrelation_is_ready, 1},
   {"wk_autocorrelation_name", (DL_FUNC)&wk_autocorrelation_name, 1},
@@ -28991,6 +30594,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_autocorrelation_periodogram_new", (DL_FUNC)&wk_autocorrelation_periodogram_new, 2},
   {"wk_autocorrelation_periodogram_update", (DL_FUNC)&wk_autocorrelation_periodogram_update, 2},
   {"wk_autocorrelation_periodogram_batch", (DL_FUNC)&wk_autocorrelation_periodogram_batch, 2},
+  {"wk_autocorrelation_periodogram_batch_fast", (DL_FUNC)&wk_autocorrelation_periodogram_batch_fast, 2},
   {"wk_autocorrelation_periodogram_warmup_period", (DL_FUNC)&wk_autocorrelation_periodogram_warmup_period, 1},
   {"wk_autocorrelation_periodogram_is_ready", (DL_FUNC)&wk_autocorrelation_periodogram_is_ready, 1},
   {"wk_autocorrelation_periodogram_name", (DL_FUNC)&wk_autocorrelation_periodogram_name, 1},
@@ -29005,6 +30609,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_average_drawdown_new", (DL_FUNC)&wk_average_drawdown_new, 1},
   {"wk_average_drawdown_update", (DL_FUNC)&wk_average_drawdown_update, 2},
   {"wk_average_drawdown_batch", (DL_FUNC)&wk_average_drawdown_batch, 2},
+  {"wk_average_drawdown_batch_fast", (DL_FUNC)&wk_average_drawdown_batch_fast, 2},
   {"wk_average_drawdown_warmup_period", (DL_FUNC)&wk_average_drawdown_warmup_period, 1},
   {"wk_average_drawdown_is_ready", (DL_FUNC)&wk_average_drawdown_is_ready, 1},
   {"wk_average_drawdown_name", (DL_FUNC)&wk_average_drawdown_name, 1},
@@ -29040,6 +30645,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_bandpass_filter_new", (DL_FUNC)&wk_bandpass_filter_new, 2},
   {"wk_bandpass_filter_update", (DL_FUNC)&wk_bandpass_filter_update, 2},
   {"wk_bandpass_filter_batch", (DL_FUNC)&wk_bandpass_filter_batch, 2},
+  {"wk_bandpass_filter_batch_fast", (DL_FUNC)&wk_bandpass_filter_batch_fast, 2},
   {"wk_bandpass_filter_warmup_period", (DL_FUNC)&wk_bandpass_filter_warmup_period, 1},
   {"wk_bandpass_filter_is_ready", (DL_FUNC)&wk_bandpass_filter_is_ready, 1},
   {"wk_bandpass_filter_name", (DL_FUNC)&wk_bandpass_filter_name, 1},
@@ -29082,6 +30688,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_bipower_variation_new", (DL_FUNC)&wk_bipower_variation_new, 1},
   {"wk_bipower_variation_update", (DL_FUNC)&wk_bipower_variation_update, 2},
   {"wk_bipower_variation_batch", (DL_FUNC)&wk_bipower_variation_batch, 2},
+  {"wk_bipower_variation_batch_fast", (DL_FUNC)&wk_bipower_variation_batch_fast, 2},
   {"wk_bipower_variation_warmup_period", (DL_FUNC)&wk_bipower_variation_warmup_period, 1},
   {"wk_bipower_variation_is_ready", (DL_FUNC)&wk_bipower_variation_is_ready, 1},
   {"wk_bipower_variation_name", (DL_FUNC)&wk_bipower_variation_name, 1},
@@ -29096,6 +30703,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_bollinger_bands_new", (DL_FUNC)&wk_bollinger_bands_new, 2},
   {"wk_bollinger_bands_update", (DL_FUNC)&wk_bollinger_bands_update, 2},
   {"wk_bollinger_bands_batch", (DL_FUNC)&wk_bollinger_bands_batch, 2},
+  {"wk_bollinger_bands_batch_fast", (DL_FUNC)&wk_bollinger_bands_batch_fast, 2},
   {"wk_bollinger_bands_warmup_period", (DL_FUNC)&wk_bollinger_bands_warmup_period, 1},
   {"wk_bollinger_bands_is_ready", (DL_FUNC)&wk_bollinger_bands_is_ready, 1},
   {"wk_bollinger_bands_name", (DL_FUNC)&wk_bollinger_bands_name, 1},
@@ -29103,6 +30711,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_bollinger_bandwidth_new", (DL_FUNC)&wk_bollinger_bandwidth_new, 2},
   {"wk_bollinger_bandwidth_update", (DL_FUNC)&wk_bollinger_bandwidth_update, 2},
   {"wk_bollinger_bandwidth_batch", (DL_FUNC)&wk_bollinger_bandwidth_batch, 2},
+  {"wk_bollinger_bandwidth_batch_fast", (DL_FUNC)&wk_bollinger_bandwidth_batch_fast, 2},
   {"wk_bollinger_bandwidth_warmup_period", (DL_FUNC)&wk_bollinger_bandwidth_warmup_period, 1},
   {"wk_bollinger_bandwidth_is_ready", (DL_FUNC)&wk_bollinger_bandwidth_is_ready, 1},
   {"wk_bollinger_bandwidth_name", (DL_FUNC)&wk_bollinger_bandwidth_name, 1},
@@ -29138,6 +30747,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_burke_ratio_new", (DL_FUNC)&wk_burke_ratio_new, 1},
   {"wk_burke_ratio_update", (DL_FUNC)&wk_burke_ratio_update, 2},
   {"wk_burke_ratio_batch", (DL_FUNC)&wk_burke_ratio_batch, 2},
+  {"wk_burke_ratio_batch_fast", (DL_FUNC)&wk_burke_ratio_batch_fast, 2},
   {"wk_burke_ratio_warmup_period", (DL_FUNC)&wk_burke_ratio_warmup_period, 1},
   {"wk_burke_ratio_is_ready", (DL_FUNC)&wk_burke_ratio_is_ready, 1},
   {"wk_burke_ratio_name", (DL_FUNC)&wk_burke_ratio_name, 1},
@@ -29159,6 +30769,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_calmar_ratio_new", (DL_FUNC)&wk_calmar_ratio_new, 1},
   {"wk_calmar_ratio_update", (DL_FUNC)&wk_calmar_ratio_update, 2},
   {"wk_calmar_ratio_batch", (DL_FUNC)&wk_calmar_ratio_batch, 2},
+  {"wk_calmar_ratio_batch_fast", (DL_FUNC)&wk_calmar_ratio_batch_fast, 2},
   {"wk_calmar_ratio_warmup_period", (DL_FUNC)&wk_calmar_ratio_warmup_period, 1},
   {"wk_calmar_ratio_is_ready", (DL_FUNC)&wk_calmar_ratio_is_ready, 1},
   {"wk_calmar_ratio_name", (DL_FUNC)&wk_calmar_ratio_name, 1},
@@ -29189,6 +30800,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_center_of_gravity_new", (DL_FUNC)&wk_center_of_gravity_new, 1},
   {"wk_center_of_gravity_update", (DL_FUNC)&wk_center_of_gravity_update, 2},
   {"wk_center_of_gravity_batch", (DL_FUNC)&wk_center_of_gravity_batch, 2},
+  {"wk_center_of_gravity_batch_fast", (DL_FUNC)&wk_center_of_gravity_batch_fast, 2},
   {"wk_center_of_gravity_warmup_period", (DL_FUNC)&wk_center_of_gravity_warmup_period, 1},
   {"wk_center_of_gravity_is_ready", (DL_FUNC)&wk_center_of_gravity_is_ready, 1},
   {"wk_center_of_gravity_name", (DL_FUNC)&wk_center_of_gravity_name, 1},
@@ -29203,6 +30815,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_cfo_new", (DL_FUNC)&wk_cfo_new, 1},
   {"wk_cfo_update", (DL_FUNC)&wk_cfo_update, 2},
   {"wk_cfo_batch", (DL_FUNC)&wk_cfo_batch, 2},
+  {"wk_cfo_batch_fast", (DL_FUNC)&wk_cfo_batch_fast, 2},
   {"wk_cfo_warmup_period", (DL_FUNC)&wk_cfo_warmup_period, 1},
   {"wk_cfo_is_ready", (DL_FUNC)&wk_cfo_is_ready, 1},
   {"wk_cfo_name", (DL_FUNC)&wk_cfo_name, 1},
@@ -29217,6 +30830,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_chaikin_oscillator_new", (DL_FUNC)&wk_chaikin_oscillator_new, 2},
   {"wk_chaikin_oscillator_update", (DL_FUNC)&wk_chaikin_oscillator_update, 7},
   {"wk_chaikin_oscillator_batch", (DL_FUNC)&wk_chaikin_oscillator_batch, 7},
+  {"wk_chaikin_oscillator_batch_fast", (DL_FUNC)&wk_chaikin_oscillator_batch_fast, 7},
   {"wk_chaikin_oscillator_warmup_period", (DL_FUNC)&wk_chaikin_oscillator_warmup_period, 1},
   {"wk_chaikin_oscillator_is_ready", (DL_FUNC)&wk_chaikin_oscillator_is_ready, 1},
   {"wk_chaikin_oscillator_name", (DL_FUNC)&wk_chaikin_oscillator_name, 1},
@@ -29273,6 +30887,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_cmo_new", (DL_FUNC)&wk_cmo_new, 1},
   {"wk_cmo_update", (DL_FUNC)&wk_cmo_update, 2},
   {"wk_cmo_batch", (DL_FUNC)&wk_cmo_batch, 2},
+  {"wk_cmo_batch_fast", (DL_FUNC)&wk_cmo_batch_fast, 2},
   {"wk_cmo_warmup_period", (DL_FUNC)&wk_cmo_warmup_period, 1},
   {"wk_cmo_is_ready", (DL_FUNC)&wk_cmo_is_ready, 1},
   {"wk_cmo_name", (DL_FUNC)&wk_cmo_name, 1},
@@ -29280,6 +30895,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_coefficient_of_variation_new", (DL_FUNC)&wk_coefficient_of_variation_new, 1},
   {"wk_coefficient_of_variation_update", (DL_FUNC)&wk_coefficient_of_variation_update, 2},
   {"wk_coefficient_of_variation_batch", (DL_FUNC)&wk_coefficient_of_variation_batch, 2},
+  {"wk_coefficient_of_variation_batch_fast", (DL_FUNC)&wk_coefficient_of_variation_batch_fast, 2},
   {"wk_coefficient_of_variation_warmup_period", (DL_FUNC)&wk_coefficient_of_variation_warmup_period, 1},
   {"wk_coefficient_of_variation_is_ready", (DL_FUNC)&wk_coefficient_of_variation_is_ready, 1},
   {"wk_coefficient_of_variation_name", (DL_FUNC)&wk_coefficient_of_variation_name, 1},
@@ -29294,6 +30910,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_common_sense_ratio_new", (DL_FUNC)&wk_common_sense_ratio_new, 1},
   {"wk_common_sense_ratio_update", (DL_FUNC)&wk_common_sense_ratio_update, 2},
   {"wk_common_sense_ratio_batch", (DL_FUNC)&wk_common_sense_ratio_batch, 2},
+  {"wk_common_sense_ratio_batch_fast", (DL_FUNC)&wk_common_sense_ratio_batch_fast, 2},
   {"wk_common_sense_ratio_warmup_period", (DL_FUNC)&wk_common_sense_ratio_warmup_period, 1},
   {"wk_common_sense_ratio_is_ready", (DL_FUNC)&wk_common_sense_ratio_is_ready, 1},
   {"wk_common_sense_ratio_name", (DL_FUNC)&wk_common_sense_ratio_name, 1},
@@ -29315,6 +30932,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_conditional_value_at_risk_new", (DL_FUNC)&wk_conditional_value_at_risk_new, 2},
   {"wk_conditional_value_at_risk_update", (DL_FUNC)&wk_conditional_value_at_risk_update, 2},
   {"wk_conditional_value_at_risk_batch", (DL_FUNC)&wk_conditional_value_at_risk_batch, 2},
+  {"wk_conditional_value_at_risk_batch_fast", (DL_FUNC)&wk_conditional_value_at_risk_batch_fast, 2},
   {"wk_conditional_value_at_risk_warmup_period", (DL_FUNC)&wk_conditional_value_at_risk_warmup_period, 1},
   {"wk_conditional_value_at_risk_is_ready", (DL_FUNC)&wk_conditional_value_at_risk_is_ready, 1},
   {"wk_conditional_value_at_risk_name", (DL_FUNC)&wk_conditional_value_at_risk_name, 1},
@@ -29322,6 +30940,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_connors_rsi_new", (DL_FUNC)&wk_connors_rsi_new, 3},
   {"wk_connors_rsi_update", (DL_FUNC)&wk_connors_rsi_update, 2},
   {"wk_connors_rsi_batch", (DL_FUNC)&wk_connors_rsi_batch, 2},
+  {"wk_connors_rsi_batch_fast", (DL_FUNC)&wk_connors_rsi_batch_fast, 2},
   {"wk_connors_rsi_warmup_period", (DL_FUNC)&wk_connors_rsi_warmup_period, 1},
   {"wk_connors_rsi_is_ready", (DL_FUNC)&wk_connors_rsi_is_ready, 1},
   {"wk_connors_rsi_name", (DL_FUNC)&wk_connors_rsi_name, 1},
@@ -29329,6 +30948,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_coppock_new", (DL_FUNC)&wk_coppock_new, 3},
   {"wk_coppock_update", (DL_FUNC)&wk_coppock_update, 2},
   {"wk_coppock_batch", (DL_FUNC)&wk_coppock_batch, 2},
+  {"wk_coppock_batch_fast", (DL_FUNC)&wk_coppock_batch_fast, 2},
   {"wk_coppock_warmup_period", (DL_FUNC)&wk_coppock_warmup_period, 1},
   {"wk_coppock_is_ready", (DL_FUNC)&wk_coppock_is_ready, 1},
   {"wk_coppock_name", (DL_FUNC)&wk_coppock_name, 1},
@@ -29336,6 +30956,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_correlation_trend_indicator_new", (DL_FUNC)&wk_correlation_trend_indicator_new, 1},
   {"wk_correlation_trend_indicator_update", (DL_FUNC)&wk_correlation_trend_indicator_update, 2},
   {"wk_correlation_trend_indicator_batch", (DL_FUNC)&wk_correlation_trend_indicator_batch, 2},
+  {"wk_correlation_trend_indicator_batch_fast", (DL_FUNC)&wk_correlation_trend_indicator_batch_fast, 2},
   {"wk_correlation_trend_indicator_warmup_period", (DL_FUNC)&wk_correlation_trend_indicator_warmup_period, 1},
   {"wk_correlation_trend_indicator_is_ready", (DL_FUNC)&wk_correlation_trend_indicator_is_ready, 1},
   {"wk_correlation_trend_indicator_name", (DL_FUNC)&wk_correlation_trend_indicator_name, 1},
@@ -29378,6 +30999,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_cybernetic_cycle_new", (DL_FUNC)&wk_cybernetic_cycle_new, 1},
   {"wk_cybernetic_cycle_update", (DL_FUNC)&wk_cybernetic_cycle_update, 2},
   {"wk_cybernetic_cycle_batch", (DL_FUNC)&wk_cybernetic_cycle_batch, 2},
+  {"wk_cybernetic_cycle_batch_fast", (DL_FUNC)&wk_cybernetic_cycle_batch_fast, 2},
   {"wk_cybernetic_cycle_warmup_period", (DL_FUNC)&wk_cybernetic_cycle_warmup_period, 1},
   {"wk_cybernetic_cycle_is_ready", (DL_FUNC)&wk_cybernetic_cycle_is_ready, 1},
   {"wk_cybernetic_cycle_name", (DL_FUNC)&wk_cybernetic_cycle_name, 1},
@@ -29399,6 +31021,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_decycler_new", (DL_FUNC)&wk_decycler_new, 1},
   {"wk_decycler_update", (DL_FUNC)&wk_decycler_update, 2},
   {"wk_decycler_batch", (DL_FUNC)&wk_decycler_batch, 2},
+  {"wk_decycler_batch_fast", (DL_FUNC)&wk_decycler_batch_fast, 2},
   {"wk_decycler_warmup_period", (DL_FUNC)&wk_decycler_warmup_period, 1},
   {"wk_decycler_is_ready", (DL_FUNC)&wk_decycler_is_ready, 1},
   {"wk_decycler_name", (DL_FUNC)&wk_decycler_name, 1},
@@ -29406,6 +31029,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_decycler_oscillator_new", (DL_FUNC)&wk_decycler_oscillator_new, 2},
   {"wk_decycler_oscillator_update", (DL_FUNC)&wk_decycler_oscillator_update, 2},
   {"wk_decycler_oscillator_batch", (DL_FUNC)&wk_decycler_oscillator_batch, 2},
+  {"wk_decycler_oscillator_batch_fast", (DL_FUNC)&wk_decycler_oscillator_batch_fast, 2},
   {"wk_decycler_oscillator_warmup_period", (DL_FUNC)&wk_decycler_oscillator_warmup_period, 1},
   {"wk_decycler_oscillator_is_ready", (DL_FUNC)&wk_decycler_oscillator_is_ready, 1},
   {"wk_decycler_oscillator_name", (DL_FUNC)&wk_decycler_oscillator_name, 1},
@@ -29413,6 +31037,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_dema_new", (DL_FUNC)&wk_dema_new, 1},
   {"wk_dema_update", (DL_FUNC)&wk_dema_update, 2},
   {"wk_dema_batch", (DL_FUNC)&wk_dema_batch, 2},
+  {"wk_dema_batch_fast", (DL_FUNC)&wk_dema_batch_fast, 2},
   {"wk_dema_warmup_period", (DL_FUNC)&wk_dema_warmup_period, 1},
   {"wk_dema_is_ready", (DL_FUNC)&wk_dema_is_ready, 1},
   {"wk_dema_name", (DL_FUNC)&wk_dema_name, 1},
@@ -29441,6 +31066,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_derivative_oscillator_new", (DL_FUNC)&wk_derivative_oscillator_new, 4},
   {"wk_derivative_oscillator_update", (DL_FUNC)&wk_derivative_oscillator_update, 2},
   {"wk_derivative_oscillator_batch", (DL_FUNC)&wk_derivative_oscillator_batch, 2},
+  {"wk_derivative_oscillator_batch_fast", (DL_FUNC)&wk_derivative_oscillator_batch_fast, 2},
   {"wk_derivative_oscillator_warmup_period", (DL_FUNC)&wk_derivative_oscillator_warmup_period, 1},
   {"wk_derivative_oscillator_is_ready", (DL_FUNC)&wk_derivative_oscillator_is_ready, 1},
   {"wk_derivative_oscillator_name", (DL_FUNC)&wk_derivative_oscillator_name, 1},
@@ -29448,6 +31074,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_detrended_std_dev_new", (DL_FUNC)&wk_detrended_std_dev_new, 1},
   {"wk_detrended_std_dev_update", (DL_FUNC)&wk_detrended_std_dev_update, 2},
   {"wk_detrended_std_dev_batch", (DL_FUNC)&wk_detrended_std_dev_batch, 2},
+  {"wk_detrended_std_dev_batch_fast", (DL_FUNC)&wk_detrended_std_dev_batch_fast, 2},
   {"wk_detrended_std_dev_warmup_period", (DL_FUNC)&wk_detrended_std_dev_warmup_period, 1},
   {"wk_detrended_std_dev_is_ready", (DL_FUNC)&wk_detrended_std_dev_is_ready, 1},
   {"wk_detrended_std_dev_name", (DL_FUNC)&wk_detrended_std_dev_name, 1},
@@ -29455,6 +31082,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_disparity_index_new", (DL_FUNC)&wk_disparity_index_new, 1},
   {"wk_disparity_index_update", (DL_FUNC)&wk_disparity_index_update, 2},
   {"wk_disparity_index_batch", (DL_FUNC)&wk_disparity_index_batch, 2},
+  {"wk_disparity_index_batch_fast", (DL_FUNC)&wk_disparity_index_batch_fast, 2},
   {"wk_disparity_index_warmup_period", (DL_FUNC)&wk_disparity_index_warmup_period, 1},
   {"wk_disparity_index_is_ready", (DL_FUNC)&wk_disparity_index_is_ready, 1},
   {"wk_disparity_index_name", (DL_FUNC)&wk_disparity_index_name, 1},
@@ -29523,6 +31151,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_dpo_new", (DL_FUNC)&wk_dpo_new, 1},
   {"wk_dpo_update", (DL_FUNC)&wk_dpo_update, 2},
   {"wk_dpo_batch", (DL_FUNC)&wk_dpo_batch, 2},
+  {"wk_dpo_batch_fast", (DL_FUNC)&wk_dpo_batch_fast, 2},
   {"wk_dpo_warmup_period", (DL_FUNC)&wk_dpo_warmup_period, 1},
   {"wk_dpo_is_ready", (DL_FUNC)&wk_dpo_is_ready, 1},
   {"wk_dpo_name", (DL_FUNC)&wk_dpo_name, 1},
@@ -29558,6 +31187,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_dynamic_momentum_index_new", (DL_FUNC)&wk_dynamic_momentum_index_new, 1},
   {"wk_dynamic_momentum_index_update", (DL_FUNC)&wk_dynamic_momentum_index_update, 2},
   {"wk_dynamic_momentum_index_batch", (DL_FUNC)&wk_dynamic_momentum_index_batch, 2},
+  {"wk_dynamic_momentum_index_batch_fast", (DL_FUNC)&wk_dynamic_momentum_index_batch_fast, 2},
   {"wk_dynamic_momentum_index_warmup_period", (DL_FUNC)&wk_dynamic_momentum_index_warmup_period, 1},
   {"wk_dynamic_momentum_index_is_ready", (DL_FUNC)&wk_dynamic_momentum_index_is_ready, 1},
   {"wk_dynamic_momentum_index_name", (DL_FUNC)&wk_dynamic_momentum_index_name, 1},
@@ -29579,6 +31209,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ehlers_stochastic_new", (DL_FUNC)&wk_ehlers_stochastic_new, 1},
   {"wk_ehlers_stochastic_update", (DL_FUNC)&wk_ehlers_stochastic_update, 2},
   {"wk_ehlers_stochastic_batch", (DL_FUNC)&wk_ehlers_stochastic_batch, 2},
+  {"wk_ehlers_stochastic_batch_fast", (DL_FUNC)&wk_ehlers_stochastic_batch_fast, 2},
   {"wk_ehlers_stochastic_warmup_period", (DL_FUNC)&wk_ehlers_stochastic_warmup_period, 1},
   {"wk_ehlers_stochastic_is_ready", (DL_FUNC)&wk_ehlers_stochastic_is_ready, 1},
   {"wk_ehlers_stochastic_name", (DL_FUNC)&wk_ehlers_stochastic_name, 1},
@@ -29586,6 +31217,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ehma_new", (DL_FUNC)&wk_ehma_new, 1},
   {"wk_ehma_update", (DL_FUNC)&wk_ehma_update, 2},
   {"wk_ehma_batch", (DL_FUNC)&wk_ehma_batch, 2},
+  {"wk_ehma_batch_fast", (DL_FUNC)&wk_ehma_batch_fast, 2},
   {"wk_ehma_warmup_period", (DL_FUNC)&wk_ehma_warmup_period, 1},
   {"wk_ehma_is_ready", (DL_FUNC)&wk_ehma_is_ready, 1},
   {"wk_ehma_name", (DL_FUNC)&wk_ehma_name, 1},
@@ -29593,6 +31225,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_elder_impulse_new", (DL_FUNC)&wk_elder_impulse_new, 4},
   {"wk_elder_impulse_update", (DL_FUNC)&wk_elder_impulse_update, 2},
   {"wk_elder_impulse_batch", (DL_FUNC)&wk_elder_impulse_batch, 2},
+  {"wk_elder_impulse_batch_fast", (DL_FUNC)&wk_elder_impulse_batch_fast, 2},
   {"wk_elder_impulse_warmup_period", (DL_FUNC)&wk_elder_impulse_warmup_period, 1},
   {"wk_elder_impulse_is_ready", (DL_FUNC)&wk_elder_impulse_is_ready, 1},
   {"wk_elder_impulse_name", (DL_FUNC)&wk_elder_impulse_name, 1},
@@ -29614,6 +31247,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ema_new", (DL_FUNC)&wk_ema_new, 1},
   {"wk_ema_update", (DL_FUNC)&wk_ema_update, 2},
   {"wk_ema_batch", (DL_FUNC)&wk_ema_batch, 2},
+  {"wk_ema_batch_fast", (DL_FUNC)&wk_ema_batch_fast, 2},
   {"wk_ema_warmup_period", (DL_FUNC)&wk_ema_warmup_period, 1},
   {"wk_ema_is_ready", (DL_FUNC)&wk_ema_is_ready, 1},
   {"wk_ema_name", (DL_FUNC)&wk_ema_name, 1},
@@ -29621,6 +31255,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_empirical_mode_decomposition_new", (DL_FUNC)&wk_empirical_mode_decomposition_new, 2},
   {"wk_empirical_mode_decomposition_update", (DL_FUNC)&wk_empirical_mode_decomposition_update, 2},
   {"wk_empirical_mode_decomposition_batch", (DL_FUNC)&wk_empirical_mode_decomposition_batch, 2},
+  {"wk_empirical_mode_decomposition_batch_fast", (DL_FUNC)&wk_empirical_mode_decomposition_batch_fast, 2},
   {"wk_empirical_mode_decomposition_warmup_period", (DL_FUNC)&wk_empirical_mode_decomposition_warmup_period, 1},
   {"wk_empirical_mode_decomposition_is_ready", (DL_FUNC)&wk_empirical_mode_decomposition_is_ready, 1},
   {"wk_empirical_mode_decomposition_name", (DL_FUNC)&wk_empirical_mode_decomposition_name, 1},
@@ -29649,6 +31284,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_even_better_sinewave_new", (DL_FUNC)&wk_even_better_sinewave_new, 2},
   {"wk_even_better_sinewave_update", (DL_FUNC)&wk_even_better_sinewave_update, 2},
   {"wk_even_better_sinewave_batch", (DL_FUNC)&wk_even_better_sinewave_batch, 2},
+  {"wk_even_better_sinewave_batch_fast", (DL_FUNC)&wk_even_better_sinewave_batch_fast, 2},
   {"wk_even_better_sinewave_warmup_period", (DL_FUNC)&wk_even_better_sinewave_warmup_period, 1},
   {"wk_even_better_sinewave_is_ready", (DL_FUNC)&wk_even_better_sinewave_is_ready, 1},
   {"wk_even_better_sinewave_name", (DL_FUNC)&wk_even_better_sinewave_name, 1},
@@ -29670,6 +31306,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ewma_volatility_new", (DL_FUNC)&wk_ewma_volatility_new, 1},
   {"wk_ewma_volatility_update", (DL_FUNC)&wk_ewma_volatility_update, 2},
   {"wk_ewma_volatility_batch", (DL_FUNC)&wk_ewma_volatility_batch, 2},
+  {"wk_ewma_volatility_batch_fast", (DL_FUNC)&wk_ewma_volatility_batch_fast, 2},
   {"wk_ewma_volatility_warmup_period", (DL_FUNC)&wk_ewma_volatility_warmup_period, 1},
   {"wk_ewma_volatility_is_ready", (DL_FUNC)&wk_ewma_volatility_is_ready, 1},
   {"wk_ewma_volatility_name", (DL_FUNC)&wk_ewma_volatility_name, 1},
@@ -29677,6 +31314,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_expectancy_new", (DL_FUNC)&wk_expectancy_new, 1},
   {"wk_expectancy_update", (DL_FUNC)&wk_expectancy_update, 2},
   {"wk_expectancy_batch", (DL_FUNC)&wk_expectancy_batch, 2},
+  {"wk_expectancy_batch_fast", (DL_FUNC)&wk_expectancy_batch_fast, 2},
   {"wk_expectancy_warmup_period", (DL_FUNC)&wk_expectancy_warmup_period, 1},
   {"wk_expectancy_is_ready", (DL_FUNC)&wk_expectancy_is_ready, 1},
   {"wk_expectancy_name", (DL_FUNC)&wk_expectancy_name, 1},
@@ -29691,6 +31329,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_fama_new", (DL_FUNC)&wk_fama_new, 2},
   {"wk_fama_update", (DL_FUNC)&wk_fama_update, 2},
   {"wk_fama_batch", (DL_FUNC)&wk_fama_batch, 2},
+  {"wk_fama_batch_fast", (DL_FUNC)&wk_fama_batch_fast, 2},
   {"wk_fama_warmup_period", (DL_FUNC)&wk_fama_warmup_period, 1},
   {"wk_fama_is_ready", (DL_FUNC)&wk_fama_is_ready, 1},
   {"wk_fama_name", (DL_FUNC)&wk_fama_name, 1},
@@ -29761,6 +31400,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_fisher_rsi_new", (DL_FUNC)&wk_fisher_rsi_new, 1},
   {"wk_fisher_rsi_update", (DL_FUNC)&wk_fisher_rsi_update, 2},
   {"wk_fisher_rsi_batch", (DL_FUNC)&wk_fisher_rsi_batch, 2},
+  {"wk_fisher_rsi_batch_fast", (DL_FUNC)&wk_fisher_rsi_batch_fast, 2},
   {"wk_fisher_rsi_warmup_period", (DL_FUNC)&wk_fisher_rsi_warmup_period, 1},
   {"wk_fisher_rsi_is_ready", (DL_FUNC)&wk_fisher_rsi_is_ready, 1},
   {"wk_fisher_rsi_name", (DL_FUNC)&wk_fisher_rsi_name, 1},
@@ -29768,6 +31408,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_fisher_transform_new", (DL_FUNC)&wk_fisher_transform_new, 1},
   {"wk_fisher_transform_update", (DL_FUNC)&wk_fisher_transform_update, 2},
   {"wk_fisher_transform_batch", (DL_FUNC)&wk_fisher_transform_batch, 2},
+  {"wk_fisher_transform_batch_fast", (DL_FUNC)&wk_fisher_transform_batch_fast, 2},
   {"wk_fisher_transform_warmup_period", (DL_FUNC)&wk_fisher_transform_warmup_period, 1},
   {"wk_fisher_transform_is_ready", (DL_FUNC)&wk_fisher_transform_is_ready, 1},
   {"wk_fisher_transform_name", (DL_FUNC)&wk_fisher_transform_name, 1},
@@ -29803,6 +31444,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_frama_new", (DL_FUNC)&wk_frama_new, 1},
   {"wk_frama_update", (DL_FUNC)&wk_frama_update, 2},
   {"wk_frama_batch", (DL_FUNC)&wk_frama_batch, 2},
+  {"wk_frama_batch_fast", (DL_FUNC)&wk_frama_batch_fast, 2},
   {"wk_frama_warmup_period", (DL_FUNC)&wk_frama_warmup_period, 1},
   {"wk_frama_is_ready", (DL_FUNC)&wk_frama_is_ready, 1},
   {"wk_frama_name", (DL_FUNC)&wk_frama_name, 1},
@@ -29852,6 +31494,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_gain_loss_ratio_new", (DL_FUNC)&wk_gain_loss_ratio_new, 1},
   {"wk_gain_loss_ratio_update", (DL_FUNC)&wk_gain_loss_ratio_update, 2},
   {"wk_gain_loss_ratio_batch", (DL_FUNC)&wk_gain_loss_ratio_batch, 2},
+  {"wk_gain_loss_ratio_batch_fast", (DL_FUNC)&wk_gain_loss_ratio_batch_fast, 2},
   {"wk_gain_loss_ratio_warmup_period", (DL_FUNC)&wk_gain_loss_ratio_warmup_period, 1},
   {"wk_gain_loss_ratio_is_ready", (DL_FUNC)&wk_gain_loss_ratio_is_ready, 1},
   {"wk_gain_loss_ratio_name", (DL_FUNC)&wk_gain_loss_ratio_name, 1},
@@ -29859,6 +31502,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_gain_to_pain_ratio_new", (DL_FUNC)&wk_gain_to_pain_ratio_new, 1},
   {"wk_gain_to_pain_ratio_update", (DL_FUNC)&wk_gain_to_pain_ratio_update, 2},
   {"wk_gain_to_pain_ratio_batch", (DL_FUNC)&wk_gain_to_pain_ratio_batch, 2},
+  {"wk_gain_to_pain_ratio_batch_fast", (DL_FUNC)&wk_gain_to_pain_ratio_batch_fast, 2},
   {"wk_gain_to_pain_ratio_warmup_period", (DL_FUNC)&wk_gain_to_pain_ratio_warmup_period, 1},
   {"wk_gain_to_pain_ratio_is_ready", (DL_FUNC)&wk_gain_to_pain_ratio_is_ready, 1},
   {"wk_gain_to_pain_ratio_name", (DL_FUNC)&wk_gain_to_pain_ratio_name, 1},
@@ -29873,6 +31517,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_garch11_new", (DL_FUNC)&wk_garch11_new, 3},
   {"wk_garch11_update", (DL_FUNC)&wk_garch11_update, 2},
   {"wk_garch11_batch", (DL_FUNC)&wk_garch11_batch, 2},
+  {"wk_garch11_batch_fast", (DL_FUNC)&wk_garch11_batch_fast, 2},
   {"wk_garch11_warmup_period", (DL_FUNC)&wk_garch11_warmup_period, 1},
   {"wk_garch11_is_ready", (DL_FUNC)&wk_garch11_is_ready, 1},
   {"wk_garch11_name", (DL_FUNC)&wk_garch11_name, 1},
@@ -29901,6 +31546,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_generalized_dema_new", (DL_FUNC)&wk_generalized_dema_new, 2},
   {"wk_generalized_dema_update", (DL_FUNC)&wk_generalized_dema_update, 2},
   {"wk_generalized_dema_batch", (DL_FUNC)&wk_generalized_dema_batch, 2},
+  {"wk_generalized_dema_batch_fast", (DL_FUNC)&wk_generalized_dema_batch_fast, 2},
   {"wk_generalized_dema_warmup_period", (DL_FUNC)&wk_generalized_dema_warmup_period, 1},
   {"wk_generalized_dema_is_ready", (DL_FUNC)&wk_generalized_dema_is_ready, 1},
   {"wk_generalized_dema_name", (DL_FUNC)&wk_generalized_dema_name, 1},
@@ -29908,6 +31554,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_geometric_ma_new", (DL_FUNC)&wk_geometric_ma_new, 1},
   {"wk_geometric_ma_update", (DL_FUNC)&wk_geometric_ma_update, 2},
   {"wk_geometric_ma_batch", (DL_FUNC)&wk_geometric_ma_batch, 2},
+  {"wk_geometric_ma_batch_fast", (DL_FUNC)&wk_geometric_ma_batch_fast, 2},
   {"wk_geometric_ma_warmup_period", (DL_FUNC)&wk_geometric_ma_warmup_period, 1},
   {"wk_geometric_ma_is_ready", (DL_FUNC)&wk_geometric_ma_is_ready, 1},
   {"wk_geometric_ma_name", (DL_FUNC)&wk_geometric_ma_name, 1},
@@ -30027,6 +31674,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_highpass_filter_new", (DL_FUNC)&wk_highpass_filter_new, 1},
   {"wk_highpass_filter_update", (DL_FUNC)&wk_highpass_filter_update, 2},
   {"wk_highpass_filter_batch", (DL_FUNC)&wk_highpass_filter_batch, 2},
+  {"wk_highpass_filter_batch_fast", (DL_FUNC)&wk_highpass_filter_batch_fast, 2},
   {"wk_highpass_filter_warmup_period", (DL_FUNC)&wk_highpass_filter_warmup_period, 1},
   {"wk_highpass_filter_is_ready", (DL_FUNC)&wk_highpass_filter_is_ready, 1},
   {"wk_highpass_filter_name", (DL_FUNC)&wk_highpass_filter_name, 1},
@@ -30048,6 +31696,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_hilbert_dominant_cycle_new", (DL_FUNC)&wk_hilbert_dominant_cycle_new, 0},
   {"wk_hilbert_dominant_cycle_update", (DL_FUNC)&wk_hilbert_dominant_cycle_update, 2},
   {"wk_hilbert_dominant_cycle_batch", (DL_FUNC)&wk_hilbert_dominant_cycle_batch, 2},
+  {"wk_hilbert_dominant_cycle_batch_fast", (DL_FUNC)&wk_hilbert_dominant_cycle_batch_fast, 2},
   {"wk_hilbert_dominant_cycle_warmup_period", (DL_FUNC)&wk_hilbert_dominant_cycle_warmup_period, 1},
   {"wk_hilbert_dominant_cycle_is_ready", (DL_FUNC)&wk_hilbert_dominant_cycle_is_ready, 1},
   {"wk_hilbert_dominant_cycle_name", (DL_FUNC)&wk_hilbert_dominant_cycle_name, 1},
@@ -30055,6 +31704,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_historical_volatility_new", (DL_FUNC)&wk_historical_volatility_new, 2},
   {"wk_historical_volatility_update", (DL_FUNC)&wk_historical_volatility_update, 2},
   {"wk_historical_volatility_batch", (DL_FUNC)&wk_historical_volatility_batch, 2},
+  {"wk_historical_volatility_batch_fast", (DL_FUNC)&wk_historical_volatility_batch_fast, 2},
   {"wk_historical_volatility_warmup_period", (DL_FUNC)&wk_historical_volatility_warmup_period, 1},
   {"wk_historical_volatility_is_ready", (DL_FUNC)&wk_historical_volatility_is_ready, 1},
   {"wk_historical_volatility_name", (DL_FUNC)&wk_historical_volatility_name, 1},
@@ -30062,6 +31712,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_hma_new", (DL_FUNC)&wk_hma_new, 1},
   {"wk_hma_update", (DL_FUNC)&wk_hma_update, 2},
   {"wk_hma_batch", (DL_FUNC)&wk_hma_batch, 2},
+  {"wk_hma_batch_fast", (DL_FUNC)&wk_hma_batch_fast, 2},
   {"wk_hma_warmup_period", (DL_FUNC)&wk_hma_warmup_period, 1},
   {"wk_hma_is_ready", (DL_FUNC)&wk_hma_is_ready, 1},
   {"wk_hma_name", (DL_FUNC)&wk_hma_name, 1},
@@ -30069,6 +31720,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_holt_winters_new", (DL_FUNC)&wk_holt_winters_new, 2},
   {"wk_holt_winters_update", (DL_FUNC)&wk_holt_winters_update, 2},
   {"wk_holt_winters_batch", (DL_FUNC)&wk_holt_winters_batch, 2},
+  {"wk_holt_winters_batch_fast", (DL_FUNC)&wk_holt_winters_batch_fast, 2},
   {"wk_holt_winters_warmup_period", (DL_FUNC)&wk_holt_winters_warmup_period, 1},
   {"wk_holt_winters_is_ready", (DL_FUNC)&wk_holt_winters_is_ready, 1},
   {"wk_holt_winters_name", (DL_FUNC)&wk_holt_winters_name, 1},
@@ -30083,6 +31735,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ht_dc_phase_new", (DL_FUNC)&wk_ht_dc_phase_new, 0},
   {"wk_ht_dc_phase_update", (DL_FUNC)&wk_ht_dc_phase_update, 2},
   {"wk_ht_dc_phase_batch", (DL_FUNC)&wk_ht_dc_phase_batch, 2},
+  {"wk_ht_dc_phase_batch_fast", (DL_FUNC)&wk_ht_dc_phase_batch_fast, 2},
   {"wk_ht_dc_phase_warmup_period", (DL_FUNC)&wk_ht_dc_phase_warmup_period, 1},
   {"wk_ht_dc_phase_is_ready", (DL_FUNC)&wk_ht_dc_phase_is_ready, 1},
   {"wk_ht_dc_phase_name", (DL_FUNC)&wk_ht_dc_phase_name, 1},
@@ -30097,6 +31750,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ht_trend_mode_new", (DL_FUNC)&wk_ht_trend_mode_new, 0},
   {"wk_ht_trend_mode_update", (DL_FUNC)&wk_ht_trend_mode_update, 2},
   {"wk_ht_trend_mode_batch", (DL_FUNC)&wk_ht_trend_mode_batch, 2},
+  {"wk_ht_trend_mode_batch_fast", (DL_FUNC)&wk_ht_trend_mode_batch_fast, 2},
   {"wk_ht_trend_mode_warmup_period", (DL_FUNC)&wk_ht_trend_mode_warmup_period, 1},
   {"wk_ht_trend_mode_is_ready", (DL_FUNC)&wk_ht_trend_mode_is_ready, 1},
   {"wk_ht_trend_mode_name", (DL_FUNC)&wk_ht_trend_mode_name, 1},
@@ -30111,6 +31765,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_hurst_exponent_new", (DL_FUNC)&wk_hurst_exponent_new, 2},
   {"wk_hurst_exponent_update", (DL_FUNC)&wk_hurst_exponent_update, 2},
   {"wk_hurst_exponent_batch", (DL_FUNC)&wk_hurst_exponent_batch, 2},
+  {"wk_hurst_exponent_batch_fast", (DL_FUNC)&wk_hurst_exponent_batch_fast, 2},
   {"wk_hurst_exponent_warmup_period", (DL_FUNC)&wk_hurst_exponent_warmup_period, 1},
   {"wk_hurst_exponent_is_ready", (DL_FUNC)&wk_hurst_exponent_is_ready, 1},
   {"wk_hurst_exponent_name", (DL_FUNC)&wk_hurst_exponent_name, 1},
@@ -30165,6 +31820,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_instantaneous_trendline_new", (DL_FUNC)&wk_instantaneous_trendline_new, 1},
   {"wk_instantaneous_trendline_update", (DL_FUNC)&wk_instantaneous_trendline_update, 2},
   {"wk_instantaneous_trendline_batch", (DL_FUNC)&wk_instantaneous_trendline_batch, 2},
+  {"wk_instantaneous_trendline_batch_fast", (DL_FUNC)&wk_instantaneous_trendline_batch_fast, 2},
   {"wk_instantaneous_trendline_warmup_period", (DL_FUNC)&wk_instantaneous_trendline_warmup_period, 1},
   {"wk_instantaneous_trendline_is_ready", (DL_FUNC)&wk_instantaneous_trendline_is_ready, 1},
   {"wk_instantaneous_trendline_name", (DL_FUNC)&wk_instantaneous_trendline_name, 1},
@@ -30193,6 +31849,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_inverse_fisher_transform_new", (DL_FUNC)&wk_inverse_fisher_transform_new, 1},
   {"wk_inverse_fisher_transform_update", (DL_FUNC)&wk_inverse_fisher_transform_update, 2},
   {"wk_inverse_fisher_transform_batch", (DL_FUNC)&wk_inverse_fisher_transform_batch, 2},
+  {"wk_inverse_fisher_transform_batch_fast", (DL_FUNC)&wk_inverse_fisher_transform_batch_fast, 2},
   {"wk_inverse_fisher_transform_warmup_period", (DL_FUNC)&wk_inverse_fisher_transform_warmup_period, 1},
   {"wk_inverse_fisher_transform_is_ready", (DL_FUNC)&wk_inverse_fisher_transform_is_ready, 1},
   {"wk_inverse_fisher_transform_name", (DL_FUNC)&wk_inverse_fisher_transform_name, 1},
@@ -30207,6 +31864,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_jarque_bera_new", (DL_FUNC)&wk_jarque_bera_new, 1},
   {"wk_jarque_bera_update", (DL_FUNC)&wk_jarque_bera_update, 2},
   {"wk_jarque_bera_batch", (DL_FUNC)&wk_jarque_bera_batch, 2},
+  {"wk_jarque_bera_batch_fast", (DL_FUNC)&wk_jarque_bera_batch_fast, 2},
   {"wk_jarque_bera_warmup_period", (DL_FUNC)&wk_jarque_bera_warmup_period, 1},
   {"wk_jarque_bera_is_ready", (DL_FUNC)&wk_jarque_bera_is_ready, 1},
   {"wk_jarque_bera_name", (DL_FUNC)&wk_jarque_bera_name, 1},
@@ -30214,6 +31872,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_jma_new", (DL_FUNC)&wk_jma_new, 3},
   {"wk_jma_update", (DL_FUNC)&wk_jma_update, 2},
   {"wk_jma_batch", (DL_FUNC)&wk_jma_batch, 2},
+  {"wk_jma_batch_fast", (DL_FUNC)&wk_jma_batch_fast, 2},
   {"wk_jma_warmup_period", (DL_FUNC)&wk_jma_warmup_period, 1},
   {"wk_jma_is_ready", (DL_FUNC)&wk_jma_is_ready, 1},
   {"wk_jma_name", (DL_FUNC)&wk_jma_name, 1},
@@ -30221,6 +31880,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_jump_indicator_new", (DL_FUNC)&wk_jump_indicator_new, 2},
   {"wk_jump_indicator_update", (DL_FUNC)&wk_jump_indicator_update, 2},
   {"wk_jump_indicator_batch", (DL_FUNC)&wk_jump_indicator_batch, 2},
+  {"wk_jump_indicator_batch_fast", (DL_FUNC)&wk_jump_indicator_batch_fast, 2},
   {"wk_jump_indicator_warmup_period", (DL_FUNC)&wk_jump_indicator_warmup_period, 1},
   {"wk_jump_indicator_is_ready", (DL_FUNC)&wk_jump_indicator_is_ready, 1},
   {"wk_jump_indicator_name", (DL_FUNC)&wk_jump_indicator_name, 1},
@@ -30228,6 +31888,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_k_ratio_new", (DL_FUNC)&wk_k_ratio_new, 1},
   {"wk_k_ratio_update", (DL_FUNC)&wk_k_ratio_update, 2},
   {"wk_k_ratio_batch", (DL_FUNC)&wk_k_ratio_batch, 2},
+  {"wk_k_ratio_batch_fast", (DL_FUNC)&wk_k_ratio_batch_fast, 2},
   {"wk_k_ratio_warmup_period", (DL_FUNC)&wk_k_ratio_warmup_period, 1},
   {"wk_k_ratio_is_ready", (DL_FUNC)&wk_k_ratio_is_ready, 1},
   {"wk_k_ratio_name", (DL_FUNC)&wk_k_ratio_name, 1},
@@ -30247,6 +31908,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_kama_new", (DL_FUNC)&wk_kama_new, 3},
   {"wk_kama_update", (DL_FUNC)&wk_kama_update, 2},
   {"wk_kama_batch", (DL_FUNC)&wk_kama_batch, 2},
+  {"wk_kama_batch_fast", (DL_FUNC)&wk_kama_batch_fast, 2},
   {"wk_kama_warmup_period", (DL_FUNC)&wk_kama_warmup_period, 1},
   {"wk_kama_is_ready", (DL_FUNC)&wk_kama_is_ready, 1},
   {"wk_kama_name", (DL_FUNC)&wk_kama_name, 1},
@@ -30268,6 +31930,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_kelly_criterion_new", (DL_FUNC)&wk_kelly_criterion_new, 1},
   {"wk_kelly_criterion_update", (DL_FUNC)&wk_kelly_criterion_update, 2},
   {"wk_kelly_criterion_batch", (DL_FUNC)&wk_kelly_criterion_batch, 2},
+  {"wk_kelly_criterion_batch_fast", (DL_FUNC)&wk_kelly_criterion_batch_fast, 2},
   {"wk_kelly_criterion_warmup_period", (DL_FUNC)&wk_kelly_criterion_warmup_period, 1},
   {"wk_kelly_criterion_is_ready", (DL_FUNC)&wk_kelly_criterion_is_ready, 1},
   {"wk_kelly_criterion_name", (DL_FUNC)&wk_kelly_criterion_name, 1},
@@ -30310,6 +31973,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_kurtosis_new", (DL_FUNC)&wk_kurtosis_new, 1},
   {"wk_kurtosis_update", (DL_FUNC)&wk_kurtosis_update, 2},
   {"wk_kurtosis_batch", (DL_FUNC)&wk_kurtosis_batch, 2},
+  {"wk_kurtosis_batch_fast", (DL_FUNC)&wk_kurtosis_batch_fast, 2},
   {"wk_kurtosis_warmup_period", (DL_FUNC)&wk_kurtosis_warmup_period, 1},
   {"wk_kurtosis_is_ready", (DL_FUNC)&wk_kurtosis_is_ready, 1},
   {"wk_kurtosis_name", (DL_FUNC)&wk_kurtosis_name, 1},
@@ -30338,6 +32002,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_laguerre_rsi_new", (DL_FUNC)&wk_laguerre_rsi_new, 1},
   {"wk_laguerre_rsi_update", (DL_FUNC)&wk_laguerre_rsi_update, 2},
   {"wk_laguerre_rsi_batch", (DL_FUNC)&wk_laguerre_rsi_batch, 2},
+  {"wk_laguerre_rsi_batch_fast", (DL_FUNC)&wk_laguerre_rsi_batch_fast, 2},
   {"wk_laguerre_rsi_warmup_period", (DL_FUNC)&wk_laguerre_rsi_warmup_period, 1},
   {"wk_laguerre_rsi_is_ready", (DL_FUNC)&wk_laguerre_rsi_is_ready, 1},
   {"wk_laguerre_rsi_name", (DL_FUNC)&wk_laguerre_rsi_name, 1},
@@ -30352,6 +32017,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_lin_reg_angle_new", (DL_FUNC)&wk_lin_reg_angle_new, 1},
   {"wk_lin_reg_angle_update", (DL_FUNC)&wk_lin_reg_angle_update, 2},
   {"wk_lin_reg_angle_batch", (DL_FUNC)&wk_lin_reg_angle_batch, 2},
+  {"wk_lin_reg_angle_batch_fast", (DL_FUNC)&wk_lin_reg_angle_batch_fast, 2},
   {"wk_lin_reg_angle_warmup_period", (DL_FUNC)&wk_lin_reg_angle_warmup_period, 1},
   {"wk_lin_reg_angle_is_ready", (DL_FUNC)&wk_lin_reg_angle_is_ready, 1},
   {"wk_lin_reg_angle_name", (DL_FUNC)&wk_lin_reg_angle_name, 1},
@@ -30366,6 +32032,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_lin_reg_intercept_new", (DL_FUNC)&wk_lin_reg_intercept_new, 1},
   {"wk_lin_reg_intercept_update", (DL_FUNC)&wk_lin_reg_intercept_update, 2},
   {"wk_lin_reg_intercept_batch", (DL_FUNC)&wk_lin_reg_intercept_batch, 2},
+  {"wk_lin_reg_intercept_batch_fast", (DL_FUNC)&wk_lin_reg_intercept_batch_fast, 2},
   {"wk_lin_reg_intercept_warmup_period", (DL_FUNC)&wk_lin_reg_intercept_warmup_period, 1},
   {"wk_lin_reg_intercept_is_ready", (DL_FUNC)&wk_lin_reg_intercept_is_ready, 1},
   {"wk_lin_reg_intercept_name", (DL_FUNC)&wk_lin_reg_intercept_name, 1},
@@ -30373,6 +32040,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_lin_reg_slope_new", (DL_FUNC)&wk_lin_reg_slope_new, 1},
   {"wk_lin_reg_slope_update", (DL_FUNC)&wk_lin_reg_slope_update, 2},
   {"wk_lin_reg_slope_batch", (DL_FUNC)&wk_lin_reg_slope_batch, 2},
+  {"wk_lin_reg_slope_batch_fast", (DL_FUNC)&wk_lin_reg_slope_batch_fast, 2},
   {"wk_lin_reg_slope_warmup_period", (DL_FUNC)&wk_lin_reg_slope_warmup_period, 1},
   {"wk_lin_reg_slope_is_ready", (DL_FUNC)&wk_lin_reg_slope_is_ready, 1},
   {"wk_lin_reg_slope_name", (DL_FUNC)&wk_lin_reg_slope_name, 1},
@@ -30380,6 +32048,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_linear_regression_new", (DL_FUNC)&wk_linear_regression_new, 1},
   {"wk_linear_regression_update", (DL_FUNC)&wk_linear_regression_update, 2},
   {"wk_linear_regression_batch", (DL_FUNC)&wk_linear_regression_batch, 2},
+  {"wk_linear_regression_batch_fast", (DL_FUNC)&wk_linear_regression_batch_fast, 2},
   {"wk_linear_regression_warmup_period", (DL_FUNC)&wk_linear_regression_warmup_period, 1},
   {"wk_linear_regression_is_ready", (DL_FUNC)&wk_linear_regression_is_ready, 1},
   {"wk_linear_regression_name", (DL_FUNC)&wk_linear_regression_name, 1},
@@ -30394,6 +32063,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_log_return_new", (DL_FUNC)&wk_log_return_new, 1},
   {"wk_log_return_update", (DL_FUNC)&wk_log_return_update, 2},
   {"wk_log_return_batch", (DL_FUNC)&wk_log_return_batch, 2},
+  {"wk_log_return_batch_fast", (DL_FUNC)&wk_log_return_batch_fast, 2},
   {"wk_log_return_warmup_period", (DL_FUNC)&wk_log_return_warmup_period, 1},
   {"wk_log_return_is_ready", (DL_FUNC)&wk_log_return_is_ready, 1},
   {"wk_log_return_name", (DL_FUNC)&wk_log_return_name, 1},
@@ -30422,6 +32092,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_m2_measure_new", (DL_FUNC)&wk_m2_measure_new, 3},
   {"wk_m2_measure_update", (DL_FUNC)&wk_m2_measure_update, 2},
   {"wk_m2_measure_batch", (DL_FUNC)&wk_m2_measure_batch, 2},
+  {"wk_m2_measure_batch_fast", (DL_FUNC)&wk_m2_measure_batch_fast, 2},
   {"wk_m2_measure_warmup_period", (DL_FUNC)&wk_m2_measure_warmup_period, 1},
   {"wk_m2_measure_is_ready", (DL_FUNC)&wk_m2_measure_is_ready, 1},
   {"wk_m2_measure_name", (DL_FUNC)&wk_m2_measure_name, 1},
@@ -30450,6 +32121,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_macd_histogram_new", (DL_FUNC)&wk_macd_histogram_new, 3},
   {"wk_macd_histogram_update", (DL_FUNC)&wk_macd_histogram_update, 2},
   {"wk_macd_histogram_batch", (DL_FUNC)&wk_macd_histogram_batch, 2},
+  {"wk_macd_histogram_batch_fast", (DL_FUNC)&wk_macd_histogram_batch_fast, 2},
   {"wk_macd_histogram_warmup_period", (DL_FUNC)&wk_macd_histogram_warmup_period, 1},
   {"wk_macd_histogram_is_ready", (DL_FUNC)&wk_macd_histogram_is_ready, 1},
   {"wk_macd_histogram_name", (DL_FUNC)&wk_macd_histogram_name, 1},
@@ -30457,6 +32129,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_macd_indicator_new", (DL_FUNC)&wk_macd_indicator_new, 3},
   {"wk_macd_indicator_update", (DL_FUNC)&wk_macd_indicator_update, 2},
   {"wk_macd_indicator_batch", (DL_FUNC)&wk_macd_indicator_batch, 2},
+  {"wk_macd_indicator_batch_fast", (DL_FUNC)&wk_macd_indicator_batch_fast, 2},
   {"wk_macd_indicator_warmup_period", (DL_FUNC)&wk_macd_indicator_warmup_period, 1},
   {"wk_macd_indicator_is_ready", (DL_FUNC)&wk_macd_indicator_is_ready, 1},
   {"wk_macd_indicator_name", (DL_FUNC)&wk_macd_indicator_name, 1},
@@ -30478,6 +32151,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_martin_ratio_new", (DL_FUNC)&wk_martin_ratio_new, 1},
   {"wk_martin_ratio_update", (DL_FUNC)&wk_martin_ratio_update, 2},
   {"wk_martin_ratio_batch", (DL_FUNC)&wk_martin_ratio_batch, 2},
+  {"wk_martin_ratio_batch_fast", (DL_FUNC)&wk_martin_ratio_batch_fast, 2},
   {"wk_martin_ratio_warmup_period", (DL_FUNC)&wk_martin_ratio_warmup_period, 1},
   {"wk_martin_ratio_is_ready", (DL_FUNC)&wk_martin_ratio_is_ready, 1},
   {"wk_martin_ratio_name", (DL_FUNC)&wk_martin_ratio_name, 1},
@@ -30513,6 +32187,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_max_drawdown_new", (DL_FUNC)&wk_max_drawdown_new, 1},
   {"wk_max_drawdown_update", (DL_FUNC)&wk_max_drawdown_update, 2},
   {"wk_max_drawdown_batch", (DL_FUNC)&wk_max_drawdown_batch, 2},
+  {"wk_max_drawdown_batch_fast", (DL_FUNC)&wk_max_drawdown_batch_fast, 2},
   {"wk_max_drawdown_warmup_period", (DL_FUNC)&wk_max_drawdown_warmup_period, 1},
   {"wk_max_drawdown_is_ready", (DL_FUNC)&wk_max_drawdown_is_ready, 1},
   {"wk_max_drawdown_name", (DL_FUNC)&wk_max_drawdown_name, 1},
@@ -30534,6 +32209,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_mc_ginley_dynamic_new", (DL_FUNC)&wk_mc_ginley_dynamic_new, 1},
   {"wk_mc_ginley_dynamic_update", (DL_FUNC)&wk_mc_ginley_dynamic_update, 2},
   {"wk_mc_ginley_dynamic_batch", (DL_FUNC)&wk_mc_ginley_dynamic_batch, 2},
+  {"wk_mc_ginley_dynamic_batch_fast", (DL_FUNC)&wk_mc_ginley_dynamic_batch_fast, 2},
   {"wk_mc_ginley_dynamic_warmup_period", (DL_FUNC)&wk_mc_ginley_dynamic_warmup_period, 1},
   {"wk_mc_ginley_dynamic_is_ready", (DL_FUNC)&wk_mc_ginley_dynamic_is_ready, 1},
   {"wk_mc_ginley_dynamic_name", (DL_FUNC)&wk_mc_ginley_dynamic_name, 1},
@@ -30541,6 +32217,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_median_absolute_deviation_new", (DL_FUNC)&wk_median_absolute_deviation_new, 1},
   {"wk_median_absolute_deviation_update", (DL_FUNC)&wk_median_absolute_deviation_update, 2},
   {"wk_median_absolute_deviation_batch", (DL_FUNC)&wk_median_absolute_deviation_batch, 2},
+  {"wk_median_absolute_deviation_batch_fast", (DL_FUNC)&wk_median_absolute_deviation_batch_fast, 2},
   {"wk_median_absolute_deviation_warmup_period", (DL_FUNC)&wk_median_absolute_deviation_warmup_period, 1},
   {"wk_median_absolute_deviation_is_ready", (DL_FUNC)&wk_median_absolute_deviation_is_ready, 1},
   {"wk_median_absolute_deviation_name", (DL_FUNC)&wk_median_absolute_deviation_name, 1},
@@ -30555,6 +32232,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_median_ma_new", (DL_FUNC)&wk_median_ma_new, 1},
   {"wk_median_ma_update", (DL_FUNC)&wk_median_ma_update, 2},
   {"wk_median_ma_batch", (DL_FUNC)&wk_median_ma_batch, 2},
+  {"wk_median_ma_batch_fast", (DL_FUNC)&wk_median_ma_batch_fast, 2},
   {"wk_median_ma_warmup_period", (DL_FUNC)&wk_median_ma_warmup_period, 1},
   {"wk_median_ma_is_ready", (DL_FUNC)&wk_median_ma_is_ready, 1},
   {"wk_median_ma_name", (DL_FUNC)&wk_median_ma_name, 1},
@@ -30583,6 +32261,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_mid_point_new", (DL_FUNC)&wk_mid_point_new, 1},
   {"wk_mid_point_update", (DL_FUNC)&wk_mid_point_update, 2},
   {"wk_mid_point_batch", (DL_FUNC)&wk_mid_point_batch, 2},
+  {"wk_mid_point_batch_fast", (DL_FUNC)&wk_mid_point_batch_fast, 2},
   {"wk_mid_point_warmup_period", (DL_FUNC)&wk_mid_point_warmup_period, 1},
   {"wk_mid_point_is_ready", (DL_FUNC)&wk_mid_point_is_ready, 1},
   {"wk_mid_point_name", (DL_FUNC)&wk_mid_point_name, 1},
@@ -30618,6 +32297,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_mom_new", (DL_FUNC)&wk_mom_new, 1},
   {"wk_mom_update", (DL_FUNC)&wk_mom_update, 2},
   {"wk_mom_batch", (DL_FUNC)&wk_mom_batch, 2},
+  {"wk_mom_batch_fast", (DL_FUNC)&wk_mom_batch_fast, 2},
   {"wk_mom_warmup_period", (DL_FUNC)&wk_mom_warmup_period, 1},
   {"wk_mom_is_ready", (DL_FUNC)&wk_mom_is_ready, 1},
   {"wk_mom_name", (DL_FUNC)&wk_mom_name, 1},
@@ -30716,6 +32396,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_omega_ratio_new", (DL_FUNC)&wk_omega_ratio_new, 2},
   {"wk_omega_ratio_update", (DL_FUNC)&wk_omega_ratio_update, 2},
   {"wk_omega_ratio_batch", (DL_FUNC)&wk_omega_ratio_batch, 2},
+  {"wk_omega_ratio_batch_fast", (DL_FUNC)&wk_omega_ratio_batch_fast, 2},
   {"wk_omega_ratio_warmup_period", (DL_FUNC)&wk_omega_ratio_warmup_period, 1},
   {"wk_omega_ratio_is_ready", (DL_FUNC)&wk_omega_ratio_is_ready, 1},
   {"wk_omega_ratio_name", (DL_FUNC)&wk_omega_ratio_name, 1},
@@ -30807,6 +32488,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_pain_index_new", (DL_FUNC)&wk_pain_index_new, 1},
   {"wk_pain_index_update", (DL_FUNC)&wk_pain_index_update, 2},
   {"wk_pain_index_batch", (DL_FUNC)&wk_pain_index_batch, 2},
+  {"wk_pain_index_batch_fast", (DL_FUNC)&wk_pain_index_batch_fast, 2},
   {"wk_pain_index_warmup_period", (DL_FUNC)&wk_pain_index_warmup_period, 1},
   {"wk_pain_index_is_ready", (DL_FUNC)&wk_pain_index_is_ready, 1},
   {"wk_pain_index_name", (DL_FUNC)&wk_pain_index_name, 1},
@@ -30835,6 +32517,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_pearson_correlation_new", (DL_FUNC)&wk_pearson_correlation_new, 1},
   {"wk_pearson_correlation_update", (DL_FUNC)&wk_pearson_correlation_update, 3},
   {"wk_pearson_correlation_batch", (DL_FUNC)&wk_pearson_correlation_batch, 3},
+  {"wk_pearson_correlation_batch_fast", (DL_FUNC)&wk_pearson_correlation_batch_fast, 3},
   {"wk_pearson_correlation_warmup_period", (DL_FUNC)&wk_pearson_correlation_warmup_period, 1},
   {"wk_pearson_correlation_is_ready", (DL_FUNC)&wk_pearson_correlation_is_ready, 1},
   {"wk_pearson_correlation_name", (DL_FUNC)&wk_pearson_correlation_name, 1},
@@ -30849,6 +32532,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_percent_b_new", (DL_FUNC)&wk_percent_b_new, 2},
   {"wk_percent_b_update", (DL_FUNC)&wk_percent_b_update, 2},
   {"wk_percent_b_batch", (DL_FUNC)&wk_percent_b_batch, 2},
+  {"wk_percent_b_batch_fast", (DL_FUNC)&wk_percent_b_batch_fast, 2},
   {"wk_percent_b_warmup_period", (DL_FUNC)&wk_percent_b_warmup_period, 1},
   {"wk_percent_b_is_ready", (DL_FUNC)&wk_percent_b_is_ready, 1},
   {"wk_percent_b_name", (DL_FUNC)&wk_percent_b_name, 1},
@@ -30856,6 +32540,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_percentage_trailing_stop_new", (DL_FUNC)&wk_percentage_trailing_stop_new, 1},
   {"wk_percentage_trailing_stop_update", (DL_FUNC)&wk_percentage_trailing_stop_update, 2},
   {"wk_percentage_trailing_stop_batch", (DL_FUNC)&wk_percentage_trailing_stop_batch, 2},
+  {"wk_percentage_trailing_stop_batch_fast", (DL_FUNC)&wk_percentage_trailing_stop_batch_fast, 2},
   {"wk_percentage_trailing_stop_warmup_period", (DL_FUNC)&wk_percentage_trailing_stop_warmup_period, 1},
   {"wk_percentage_trailing_stop_is_ready", (DL_FUNC)&wk_percentage_trailing_stop_is_ready, 1},
   {"wk_percentage_trailing_stop_name", (DL_FUNC)&wk_percentage_trailing_stop_name, 1},
@@ -30912,6 +32597,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_pmo_new", (DL_FUNC)&wk_pmo_new, 2},
   {"wk_pmo_update", (DL_FUNC)&wk_pmo_update, 2},
   {"wk_pmo_batch", (DL_FUNC)&wk_pmo_batch, 2},
+  {"wk_pmo_batch_fast", (DL_FUNC)&wk_pmo_batch_fast, 2},
   {"wk_pmo_warmup_period", (DL_FUNC)&wk_pmo_warmup_period, 1},
   {"wk_pmo_is_ready", (DL_FUNC)&wk_pmo_is_ready, 1},
   {"wk_pmo_name", (DL_FUNC)&wk_pmo_name, 1},
@@ -30924,6 +32610,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_polarized_fractal_efficiency_new", (DL_FUNC)&wk_polarized_fractal_efficiency_new, 2},
   {"wk_polarized_fractal_efficiency_update", (DL_FUNC)&wk_polarized_fractal_efficiency_update, 2},
   {"wk_polarized_fractal_efficiency_batch", (DL_FUNC)&wk_polarized_fractal_efficiency_batch, 2},
+  {"wk_polarized_fractal_efficiency_batch_fast", (DL_FUNC)&wk_polarized_fractal_efficiency_batch_fast, 2},
   {"wk_polarized_fractal_efficiency_warmup_period", (DL_FUNC)&wk_polarized_fractal_efficiency_warmup_period, 1},
   {"wk_polarized_fractal_efficiency_is_ready", (DL_FUNC)&wk_polarized_fractal_efficiency_is_ready, 1},
   {"wk_polarized_fractal_efficiency_name", (DL_FUNC)&wk_polarized_fractal_efficiency_name, 1},
@@ -30931,6 +32618,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ppo_new", (DL_FUNC)&wk_ppo_new, 2},
   {"wk_ppo_update", (DL_FUNC)&wk_ppo_update, 2},
   {"wk_ppo_batch", (DL_FUNC)&wk_ppo_batch, 2},
+  {"wk_ppo_batch_fast", (DL_FUNC)&wk_ppo_batch_fast, 2},
   {"wk_ppo_warmup_period", (DL_FUNC)&wk_ppo_warmup_period, 1},
   {"wk_ppo_is_ready", (DL_FUNC)&wk_ppo_is_ready, 1},
   {"wk_ppo_name", (DL_FUNC)&wk_ppo_name, 1},
@@ -30938,6 +32626,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ppo_histogram_new", (DL_FUNC)&wk_ppo_histogram_new, 3},
   {"wk_ppo_histogram_update", (DL_FUNC)&wk_ppo_histogram_update, 2},
   {"wk_ppo_histogram_batch", (DL_FUNC)&wk_ppo_histogram_batch, 2},
+  {"wk_ppo_histogram_batch_fast", (DL_FUNC)&wk_ppo_histogram_batch_fast, 2},
   {"wk_ppo_histogram_warmup_period", (DL_FUNC)&wk_ppo_histogram_warmup_period, 1},
   {"wk_ppo_histogram_is_ready", (DL_FUNC)&wk_ppo_histogram_is_ready, 1},
   {"wk_ppo_histogram_name", (DL_FUNC)&wk_ppo_histogram_name, 1},
@@ -30952,6 +32641,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_profit_factor_new", (DL_FUNC)&wk_profit_factor_new, 1},
   {"wk_profit_factor_update", (DL_FUNC)&wk_profit_factor_update, 2},
   {"wk_profit_factor_batch", (DL_FUNC)&wk_profit_factor_batch, 2},
+  {"wk_profit_factor_batch_fast", (DL_FUNC)&wk_profit_factor_batch_fast, 2},
   {"wk_profit_factor_warmup_period", (DL_FUNC)&wk_profit_factor_warmup_period, 1},
   {"wk_profit_factor_is_ready", (DL_FUNC)&wk_profit_factor_is_ready, 1},
   {"wk_profit_factor_name", (DL_FUNC)&wk_profit_factor_name, 1},
@@ -31015,6 +32705,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_r_squared_new", (DL_FUNC)&wk_r_squared_new, 1},
   {"wk_r_squared_update", (DL_FUNC)&wk_r_squared_update, 2},
   {"wk_r_squared_batch", (DL_FUNC)&wk_r_squared_batch, 2},
+  {"wk_r_squared_batch_fast", (DL_FUNC)&wk_r_squared_batch_fast, 2},
   {"wk_r_squared_warmup_period", (DL_FUNC)&wk_r_squared_warmup_period, 1},
   {"wk_r_squared_is_ready", (DL_FUNC)&wk_r_squared_is_ready, 1},
   {"wk_r_squared_name", (DL_FUNC)&wk_r_squared_name, 1},
@@ -31034,6 +32725,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_realized_volatility_new", (DL_FUNC)&wk_realized_volatility_new, 1},
   {"wk_realized_volatility_update", (DL_FUNC)&wk_realized_volatility_update, 2},
   {"wk_realized_volatility_batch", (DL_FUNC)&wk_realized_volatility_batch, 2},
+  {"wk_realized_volatility_batch_fast", (DL_FUNC)&wk_realized_volatility_batch_fast, 2},
   {"wk_realized_volatility_warmup_period", (DL_FUNC)&wk_realized_volatility_warmup_period, 1},
   {"wk_realized_volatility_is_ready", (DL_FUNC)&wk_realized_volatility_is_ready, 1},
   {"wk_realized_volatility_name", (DL_FUNC)&wk_realized_volatility_name, 1},
@@ -31041,6 +32733,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_recovery_factor_new", (DL_FUNC)&wk_recovery_factor_new, 0},
   {"wk_recovery_factor_update", (DL_FUNC)&wk_recovery_factor_update, 2},
   {"wk_recovery_factor_batch", (DL_FUNC)&wk_recovery_factor_batch, 2},
+  {"wk_recovery_factor_batch_fast", (DL_FUNC)&wk_recovery_factor_batch_fast, 2},
   {"wk_recovery_factor_warmup_period", (DL_FUNC)&wk_recovery_factor_warmup_period, 1},
   {"wk_recovery_factor_is_ready", (DL_FUNC)&wk_recovery_factor_is_ready, 1},
   {"wk_recovery_factor_name", (DL_FUNC)&wk_recovery_factor_name, 1},
@@ -31055,6 +32748,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_reflex_new", (DL_FUNC)&wk_reflex_new, 1},
   {"wk_reflex_update", (DL_FUNC)&wk_reflex_update, 2},
   {"wk_reflex_batch", (DL_FUNC)&wk_reflex_batch, 2},
+  {"wk_reflex_batch_fast", (DL_FUNC)&wk_reflex_batch_fast, 2},
   {"wk_reflex_warmup_period", (DL_FUNC)&wk_reflex_warmup_period, 1},
   {"wk_reflex_is_ready", (DL_FUNC)&wk_reflex_is_ready, 1},
   {"wk_reflex_name", (DL_FUNC)&wk_reflex_name, 1},
@@ -31062,6 +32756,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_regime_label_new", (DL_FUNC)&wk_regime_label_new, 2},
   {"wk_regime_label_update", (DL_FUNC)&wk_regime_label_update, 2},
   {"wk_regime_label_batch", (DL_FUNC)&wk_regime_label_batch, 2},
+  {"wk_regime_label_batch_fast", (DL_FUNC)&wk_regime_label_batch_fast, 2},
   {"wk_regime_label_warmup_period", (DL_FUNC)&wk_regime_label_warmup_period, 1},
   {"wk_regime_label_is_ready", (DL_FUNC)&wk_regime_label_is_ready, 1},
   {"wk_regime_label_name", (DL_FUNC)&wk_regime_label_name, 1},
@@ -31081,6 +32776,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_renko_trailing_stop_new", (DL_FUNC)&wk_renko_trailing_stop_new, 1},
   {"wk_renko_trailing_stop_update", (DL_FUNC)&wk_renko_trailing_stop_update, 2},
   {"wk_renko_trailing_stop_batch", (DL_FUNC)&wk_renko_trailing_stop_batch, 2},
+  {"wk_renko_trailing_stop_batch_fast", (DL_FUNC)&wk_renko_trailing_stop_batch_fast, 2},
   {"wk_renko_trailing_stop_warmup_period", (DL_FUNC)&wk_renko_trailing_stop_warmup_period, 1},
   {"wk_renko_trailing_stop_is_ready", (DL_FUNC)&wk_renko_trailing_stop_is_ready, 1},
   {"wk_renko_trailing_stop_name", (DL_FUNC)&wk_renko_trailing_stop_name, 1},
@@ -31105,6 +32801,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rmi_new", (DL_FUNC)&wk_rmi_new, 2},
   {"wk_rmi_update", (DL_FUNC)&wk_rmi_update, 2},
   {"wk_rmi_batch", (DL_FUNC)&wk_rmi_batch, 2},
+  {"wk_rmi_batch_fast", (DL_FUNC)&wk_rmi_batch_fast, 2},
   {"wk_rmi_warmup_period", (DL_FUNC)&wk_rmi_warmup_period, 1},
   {"wk_rmi_is_ready", (DL_FUNC)&wk_rmi_is_ready, 1},
   {"wk_rmi_name", (DL_FUNC)&wk_rmi_name, 1},
@@ -31112,6 +32809,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_roc_new", (DL_FUNC)&wk_roc_new, 1},
   {"wk_roc_update", (DL_FUNC)&wk_roc_update, 2},
   {"wk_roc_batch", (DL_FUNC)&wk_roc_batch, 2},
+  {"wk_roc_batch_fast", (DL_FUNC)&wk_roc_batch_fast, 2},
   {"wk_roc_warmup_period", (DL_FUNC)&wk_roc_warmup_period, 1},
   {"wk_roc_is_ready", (DL_FUNC)&wk_roc_is_ready, 1},
   {"wk_roc_name", (DL_FUNC)&wk_roc_name, 1},
@@ -31119,6 +32817,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rocp_new", (DL_FUNC)&wk_rocp_new, 1},
   {"wk_rocp_update", (DL_FUNC)&wk_rocp_update, 2},
   {"wk_rocp_batch", (DL_FUNC)&wk_rocp_batch, 2},
+  {"wk_rocp_batch_fast", (DL_FUNC)&wk_rocp_batch_fast, 2},
   {"wk_rocp_warmup_period", (DL_FUNC)&wk_rocp_warmup_period, 1},
   {"wk_rocp_is_ready", (DL_FUNC)&wk_rocp_is_ready, 1},
   {"wk_rocp_name", (DL_FUNC)&wk_rocp_name, 1},
@@ -31126,6 +32825,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rocr_new", (DL_FUNC)&wk_rocr_new, 1},
   {"wk_rocr_update", (DL_FUNC)&wk_rocr_update, 2},
   {"wk_rocr_batch", (DL_FUNC)&wk_rocr_batch, 2},
+  {"wk_rocr_batch_fast", (DL_FUNC)&wk_rocr_batch_fast, 2},
   {"wk_rocr_warmup_period", (DL_FUNC)&wk_rocr_warmup_period, 1},
   {"wk_rocr_is_ready", (DL_FUNC)&wk_rocr_is_ready, 1},
   {"wk_rocr_name", (DL_FUNC)&wk_rocr_name, 1},
@@ -31133,6 +32833,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rocr100_new", (DL_FUNC)&wk_rocr100_new, 1},
   {"wk_rocr100_update", (DL_FUNC)&wk_rocr100_update, 2},
   {"wk_rocr100_batch", (DL_FUNC)&wk_rocr100_batch, 2},
+  {"wk_rocr100_batch_fast", (DL_FUNC)&wk_rocr100_batch_fast, 2},
   {"wk_rocr100_warmup_period", (DL_FUNC)&wk_rocr100_warmup_period, 1},
   {"wk_rocr100_is_ready", (DL_FUNC)&wk_rocr100_is_ready, 1},
   {"wk_rocr100_name", (DL_FUNC)&wk_rocr100_name, 1},
@@ -31168,6 +32869,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rolling_iqr_new", (DL_FUNC)&wk_rolling_iqr_new, 1},
   {"wk_rolling_iqr_update", (DL_FUNC)&wk_rolling_iqr_update, 2},
   {"wk_rolling_iqr_batch", (DL_FUNC)&wk_rolling_iqr_batch, 2},
+  {"wk_rolling_iqr_batch_fast", (DL_FUNC)&wk_rolling_iqr_batch_fast, 2},
   {"wk_rolling_iqr_warmup_period", (DL_FUNC)&wk_rolling_iqr_warmup_period, 1},
   {"wk_rolling_iqr_is_ready", (DL_FUNC)&wk_rolling_iqr_is_ready, 1},
   {"wk_rolling_iqr_name", (DL_FUNC)&wk_rolling_iqr_name, 1},
@@ -31175,6 +32877,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rolling_min_max_scaler_new", (DL_FUNC)&wk_rolling_min_max_scaler_new, 1},
   {"wk_rolling_min_max_scaler_update", (DL_FUNC)&wk_rolling_min_max_scaler_update, 2},
   {"wk_rolling_min_max_scaler_batch", (DL_FUNC)&wk_rolling_min_max_scaler_batch, 2},
+  {"wk_rolling_min_max_scaler_batch_fast", (DL_FUNC)&wk_rolling_min_max_scaler_batch_fast, 2},
   {"wk_rolling_min_max_scaler_warmup_period", (DL_FUNC)&wk_rolling_min_max_scaler_warmup_period, 1},
   {"wk_rolling_min_max_scaler_is_ready", (DL_FUNC)&wk_rolling_min_max_scaler_is_ready, 1},
   {"wk_rolling_min_max_scaler_name", (DL_FUNC)&wk_rolling_min_max_scaler_name, 1},
@@ -31182,6 +32885,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rolling_percentile_rank_new", (DL_FUNC)&wk_rolling_percentile_rank_new, 1},
   {"wk_rolling_percentile_rank_update", (DL_FUNC)&wk_rolling_percentile_rank_update, 2},
   {"wk_rolling_percentile_rank_batch", (DL_FUNC)&wk_rolling_percentile_rank_batch, 2},
+  {"wk_rolling_percentile_rank_batch_fast", (DL_FUNC)&wk_rolling_percentile_rank_batch_fast, 2},
   {"wk_rolling_percentile_rank_warmup_period", (DL_FUNC)&wk_rolling_percentile_rank_warmup_period, 1},
   {"wk_rolling_percentile_rank_is_ready", (DL_FUNC)&wk_rolling_percentile_rank_is_ready, 1},
   {"wk_rolling_percentile_rank_name", (DL_FUNC)&wk_rolling_percentile_rank_name, 1},
@@ -31189,6 +32893,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rolling_quantile_new", (DL_FUNC)&wk_rolling_quantile_new, 2},
   {"wk_rolling_quantile_update", (DL_FUNC)&wk_rolling_quantile_update, 2},
   {"wk_rolling_quantile_batch", (DL_FUNC)&wk_rolling_quantile_batch, 2},
+  {"wk_rolling_quantile_batch_fast", (DL_FUNC)&wk_rolling_quantile_batch_fast, 2},
   {"wk_rolling_quantile_warmup_period", (DL_FUNC)&wk_rolling_quantile_warmup_period, 1},
   {"wk_rolling_quantile_is_ready", (DL_FUNC)&wk_rolling_quantile_is_ready, 1},
   {"wk_rolling_quantile_name", (DL_FUNC)&wk_rolling_quantile_name, 1},
@@ -31203,6 +32908,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_roofing_filter_new", (DL_FUNC)&wk_roofing_filter_new, 2},
   {"wk_roofing_filter_update", (DL_FUNC)&wk_roofing_filter_update, 2},
   {"wk_roofing_filter_batch", (DL_FUNC)&wk_roofing_filter_batch, 2},
+  {"wk_roofing_filter_batch_fast", (DL_FUNC)&wk_roofing_filter_batch_fast, 2},
   {"wk_roofing_filter_warmup_period", (DL_FUNC)&wk_roofing_filter_warmup_period, 1},
   {"wk_roofing_filter_is_ready", (DL_FUNC)&wk_roofing_filter_is_ready, 1},
   {"wk_roofing_filter_name", (DL_FUNC)&wk_roofing_filter_name, 1},
@@ -31210,6 +32916,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rsi_new", (DL_FUNC)&wk_rsi_new, 1},
   {"wk_rsi_update", (DL_FUNC)&wk_rsi_update, 2},
   {"wk_rsi_batch", (DL_FUNC)&wk_rsi_batch, 2},
+  {"wk_rsi_batch_fast", (DL_FUNC)&wk_rsi_batch_fast, 2},
   {"wk_rsi_warmup_period", (DL_FUNC)&wk_rsi_warmup_period, 1},
   {"wk_rsi_is_ready", (DL_FUNC)&wk_rsi_is_ready, 1},
   {"wk_rsi_name", (DL_FUNC)&wk_rsi_name, 1},
@@ -31217,6 +32924,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rsx_new", (DL_FUNC)&wk_rsx_new, 1},
   {"wk_rsx_update", (DL_FUNC)&wk_rsx_update, 2},
   {"wk_rsx_batch", (DL_FUNC)&wk_rsx_batch, 2},
+  {"wk_rsx_batch_fast", (DL_FUNC)&wk_rsx_batch_fast, 2},
   {"wk_rsx_warmup_period", (DL_FUNC)&wk_rsx_warmup_period, 1},
   {"wk_rsx_is_ready", (DL_FUNC)&wk_rsx_is_ready, 1},
   {"wk_rsx_name", (DL_FUNC)&wk_rsx_name, 1},
@@ -31236,6 +32944,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_rvi_volatility_new", (DL_FUNC)&wk_rvi_volatility_new, 1},
   {"wk_rvi_volatility_update", (DL_FUNC)&wk_rvi_volatility_update, 2},
   {"wk_rvi_volatility_batch", (DL_FUNC)&wk_rvi_volatility_batch, 2},
+  {"wk_rvi_volatility_batch_fast", (DL_FUNC)&wk_rvi_volatility_batch_fast, 2},
   {"wk_rvi_volatility_warmup_period", (DL_FUNC)&wk_rvi_volatility_warmup_period, 1},
   {"wk_rvi_volatility_is_ready", (DL_FUNC)&wk_rvi_volatility_is_ready, 1},
   {"wk_rvi_volatility_name", (DL_FUNC)&wk_rvi_volatility_name, 1},
@@ -31250,6 +32959,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_sample_entropy_new", (DL_FUNC)&wk_sample_entropy_new, 3},
   {"wk_sample_entropy_update", (DL_FUNC)&wk_sample_entropy_update, 2},
   {"wk_sample_entropy_batch", (DL_FUNC)&wk_sample_entropy_batch, 2},
+  {"wk_sample_entropy_batch_fast", (DL_FUNC)&wk_sample_entropy_batch_fast, 2},
   {"wk_sample_entropy_warmup_period", (DL_FUNC)&wk_sample_entropy_warmup_period, 1},
   {"wk_sample_entropy_is_ready", (DL_FUNC)&wk_sample_entropy_is_ready, 1},
   {"wk_sample_entropy_name", (DL_FUNC)&wk_sample_entropy_name, 1},
@@ -31299,6 +33009,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_shannon_entropy_new", (DL_FUNC)&wk_shannon_entropy_new, 2},
   {"wk_shannon_entropy_update", (DL_FUNC)&wk_shannon_entropy_update, 2},
   {"wk_shannon_entropy_batch", (DL_FUNC)&wk_shannon_entropy_batch, 2},
+  {"wk_shannon_entropy_batch_fast", (DL_FUNC)&wk_shannon_entropy_batch_fast, 2},
   {"wk_shannon_entropy_warmup_period", (DL_FUNC)&wk_shannon_entropy_warmup_period, 1},
   {"wk_shannon_entropy_is_ready", (DL_FUNC)&wk_shannon_entropy_is_ready, 1},
   {"wk_shannon_entropy_name", (DL_FUNC)&wk_shannon_entropy_name, 1},
@@ -31313,6 +33024,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_sharpe_ratio_new", (DL_FUNC)&wk_sharpe_ratio_new, 2},
   {"wk_sharpe_ratio_update", (DL_FUNC)&wk_sharpe_ratio_update, 2},
   {"wk_sharpe_ratio_batch", (DL_FUNC)&wk_sharpe_ratio_batch, 2},
+  {"wk_sharpe_ratio_batch_fast", (DL_FUNC)&wk_sharpe_ratio_batch_fast, 2},
   {"wk_sharpe_ratio_warmup_period", (DL_FUNC)&wk_sharpe_ratio_warmup_period, 1},
   {"wk_sharpe_ratio_is_ready", (DL_FUNC)&wk_sharpe_ratio_is_ready, 1},
   {"wk_sharpe_ratio_name", (DL_FUNC)&wk_sharpe_ratio_name, 1},
@@ -31341,6 +33053,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_sine_wave_new", (DL_FUNC)&wk_sine_wave_new, 0},
   {"wk_sine_wave_update", (DL_FUNC)&wk_sine_wave_update, 2},
   {"wk_sine_wave_batch", (DL_FUNC)&wk_sine_wave_batch, 2},
+  {"wk_sine_wave_batch_fast", (DL_FUNC)&wk_sine_wave_batch_fast, 2},
   {"wk_sine_wave_warmup_period", (DL_FUNC)&wk_sine_wave_warmup_period, 1},
   {"wk_sine_wave_is_ready", (DL_FUNC)&wk_sine_wave_is_ready, 1},
   {"wk_sine_wave_name", (DL_FUNC)&wk_sine_wave_name, 1},
@@ -31348,6 +33061,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_sine_weighted_ma_new", (DL_FUNC)&wk_sine_weighted_ma_new, 1},
   {"wk_sine_weighted_ma_update", (DL_FUNC)&wk_sine_weighted_ma_update, 2},
   {"wk_sine_weighted_ma_batch", (DL_FUNC)&wk_sine_weighted_ma_batch, 2},
+  {"wk_sine_weighted_ma_batch_fast", (DL_FUNC)&wk_sine_weighted_ma_batch_fast, 2},
   {"wk_sine_weighted_ma_warmup_period", (DL_FUNC)&wk_sine_weighted_ma_warmup_period, 1},
   {"wk_sine_weighted_ma_is_ready", (DL_FUNC)&wk_sine_weighted_ma_is_ready, 1},
   {"wk_sine_weighted_ma_name", (DL_FUNC)&wk_sine_weighted_ma_name, 1},
@@ -31362,6 +33076,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_skewness_new", (DL_FUNC)&wk_skewness_new, 1},
   {"wk_skewness_update", (DL_FUNC)&wk_skewness_update, 2},
   {"wk_skewness_batch", (DL_FUNC)&wk_skewness_batch, 2},
+  {"wk_skewness_batch_fast", (DL_FUNC)&wk_skewness_batch_fast, 2},
   {"wk_skewness_warmup_period", (DL_FUNC)&wk_skewness_warmup_period, 1},
   {"wk_skewness_is_ready", (DL_FUNC)&wk_skewness_is_ready, 1},
   {"wk_skewness_name", (DL_FUNC)&wk_skewness_name, 1},
@@ -31369,6 +33084,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_sma_new", (DL_FUNC)&wk_sma_new, 1},
   {"wk_sma_update", (DL_FUNC)&wk_sma_update, 2},
   {"wk_sma_batch", (DL_FUNC)&wk_sma_batch, 2},
+  {"wk_sma_batch_fast", (DL_FUNC)&wk_sma_batch_fast, 2},
   {"wk_sma_warmup_period", (DL_FUNC)&wk_sma_warmup_period, 1},
   {"wk_sma_is_ready", (DL_FUNC)&wk_sma_is_ready, 1},
   {"wk_sma_name", (DL_FUNC)&wk_sma_name, 1},
@@ -31383,6 +33099,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_smma_new", (DL_FUNC)&wk_smma_new, 1},
   {"wk_smma_update", (DL_FUNC)&wk_smma_update, 2},
   {"wk_smma_batch", (DL_FUNC)&wk_smma_batch, 2},
+  {"wk_smma_batch_fast", (DL_FUNC)&wk_smma_batch_fast, 2},
   {"wk_smma_warmup_period", (DL_FUNC)&wk_smma_warmup_period, 1},
   {"wk_smma_is_ready", (DL_FUNC)&wk_smma_is_ready, 1},
   {"wk_smma_name", (DL_FUNC)&wk_smma_name, 1},
@@ -31397,6 +33114,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_sortino_ratio_new", (DL_FUNC)&wk_sortino_ratio_new, 2},
   {"wk_sortino_ratio_update", (DL_FUNC)&wk_sortino_ratio_update, 2},
   {"wk_sortino_ratio_batch", (DL_FUNC)&wk_sortino_ratio_batch, 2},
+  {"wk_sortino_ratio_batch_fast", (DL_FUNC)&wk_sortino_ratio_batch_fast, 2},
   {"wk_sortino_ratio_warmup_period", (DL_FUNC)&wk_sortino_ratio_warmup_period, 1},
   {"wk_sortino_ratio_is_ready", (DL_FUNC)&wk_sortino_ratio_is_ready, 1},
   {"wk_sortino_ratio_name", (DL_FUNC)&wk_sortino_ratio_name, 1},
@@ -31446,6 +33164,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_standard_error_new", (DL_FUNC)&wk_standard_error_new, 1},
   {"wk_standard_error_update", (DL_FUNC)&wk_standard_error_update, 2},
   {"wk_standard_error_batch", (DL_FUNC)&wk_standard_error_batch, 2},
+  {"wk_standard_error_batch_fast", (DL_FUNC)&wk_standard_error_batch_fast, 2},
   {"wk_standard_error_warmup_period", (DL_FUNC)&wk_standard_error_warmup_period, 1},
   {"wk_standard_error_is_ready", (DL_FUNC)&wk_standard_error_is_ready, 1},
   {"wk_standard_error_name", (DL_FUNC)&wk_standard_error_name, 1},
@@ -31467,6 +33186,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_stc_new", (DL_FUNC)&wk_stc_new, 4},
   {"wk_stc_update", (DL_FUNC)&wk_stc_update, 2},
   {"wk_stc_batch", (DL_FUNC)&wk_stc_batch, 2},
+  {"wk_stc_batch_fast", (DL_FUNC)&wk_stc_batch_fast, 2},
   {"wk_stc_warmup_period", (DL_FUNC)&wk_stc_warmup_period, 1},
   {"wk_stc_is_ready", (DL_FUNC)&wk_stc_is_ready, 1},
   {"wk_stc_name", (DL_FUNC)&wk_stc_name, 1},
@@ -31474,6 +33194,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_std_dev_new", (DL_FUNC)&wk_std_dev_new, 1},
   {"wk_std_dev_update", (DL_FUNC)&wk_std_dev_update, 2},
   {"wk_std_dev_batch", (DL_FUNC)&wk_std_dev_batch, 2},
+  {"wk_std_dev_batch_fast", (DL_FUNC)&wk_std_dev_batch_fast, 2},
   {"wk_std_dev_warmup_period", (DL_FUNC)&wk_std_dev_warmup_period, 1},
   {"wk_std_dev_is_ready", (DL_FUNC)&wk_std_dev_is_ready, 1},
   {"wk_std_dev_name", (DL_FUNC)&wk_std_dev_name, 1},
@@ -31481,6 +33202,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_step_trailing_stop_new", (DL_FUNC)&wk_step_trailing_stop_new, 1},
   {"wk_step_trailing_stop_update", (DL_FUNC)&wk_step_trailing_stop_update, 2},
   {"wk_step_trailing_stop_batch", (DL_FUNC)&wk_step_trailing_stop_batch, 2},
+  {"wk_step_trailing_stop_batch_fast", (DL_FUNC)&wk_step_trailing_stop_batch_fast, 2},
   {"wk_step_trailing_stop_warmup_period", (DL_FUNC)&wk_step_trailing_stop_warmup_period, 1},
   {"wk_step_trailing_stop_is_ready", (DL_FUNC)&wk_step_trailing_stop_is_ready, 1},
   {"wk_step_trailing_stop_name", (DL_FUNC)&wk_step_trailing_stop_name, 1},
@@ -31488,6 +33210,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_sterling_ratio_new", (DL_FUNC)&wk_sterling_ratio_new, 1},
   {"wk_sterling_ratio_update", (DL_FUNC)&wk_sterling_ratio_update, 2},
   {"wk_sterling_ratio_batch", (DL_FUNC)&wk_sterling_ratio_batch, 2},
+  {"wk_sterling_ratio_batch_fast", (DL_FUNC)&wk_sterling_ratio_batch_fast, 2},
   {"wk_sterling_ratio_warmup_period", (DL_FUNC)&wk_sterling_ratio_warmup_period, 1},
   {"wk_sterling_ratio_is_ready", (DL_FUNC)&wk_sterling_ratio_is_ready, 1},
   {"wk_sterling_ratio_name", (DL_FUNC)&wk_sterling_ratio_name, 1},
@@ -31502,6 +33225,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_stoch_rsi_new", (DL_FUNC)&wk_stoch_rsi_new, 2},
   {"wk_stoch_rsi_update", (DL_FUNC)&wk_stoch_rsi_update, 2},
   {"wk_stoch_rsi_batch", (DL_FUNC)&wk_stoch_rsi_batch, 2},
+  {"wk_stoch_rsi_batch_fast", (DL_FUNC)&wk_stoch_rsi_batch_fast, 2},
   {"wk_stoch_rsi_warmup_period", (DL_FUNC)&wk_stoch_rsi_warmup_period, 1},
   {"wk_stoch_rsi_is_ready", (DL_FUNC)&wk_stoch_rsi_is_ready, 1},
   {"wk_stoch_rsi_name", (DL_FUNC)&wk_stoch_rsi_name, 1},
@@ -31523,6 +33247,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_super_smoother_new", (DL_FUNC)&wk_super_smoother_new, 1},
   {"wk_super_smoother_update", (DL_FUNC)&wk_super_smoother_update, 2},
   {"wk_super_smoother_batch", (DL_FUNC)&wk_super_smoother_batch, 2},
+  {"wk_super_smoother_batch_fast", (DL_FUNC)&wk_super_smoother_batch_fast, 2},
   {"wk_super_smoother_warmup_period", (DL_FUNC)&wk_super_smoother_warmup_period, 1},
   {"wk_super_smoother_is_ready", (DL_FUNC)&wk_super_smoother_is_ready, 1},
   {"wk_super_smoother_name", (DL_FUNC)&wk_super_smoother_name, 1},
@@ -31537,6 +33262,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_t3_new", (DL_FUNC)&wk_t3_new, 2},
   {"wk_t3_update", (DL_FUNC)&wk_t3_update, 2},
   {"wk_t3_batch", (DL_FUNC)&wk_t3_batch, 2},
+  {"wk_t3_batch_fast", (DL_FUNC)&wk_t3_batch_fast, 2},
   {"wk_t3_warmup_period", (DL_FUNC)&wk_t3_warmup_period, 1},
   {"wk_t3_is_ready", (DL_FUNC)&wk_t3_is_ready, 1},
   {"wk_t3_name", (DL_FUNC)&wk_t3_name, 1},
@@ -31544,6 +33270,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_tail_ratio_new", (DL_FUNC)&wk_tail_ratio_new, 1},
   {"wk_tail_ratio_update", (DL_FUNC)&wk_tail_ratio_update, 2},
   {"wk_tail_ratio_batch", (DL_FUNC)&wk_tail_ratio_batch, 2},
+  {"wk_tail_ratio_batch_fast", (DL_FUNC)&wk_tail_ratio_batch_fast, 2},
   {"wk_tail_ratio_warmup_period", (DL_FUNC)&wk_tail_ratio_warmup_period, 1},
   {"wk_tail_ratio_is_ready", (DL_FUNC)&wk_tail_ratio_is_ready, 1},
   {"wk_tail_ratio_name", (DL_FUNC)&wk_tail_ratio_name, 1},
@@ -31705,6 +33432,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_tema_new", (DL_FUNC)&wk_tema_new, 1},
   {"wk_tema_update", (DL_FUNC)&wk_tema_update, 2},
   {"wk_tema_batch", (DL_FUNC)&wk_tema_batch, 2},
+  {"wk_tema_batch_fast", (DL_FUNC)&wk_tema_batch_fast, 2},
   {"wk_tema_warmup_period", (DL_FUNC)&wk_tema_warmup_period, 1},
   {"wk_tema_is_ready", (DL_FUNC)&wk_tema_is_ready, 1},
   {"wk_tema_name", (DL_FUNC)&wk_tema_name, 1},
@@ -31794,6 +33522,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_tii_new", (DL_FUNC)&wk_tii_new, 2},
   {"wk_tii_update", (DL_FUNC)&wk_tii_update, 2},
   {"wk_tii_batch", (DL_FUNC)&wk_tii_batch, 2},
+  {"wk_tii_batch_fast", (DL_FUNC)&wk_tii_batch_fast, 2},
   {"wk_tii_warmup_period", (DL_FUNC)&wk_tii_warmup_period, 1},
   {"wk_tii_is_ready", (DL_FUNC)&wk_tii_is_ready, 1},
   {"wk_tii_name", (DL_FUNC)&wk_tii_name, 1},
@@ -31850,6 +33579,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_trend_label_new", (DL_FUNC)&wk_trend_label_new, 1},
   {"wk_trend_label_update", (DL_FUNC)&wk_trend_label_update, 2},
   {"wk_trend_label_batch", (DL_FUNC)&wk_trend_label_batch, 2},
+  {"wk_trend_label_batch_fast", (DL_FUNC)&wk_trend_label_batch_fast, 2},
   {"wk_trend_label_warmup_period", (DL_FUNC)&wk_trend_label_warmup_period, 1},
   {"wk_trend_label_is_ready", (DL_FUNC)&wk_trend_label_is_ready, 1},
   {"wk_trend_label_name", (DL_FUNC)&wk_trend_label_name, 1},
@@ -31857,6 +33587,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_trend_strength_index_new", (DL_FUNC)&wk_trend_strength_index_new, 1},
   {"wk_trend_strength_index_update", (DL_FUNC)&wk_trend_strength_index_update, 2},
   {"wk_trend_strength_index_batch", (DL_FUNC)&wk_trend_strength_index_batch, 2},
+  {"wk_trend_strength_index_batch_fast", (DL_FUNC)&wk_trend_strength_index_batch_fast, 2},
   {"wk_trend_strength_index_warmup_period", (DL_FUNC)&wk_trend_strength_index_warmup_period, 1},
   {"wk_trend_strength_index_is_ready", (DL_FUNC)&wk_trend_strength_index_is_ready, 1},
   {"wk_trend_strength_index_name", (DL_FUNC)&wk_trend_strength_index_name, 1},
@@ -31864,6 +33595,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_trendflex_new", (DL_FUNC)&wk_trendflex_new, 1},
   {"wk_trendflex_update", (DL_FUNC)&wk_trendflex_update, 2},
   {"wk_trendflex_batch", (DL_FUNC)&wk_trendflex_batch, 2},
+  {"wk_trendflex_batch_fast", (DL_FUNC)&wk_trendflex_batch_fast, 2},
   {"wk_trendflex_warmup_period", (DL_FUNC)&wk_trendflex_warmup_period, 1},
   {"wk_trendflex_is_ready", (DL_FUNC)&wk_trendflex_is_ready, 1},
   {"wk_trendflex_name", (DL_FUNC)&wk_trendflex_name, 1},
@@ -31885,6 +33617,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_trima_new", (DL_FUNC)&wk_trima_new, 1},
   {"wk_trima_update", (DL_FUNC)&wk_trima_update, 2},
   {"wk_trima_batch", (DL_FUNC)&wk_trima_batch, 2},
+  {"wk_trima_batch_fast", (DL_FUNC)&wk_trima_batch_fast, 2},
   {"wk_trima_warmup_period", (DL_FUNC)&wk_trima_warmup_period, 1},
   {"wk_trima_is_ready", (DL_FUNC)&wk_trima_is_ready, 1},
   {"wk_trima_name", (DL_FUNC)&wk_trima_name, 1},
@@ -31913,6 +33646,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_trix_new", (DL_FUNC)&wk_trix_new, 1},
   {"wk_trix_update", (DL_FUNC)&wk_trix_update, 2},
   {"wk_trix_batch", (DL_FUNC)&wk_trix_batch, 2},
+  {"wk_trix_batch_fast", (DL_FUNC)&wk_trix_batch_fast, 2},
   {"wk_trix_warmup_period", (DL_FUNC)&wk_trix_warmup_period, 1},
   {"wk_trix_is_ready", (DL_FUNC)&wk_trix_is_ready, 1},
   {"wk_trix_name", (DL_FUNC)&wk_trix_name, 1},
@@ -31927,6 +33661,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_tsf_new", (DL_FUNC)&wk_tsf_new, 1},
   {"wk_tsf_update", (DL_FUNC)&wk_tsf_update, 2},
   {"wk_tsf_batch", (DL_FUNC)&wk_tsf_batch, 2},
+  {"wk_tsf_batch_fast", (DL_FUNC)&wk_tsf_batch_fast, 2},
   {"wk_tsf_warmup_period", (DL_FUNC)&wk_tsf_warmup_period, 1},
   {"wk_tsf_is_ready", (DL_FUNC)&wk_tsf_is_ready, 1},
   {"wk_tsf_name", (DL_FUNC)&wk_tsf_name, 1},
@@ -31934,6 +33669,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_tsf_oscillator_new", (DL_FUNC)&wk_tsf_oscillator_new, 1},
   {"wk_tsf_oscillator_update", (DL_FUNC)&wk_tsf_oscillator_update, 2},
   {"wk_tsf_oscillator_batch", (DL_FUNC)&wk_tsf_oscillator_batch, 2},
+  {"wk_tsf_oscillator_batch_fast", (DL_FUNC)&wk_tsf_oscillator_batch_fast, 2},
   {"wk_tsf_oscillator_warmup_period", (DL_FUNC)&wk_tsf_oscillator_warmup_period, 1},
   {"wk_tsf_oscillator_is_ready", (DL_FUNC)&wk_tsf_oscillator_is_ready, 1},
   {"wk_tsf_oscillator_name", (DL_FUNC)&wk_tsf_oscillator_name, 1},
@@ -31941,6 +33677,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_tsi_new", (DL_FUNC)&wk_tsi_new, 2},
   {"wk_tsi_update", (DL_FUNC)&wk_tsi_update, 2},
   {"wk_tsi_batch", (DL_FUNC)&wk_tsi_batch, 2},
+  {"wk_tsi_batch_fast", (DL_FUNC)&wk_tsi_batch_fast, 2},
   {"wk_tsi_warmup_period", (DL_FUNC)&wk_tsi_warmup_period, 1},
   {"wk_tsi_is_ready", (DL_FUNC)&wk_tsi_is_ready, 1},
   {"wk_tsi_name", (DL_FUNC)&wk_tsi_name, 1},
@@ -32004,6 +33741,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_ulcer_index_new", (DL_FUNC)&wk_ulcer_index_new, 1},
   {"wk_ulcer_index_update", (DL_FUNC)&wk_ulcer_index_update, 2},
   {"wk_ulcer_index_batch", (DL_FUNC)&wk_ulcer_index_batch, 2},
+  {"wk_ulcer_index_batch_fast", (DL_FUNC)&wk_ulcer_index_batch_fast, 2},
   {"wk_ulcer_index_warmup_period", (DL_FUNC)&wk_ulcer_index_warmup_period, 1},
   {"wk_ulcer_index_is_ready", (DL_FUNC)&wk_ulcer_index_is_ready, 1},
   {"wk_ulcer_index_name", (DL_FUNC)&wk_ulcer_index_name, 1},
@@ -32025,6 +33763,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_universal_oscillator_new", (DL_FUNC)&wk_universal_oscillator_new, 1},
   {"wk_universal_oscillator_update", (DL_FUNC)&wk_universal_oscillator_update, 2},
   {"wk_universal_oscillator_batch", (DL_FUNC)&wk_universal_oscillator_batch, 2},
+  {"wk_universal_oscillator_batch_fast", (DL_FUNC)&wk_universal_oscillator_batch_fast, 2},
   {"wk_universal_oscillator_warmup_period", (DL_FUNC)&wk_universal_oscillator_warmup_period, 1},
   {"wk_universal_oscillator_is_ready", (DL_FUNC)&wk_universal_oscillator_is_ready, 1},
   {"wk_universal_oscillator_name", (DL_FUNC)&wk_universal_oscillator_name, 1},
@@ -32053,6 +33792,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_upside_potential_ratio_new", (DL_FUNC)&wk_upside_potential_ratio_new, 2},
   {"wk_upside_potential_ratio_update", (DL_FUNC)&wk_upside_potential_ratio_update, 2},
   {"wk_upside_potential_ratio_batch", (DL_FUNC)&wk_upside_potential_ratio_batch, 2},
+  {"wk_upside_potential_ratio_batch_fast", (DL_FUNC)&wk_upside_potential_ratio_batch_fast, 2},
   {"wk_upside_potential_ratio_warmup_period", (DL_FUNC)&wk_upside_potential_ratio_warmup_period, 1},
   {"wk_upside_potential_ratio_is_ready", (DL_FUNC)&wk_upside_potential_ratio_is_ready, 1},
   {"wk_upside_potential_ratio_name", (DL_FUNC)&wk_upside_potential_ratio_name, 1},
@@ -32067,6 +33807,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_value_at_risk_new", (DL_FUNC)&wk_value_at_risk_new, 2},
   {"wk_value_at_risk_update", (DL_FUNC)&wk_value_at_risk_update, 2},
   {"wk_value_at_risk_batch", (DL_FUNC)&wk_value_at_risk_batch, 2},
+  {"wk_value_at_risk_batch_fast", (DL_FUNC)&wk_value_at_risk_batch_fast, 2},
   {"wk_value_at_risk_warmup_period", (DL_FUNC)&wk_value_at_risk_warmup_period, 1},
   {"wk_value_at_risk_is_ready", (DL_FUNC)&wk_value_at_risk_is_ready, 1},
   {"wk_value_at_risk_name", (DL_FUNC)&wk_value_at_risk_name, 1},
@@ -32074,6 +33815,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_variance_new", (DL_FUNC)&wk_variance_new, 1},
   {"wk_variance_update", (DL_FUNC)&wk_variance_update, 2},
   {"wk_variance_batch", (DL_FUNC)&wk_variance_batch, 2},
+  {"wk_variance_batch_fast", (DL_FUNC)&wk_variance_batch_fast, 2},
   {"wk_variance_warmup_period", (DL_FUNC)&wk_variance_warmup_period, 1},
   {"wk_variance_is_ready", (DL_FUNC)&wk_variance_is_ready, 1},
   {"wk_variance_name", (DL_FUNC)&wk_variance_name, 1},
@@ -32088,6 +33830,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_vertical_horizontal_filter_new", (DL_FUNC)&wk_vertical_horizontal_filter_new, 1},
   {"wk_vertical_horizontal_filter_update", (DL_FUNC)&wk_vertical_horizontal_filter_update, 2},
   {"wk_vertical_horizontal_filter_batch", (DL_FUNC)&wk_vertical_horizontal_filter_batch, 2},
+  {"wk_vertical_horizontal_filter_batch_fast", (DL_FUNC)&wk_vertical_horizontal_filter_batch_fast, 2},
   {"wk_vertical_horizontal_filter_warmup_period", (DL_FUNC)&wk_vertical_horizontal_filter_warmup_period, 1},
   {"wk_vertical_horizontal_filter_is_ready", (DL_FUNC)&wk_vertical_horizontal_filter_is_ready, 1},
   {"wk_vertical_horizontal_filter_name", (DL_FUNC)&wk_vertical_horizontal_filter_name, 1},
@@ -32095,6 +33838,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_vidya_new", (DL_FUNC)&wk_vidya_new, 2},
   {"wk_vidya_update", (DL_FUNC)&wk_vidya_update, 2},
   {"wk_vidya_batch", (DL_FUNC)&wk_vidya_batch, 2},
+  {"wk_vidya_batch_fast", (DL_FUNC)&wk_vidya_batch_fast, 2},
   {"wk_vidya_warmup_period", (DL_FUNC)&wk_vidya_warmup_period, 1},
   {"wk_vidya_is_ready", (DL_FUNC)&wk_vidya_is_ready, 1},
   {"wk_vidya_name", (DL_FUNC)&wk_vidya_name, 1},
@@ -32109,6 +33853,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_volatility_of_volatility_new", (DL_FUNC)&wk_volatility_of_volatility_new, 2},
   {"wk_volatility_of_volatility_update", (DL_FUNC)&wk_volatility_of_volatility_update, 2},
   {"wk_volatility_of_volatility_batch", (DL_FUNC)&wk_volatility_of_volatility_batch, 2},
+  {"wk_volatility_of_volatility_batch_fast", (DL_FUNC)&wk_volatility_of_volatility_batch_fast, 2},
   {"wk_volatility_of_volatility_warmup_period", (DL_FUNC)&wk_volatility_of_volatility_warmup_period, 1},
   {"wk_volatility_of_volatility_is_ready", (DL_FUNC)&wk_volatility_of_volatility_is_ready, 1},
   {"wk_volatility_of_volatility_name", (DL_FUNC)&wk_volatility_of_volatility_name, 1},
@@ -32233,6 +33978,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_wave_pm_new", (DL_FUNC)&wk_wave_pm_new, 2},
   {"wk_wave_pm_update", (DL_FUNC)&wk_wave_pm_update, 2},
   {"wk_wave_pm_batch", (DL_FUNC)&wk_wave_pm_batch, 2},
+  {"wk_wave_pm_batch_fast", (DL_FUNC)&wk_wave_pm_batch_fast, 2},
   {"wk_wave_pm_warmup_period", (DL_FUNC)&wk_wave_pm_warmup_period, 1},
   {"wk_wave_pm_is_ready", (DL_FUNC)&wk_wave_pm_is_ready, 1},
   {"wk_wave_pm_name", (DL_FUNC)&wk_wave_pm_name, 1},
@@ -32282,6 +34028,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_win_rate_new", (DL_FUNC)&wk_win_rate_new, 1},
   {"wk_win_rate_update", (DL_FUNC)&wk_win_rate_update, 2},
   {"wk_win_rate_batch", (DL_FUNC)&wk_win_rate_batch, 2},
+  {"wk_win_rate_batch_fast", (DL_FUNC)&wk_win_rate_batch_fast, 2},
   {"wk_win_rate_warmup_period", (DL_FUNC)&wk_win_rate_warmup_period, 1},
   {"wk_win_rate_is_ready", (DL_FUNC)&wk_win_rate_is_ready, 1},
   {"wk_win_rate_name", (DL_FUNC)&wk_win_rate_name, 1},
@@ -32289,6 +34036,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_wma_new", (DL_FUNC)&wk_wma_new, 1},
   {"wk_wma_update", (DL_FUNC)&wk_wma_update, 2},
   {"wk_wma_batch", (DL_FUNC)&wk_wma_batch, 2},
+  {"wk_wma_batch_fast", (DL_FUNC)&wk_wma_batch_fast, 2},
   {"wk_wma_warmup_period", (DL_FUNC)&wk_wma_warmup_period, 1},
   {"wk_wma_is_ready", (DL_FUNC)&wk_wma_is_ready, 1},
   {"wk_wma_name", (DL_FUNC)&wk_wma_name, 1},
@@ -32317,6 +34065,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_z_score_new", (DL_FUNC)&wk_z_score_new, 1},
   {"wk_z_score_update", (DL_FUNC)&wk_z_score_update, 2},
   {"wk_z_score_batch", (DL_FUNC)&wk_z_score_batch, 2},
+  {"wk_z_score_batch_fast", (DL_FUNC)&wk_z_score_batch_fast, 2},
   {"wk_z_score_warmup_period", (DL_FUNC)&wk_z_score_warmup_period, 1},
   {"wk_z_score_is_ready", (DL_FUNC)&wk_z_score_is_ready, 1},
   {"wk_z_score_name", (DL_FUNC)&wk_z_score_name, 1},
@@ -32338,6 +34087,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_zlema_new", (DL_FUNC)&wk_zlema_new, 1},
   {"wk_zlema_update", (DL_FUNC)&wk_zlema_update, 2},
   {"wk_zlema_batch", (DL_FUNC)&wk_zlema_batch, 2},
+  {"wk_zlema_batch_fast", (DL_FUNC)&wk_zlema_batch_fast, 2},
   {"wk_zlema_warmup_period", (DL_FUNC)&wk_zlema_warmup_period, 1},
   {"wk_zlema_is_ready", (DL_FUNC)&wk_zlema_is_ready, 1},
   {"wk_zlema_name", (DL_FUNC)&wk_zlema_name, 1},
