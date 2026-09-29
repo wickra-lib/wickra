@@ -39,12 +39,16 @@ pub struct Wma {
     weight_sum: f64, // sum_i (weight_i * value_i)
     value_sum: f64,  // sum_i (value_i)
     weights_total: f64,
-    /// Steady-state updates since the running sums were last recomputed.
-    updates_since_reseed: usize,
+    /// Steady-state laps of the ring (`period` updates each) since the running
+    /// sums were last recomputed. Counted where the write cursor wraps, so the
+    /// per-update path carries no bookkeeping of its own; steady state starts
+    /// with the cursor at 0, so a lap count lands on the same update an update
+    /// count would.
+    laps_since_reseed: usize,
 }
 
 /// Recompute the running sums every `RESEED_EVERY * period` steady-state
-/// updates (the SMA's cadence).
+/// updates (the SMA's cadence), i.e. every `RESEED_EVERY` laps of the ring.
 const RESEED_EVERY: usize = 16;
 
 impl Wma {
@@ -72,7 +76,7 @@ impl Wma {
             weight_sum: 0.0,
             value_sum: 0.0,
             weights_total,
-            updates_since_reseed: 0,
+            laps_since_reseed: 0,
         })
     }
 
@@ -136,22 +140,21 @@ impl Indicator for Wma {
         // because every retained element's weight drops by one and the newcomer
         // enters at weight = period. Order matters: subtract `value_sum` BEFORE
         // updating it.
-        let oldest = self.buf[self.head];
+        // One indexed slot for both the read of the oldest value and the write.
+        let slot = &mut self.buf[self.head];
+        let oldest = std::mem::replace(slot, input);
         self.weight_sum = self.weight_sum - self.value_sum + self.period as f64 * input;
         self.value_sum = self.value_sum - oldest + input;
-        self.buf[self.head] = input;
         self.head += 1;
         if self.head == self.period {
             self.head = 0;
-        }
-        self.updates_since_reseed += 1;
-        if self.updates_since_reseed >= RESEED_EVERY * self.period {
-            self.value_sum = self.buf[self.head..]
-                .iter()
-                .chain(&self.buf[..self.head])
-                .sum();
-            self.weight_sum = self.weighted_window_sum();
-            self.updates_since_reseed = 0;
+            self.laps_since_reseed += 1;
+            if self.laps_since_reseed == RESEED_EVERY {
+                // The cursor just wrapped, so the window runs oldest-first from 0.
+                self.value_sum = self.buf.iter().sum();
+                self.weight_sum = self.weighted_window_sum();
+                self.laps_since_reseed = 0;
+            }
         }
         self.value()
     }
@@ -161,7 +164,7 @@ impl Indicator for Wma {
         self.count = 0;
         self.weight_sum = 0.0;
         self.value_sum = 0.0;
-        self.updates_since_reseed = 0;
+        self.laps_since_reseed = 0;
     }
 
     #[inline]
