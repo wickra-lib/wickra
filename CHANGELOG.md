@@ -36,8 +36,10 @@ definition (see Fixed).
 - **Batches into a buffer the caller keeps.** Writing a fresh multi-megabyte
   result costs page faults on the order of the computation, so every binding
   that can gains a form that allocates nothing: `batch_nan_into` /
-  `batch_fast_into` in Rust (provided methods of `Indicator`, so every generic
-  caller reaches an indicator's fast path), `Span<double>` overloads of `Batch`
+  `batch_fast_into` in Rust (provided methods of `Indicator` for every
+  indicator whose output converts to `f64`, bounded by the associated types
+  only, so a generic caller and a `dyn Indicator` alike reach an indicator's
+  fast path and the trait stays object safe), `Span<double>` overloads of `Batch`
   and `BatchFast` in C#, `BatchInto(dst, ...)` / `BatchFastInto` in Go,
   `batchInto` / `batchFastInto` in Java over arrays and over native
   `MemorySegment`s (handed to the C ABI without a copy, after checking they are
