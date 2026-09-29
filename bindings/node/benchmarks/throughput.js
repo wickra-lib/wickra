@@ -2,8 +2,9 @@
 //
 // Measures how many indicator updates per second the native binding sustains,
 // per-tick (streaming `update`), bulk (`batch`, with a plain array and with a
-// Float64Array read in place) and bulk through the opt-in SIMD kernels
-// (`batchFast`, Float64Array in and out), over a synthetic OHLCV series. It is
+// Float64Array read in place, and `batchInto` a reused Float64Array) and bulk
+// through the opt-in SIMD kernels (`batchFast`, Float64Array in and out), over a
+// synthetic OHLCV series. It is
 // the Node counterpart of the Rust criterion benches and the Python
 // `benchmarks/compare_libraries.py`; it benchmarks Wickra's own O(1) streaming
 // engine (there is no install-free TA library on npm with a comparable surface
@@ -85,7 +86,7 @@ const indicators = [
   { name: 'OBV', make: () => new wickra.OBV(), step: (ind, i) => ind.update(close[i], volume[i]), cols: [[close, volume], [closeF, volumeF]] },
 ];
 
-const columns = ['streaming (Mupd/s)', 'batch (Mupd/s)', 'batch f64 (Mupd/s)', 'fast (Mupd/s)'];
+const columns = ['streaming (Mupd/s)', 'batch (Mupd/s)', 'batch f64 (Mupd/s)', 'into (Mupd/s)', 'fast (Mupd/s)', 'fast into (Mupd/s)'];
 const header = 'Indicator'.padEnd(22) + columns.map((c) => c.padStart(20)).join('');
 console.log(`Wickra Node throughput — ${BARS.toLocaleString('en-US')} bars (median of 3 runs)\n`);
 console.log(header);
@@ -99,9 +100,16 @@ for (const ind of indicators) {
   });
   const batchNs = timeNs(() => ind.make().batch(...plain));
   const typedNs = timeNs(() => ind.make().batch(...typed));
+  // The exact batch into a reused Float64Array, as wide as the batch result
+  // (a multi-output indicator writes several values per input).
+  const into = typeof ind.make().batchInto === 'function';
+  const out = into ? new Float64Array(ind.make().batch(...typed).length) : null;
+  const intoNs = into ? timeNs(() => ind.make().batchInto(...typed, out)) : null;
   const fast = typeof ind.make().batchFast === 'function';
   const fastNs = fast ? timeNs(() => ind.make().batchFast(...typed)) : null;
-  const cells = [streamNs, batchNs, typedNs, fastNs].map((ns) =>
+  const fastInto = into && typeof ind.make().batchFastInto === 'function';
+  const fastIntoNs = fastInto ? timeNs(() => ind.make().batchFastInto(...typed, out)) : null;
+  const cells = [streamNs, batchNs, typedNs, intoNs, fastNs, fastIntoNs].map((ns) =>
     (ns === null ? '-' : mupsFromNs(ns).toFixed(1)).padStart(20),
   );
   console.log(ind.name.padEnd(22) + cells.join(''));
@@ -110,8 +118,10 @@ for (const ind of indicators) {
 console.log(
   '\nMupd/s = million indicator updates per second. Streaming is the per-tick\n' +
     '`update` path (one value at a time); batch is the bulk path returning a plain\n' +
-    'Array, from plain arrays and from Float64Arrays read in place; fast is the\n' +
+    'Array, from plain arrays and from Float64Arrays read in place; into is the\n' +
+    'exact batch into a reused Float64Array; fast is the\n' +
     'opt-in batchFast (SIMD kernels within a few units in the last place of\n' +
-    'batch), Float64Array in and out, - where an indicator has none. Higher is\n' +
+    'batch), Float64Array in and out, and fast into its reused-buffer form;\n' +
+    '- where an indicator has none. Higher is\n' +
     'better. Numbers are machine-dependent — use them for relative comparison.',
 );
