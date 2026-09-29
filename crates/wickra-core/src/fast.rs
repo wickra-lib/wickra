@@ -552,6 +552,457 @@ kernel! {
     }
 }
 
+/// One segment of shifted power sums, handed to a moment kernel's finisher.
+pub(crate) struct PowerSegment<'s> {
+    /// Output indices this segment covers.
+    pub(crate) outputs: std::ops::Range<usize>,
+    /// The shift subtracted from every value (the segment's anchor-window mean).
+    pub(crate) shift: f64,
+    /// Window sums of `(x - shift)^k`: power `k` (1-based) for output `idx` at
+    /// `sums[(k - 1) * stride + (idx - outputs.start)]`.
+    pub(crate) sums: &'s [f64],
+    pub(crate) stride: usize,
+}
+
+impl PowerSegment<'_> {
+    /// The window sum of power `k` (1-based) at segment offset `pos`.
+    #[inline(always)]
+    fn sum(&self, k: usize, pos: usize) -> f64 {
+        self.sums[(k - 1) * self.stride + pos]
+    }
+
+    /// Four window sums of power `k` (1-based) from segment offset `pos`.
+    #[inline(always)]
+    fn sum4<S: Simd>(&self, simd: S, k: usize, pos: usize) -> S::V {
+        simd.load(quad(&self.sums[(k - 1) * self.stride + pos..]))
+    }
+}
+
+/// Rolling sums of powers of shifted values, the heart of the moment kernels.
+///
+/// The series is cut into segments of `period` outputs. For each, the shift is
+/// the exact mean of the segment's first window — the re-anchoring the exact
+/// accumulators perform every `period` values — and `POWERS` sums of
+/// `(x - shift)^k` run as window-sum scans over the segment plus its
+/// `period - 1` lookback. `finish` then receives each segment. Re-anchoring
+/// every window keeps each deviation within about two windows' spread, which is
+/// what keeps the higher powers from cancelling: anchoring only every
+/// `16 · period` values cost a skewness up to three orders of magnitude of
+/// accuracy on a drifting series.
+///
+/// `scratch` must hold [`power_scratch_len`]`(POWERS, period)` values.
+#[inline(always)]
+pub(crate) fn shifted_power_sums<S: Simd, const POWERS: usize>(
+    simd: S,
+    xs: &[f64],
+    period: usize,
+    scratch: &mut [f64],
+    mut finish: impl FnMut(PowerSegment<'_>),
+) {
+    let len = xs.len();
+    let segment = period;
+    let stride = segment + period;
+    let (powers, sums) = scratch.split_at_mut(POWERS * stride);
+    let mut anchor = period - 1;
+    while anchor < len {
+        let end = (anchor + segment).min(len);
+        let lookback = anchor + 1 - period;
+        let local = end - lookback;
+        let shift = xs[lookback..=anchor].iter().sum::<f64>() / period as f64;
+        for (pos, &value) in xs[lookback..end].iter().enumerate() {
+            let dev = value - shift;
+            let mut power = dev;
+            for k in 0..POWERS {
+                powers[k * stride + pos] = power;
+                power *= dev;
+            }
+        }
+        for k in 0..POWERS {
+            let series = &powers[k * stride..k * stride + local];
+            window_sums(
+                simd,
+                series,
+                period,
+                1.0,
+                &mut sums[k * stride..k * stride + local],
+            );
+        }
+        // Sums from local index `period - 1` on belong to outputs `anchor..end`.
+        finish(PowerSegment {
+            outputs: anchor..end,
+            shift,
+            sums: &sums[period - 1..],
+            stride,
+        });
+        anchor = end;
+    }
+}
+
+/// Scratch values [`shifted_power_sums`] needs for `powers` power series.
+pub(crate) const fn power_scratch_len(powers: usize, period: usize) -> usize {
+    2 * powers * 2 * period
+}
+
+/// `if a > 0 { a } else { 0 }`, the scalar form of `simd.max(a, 0)`.
+#[inline(always)]
+fn clamp_at_zero(value: f64) -> f64 {
+    if value > 0.0 {
+        value
+    } else {
+        0.0
+    }
+}
+
+kernel! {
+    /// Bollinger bands: mean and population standard deviation of the window
+    /// from shifted first and second power sums, four outputs per step; rows
+    /// `[upper, middle, lower, stddev]`.
+    BollingerFast {
+        x: &'a [f64],
+        period: usize,
+        multiplier: f64,
+        scratch: &'a mut [f64],
+        out: &'a mut [f64],
+    } -> () = |simd, kern| {
+        let period = kern.period;
+        let (inv, mult) = (1.0 / period as f64, kern.multiplier);
+        let (inv_v, mult_v, zero) = (simd.splat(inv), simd.splat(mult), simd.splat(0.0));
+        kern.out[..(period - 1) * 4].fill(f64::NAN);
+        let out = &mut *kern.out;
+        shifted_power_sums::<S, 2>(simd, kern.x, period, kern.scratch, |seg| {
+            let shift_v = simd.splat(seg.shift);
+            let count = seg.outputs.len();
+            let mut pos = 0;
+            while pos + 4 <= count {
+                let mean_dev = simd.mul(seg.sum4(simd, 1, pos), inv_v);
+                let second = simd.mul(seg.sum4(simd, 2, pos), inv_v);
+                let var = simd.max(simd.sub(second, simd.mul(mean_dev, mean_dev)), zero);
+                let stddev = simd.sqrt(var);
+                let mean = simd.add(shift_v, mean_dev);
+                let band = simd.mul(mult_v, stddev);
+                let upper = simd.to_array(simd.add(mean, band));
+                let lower = simd.to_array(simd.sub(mean, band));
+                let (mean, stddev) = (simd.to_array(mean), simd.to_array(stddev));
+                let base = (seg.outputs.start + pos) * 4;
+                for lane in 0..4 {
+                    let row = base + lane * 4;
+                    out[row..row + 4]
+                        .copy_from_slice(&[upper[lane], mean[lane], lower[lane], stddev[lane]]);
+                }
+                pos += 4;
+            }
+            while pos < count {
+                let mean_dev = seg.sum(1, pos) * inv;
+                let second = seg.sum(2, pos) * inv;
+                let stddev = clamp_at_zero(second - mean_dev * mean_dev).sqrt();
+                let mean = seg.shift + mean_dev;
+                let band = mult * stddev;
+                let row = (seg.outputs.start + pos) * 4;
+                out[row..row + 4].copy_from_slice(&[mean + band, mean, mean - band, stddev]);
+                pos += 1;
+            }
+        });
+    }
+}
+
+kernel! {
+    /// Skewness `m3 / m2^1.5` of the window from shifted first to third power
+    /// sums (`m2 · sqrt(m2)` for the power), 0 for a window with no dispersion;
+    /// four outputs per step.
+    SkewnessFast {
+        x: &'a [f64],
+        period: usize,
+        scratch: &'a mut [f64],
+        out: &'a mut [f64],
+    } -> () = |simd, kern| {
+        let period = kern.period;
+        let inv = 1.0 / period as f64;
+        let (inv_v, zero, three, two) = (simd.splat(inv), simd.splat(0.0), simd.splat(3.0), simd.splat(2.0));
+        kern.out[..period - 1].fill(f64::NAN);
+        let out = &mut *kern.out;
+        shifted_power_sums::<S, 3>(simd, kern.x, period, kern.scratch, |seg| {
+            let count = seg.outputs.len();
+            let dest = &mut out[seg.outputs.clone()];
+            let mut pos = 0;
+            while pos + 4 <= count {
+                let mean_dev = simd.mul(seg.sum4(simd, 1, pos), inv_v);
+                let second = simd.mul(seg.sum4(simd, 2, pos), inv_v);
+                let third = simd.mul(seg.sum4(simd, 3, pos), inv_v);
+                let m2 = simd.max(simd.sub(second, simd.mul(mean_dev, mean_dev)), zero);
+                let cube = simd.mul(simd.mul(mean_dev, mean_dev), mean_dev);
+                let m3 = simd.add(
+                    simd.sub(third, simd.mul(three, simd.mul(mean_dev, second))),
+                    simd.mul(two, cube),
+                );
+                let skew = simd.to_array(simd.div(m3, simd.mul(m2, simd.sqrt(m2))));
+                let m2 = simd.to_array(m2);
+                for lane in 0..4 {
+                    dest[pos + lane] = if m2[lane] == 0.0 { 0.0 } else { skew[lane] };
+                }
+                pos += 4;
+            }
+            while pos < count {
+                let mean_dev = seg.sum(1, pos) * inv;
+                let second = seg.sum(2, pos) * inv;
+                let third = seg.sum(3, pos) * inv;
+                let m2 = clamp_at_zero(second - mean_dev * mean_dev);
+                let m3 = third - 3.0 * (mean_dev * second) + 2.0 * (mean_dev * mean_dev * mean_dev);
+                dest[pos] = if m2 == 0.0 { 0.0 } else { m3 / (m2 * m2.sqrt()) };
+                pos += 1;
+            }
+        });
+    }
+}
+
+kernel! {
+    /// Pearson correlation of two series over the window, from shifted sums of
+    /// `a`, `b`, `a²`, `b²` and `a·b` (population moments), clamped to
+    /// `[-1, 1]`, 0 when a channel is flat; four outputs per step.
+    PearsonFast {
+        a: &'a [f64],
+        b: &'a [f64],
+        period: usize,
+        scratch: &'a mut [f64],
+        out: &'a mut [f64],
+    } -> () = |simd, kern| {
+        let period = kern.period;
+        let inv = 1.0 / period as f64;
+        let (inv_v, zero, one, minus_one) = (simd.splat(inv), simd.splat(0.0), simd.splat(1.0), simd.splat(-1.0));
+        let len = kern.a.len();
+        // Re-anchor every window, as `shifted_power_sums` does.
+        let segment = period;
+        let stride = segment + period;
+        kern.out[..period - 1].fill(f64::NAN);
+        let (series, sums) = kern.scratch.split_at_mut(5 * stride);
+        let mut anchor = period - 1;
+        while anchor < len {
+            let end = (anchor + segment).min(len);
+            let lookback = anchor + 1 - period;
+            let local = end - lookback;
+            let shift_a = kern.a[lookback..=anchor].iter().sum::<f64>() * inv;
+            let shift_b = kern.b[lookback..=anchor].iter().sum::<f64>() * inv;
+            let pairs = kern.a[lookback..end].iter().zip(&kern.b[lookback..end]);
+            for (pos, (&va, &vb)) in pairs.enumerate() {
+                let (da, db) = (va - shift_a, vb - shift_b);
+                series[pos] = da;
+                series[stride + pos] = db;
+                series[2 * stride + pos] = da * da;
+                series[3 * stride + pos] = db * db;
+                series[4 * stride + pos] = da * db;
+            }
+            for k in 0..5 {
+                window_sums(
+                    simd,
+                    &series[k * stride..k * stride + local],
+                    period,
+                    1.0,
+                    &mut sums[k * stride..k * stride + local],
+                );
+            }
+            let seg = PowerSegment {
+                outputs: anchor..end,
+                shift: 0.0,
+                sums: &sums[period - 1..],
+                stride,
+            };
+            let count = end - anchor;
+            let dest = &mut kern.out[anchor..end];
+            let mut pos = 0;
+            while pos + 4 <= count {
+                let mean_a = simd.mul(seg.sum4(simd, 1, pos), inv_v);
+                let mean_b = simd.mul(seg.sum4(simd, 2, pos), inv_v);
+                let var_a = simd.max(
+                    simd.sub(simd.mul(seg.sum4(simd, 3, pos), inv_v), simd.mul(mean_a, mean_a)),
+                    zero,
+                );
+                let var_b = simd.max(
+                    simd.sub(simd.mul(seg.sum4(simd, 4, pos), inv_v), simd.mul(mean_b, mean_b)),
+                    zero,
+                );
+                let cov = simd.sub(simd.mul(seg.sum4(simd, 5, pos), inv_v), simd.mul(mean_a, mean_b));
+                let denom = simd.sqrt(simd.mul(var_a, var_b));
+                let corr = simd.to_array(simd.min(simd.max(simd.div(cov, denom), minus_one), one));
+                let denom = simd.to_array(denom);
+                for lane in 0..4 {
+                    dest[pos + lane] = if denom[lane] == 0.0 { 0.0 } else { corr[lane] };
+                }
+                pos += 4;
+            }
+            while pos < count {
+                let mean_a = seg.sum(1, pos) * inv;
+                let mean_b = seg.sum(2, pos) * inv;
+                let var_a = clamp_at_zero(seg.sum(3, pos) * inv - mean_a * mean_a);
+                let var_b = clamp_at_zero(seg.sum(4, pos) * inv - mean_b * mean_b);
+                let cov = seg.sum(5, pos) * inv - mean_a * mean_b;
+                let denom = (var_a * var_b).sqrt();
+                dest[pos] = if denom == 0.0 { 0.0 } else { (cov / denom).clamp(-1.0, 1.0) };
+                pos += 1;
+            }
+            anchor = end;
+        }
+    }
+}
+kernel! {
+    /// MACD rows `[macd, signal, histogram]`: the warmup until the signal EMA
+    /// is seeded runs the exact recurrences (those rows match the exact batch
+    /// to the bit), then blocks of the fast, slow and signal EMA scans. Returns
+    /// the last fast, slow and signal EMA.
+    MacdFast {
+        x: &'a [f64],
+        periods: (usize, usize, usize),
+        alphas: (f64, f64, f64),
+        out: &'a mut [f64],
+    } -> (f64, f64, f64) = |simd, kern| {
+        let (fast_period, slow_period, signal_period) = kern.periods;
+        let (fast_alpha, slow_alpha, signal_alpha) = kern.alphas;
+        let (fast_decay, slow_decay, signal_decay) = (1.0 - fast_alpha, 1.0 - slow_alpha, 1.0 - signal_alpha);
+        let first_full = slow_period + signal_period - 2;
+        kern.out[..first_full * 3].fill(f64::NAN);
+        let mut fast = kern.x[..fast_period].iter().copied().sum::<f64>() / fast_period as f64;
+        for &value in &kern.x[fast_period..slow_period] {
+            fast = ema_step(fast_alpha, fast_decay, fast, value);
+        }
+        let mut slow = kern.x[..slow_period].iter().copied().sum::<f64>() / slow_period as f64;
+        let mut signal_sum = -0.0 + (fast - slow);
+        for &value in &kern.x[slow_period..=first_full] {
+            fast = ema_step(fast_alpha, fast_decay, fast, value);
+            slow = ema_step(slow_alpha, slow_decay, slow, value);
+            signal_sum += fast - slow;
+        }
+        let mut signal = signal_sum / signal_period as f64;
+        let macd = fast - slow;
+        kern.out[first_full * 3..first_full * 3 + 3].copy_from_slice(&[macd, signal, macd - signal]);
+        let mut fast_block = [0.0; BLOCK];
+        let mut slow_block = [0.0; BLOCK];
+        let mut signal_block = [0.0; BLOCK];
+        let inputs = kern.x[first_full + 1..].chunks(BLOCK);
+        for (block, rows) in inputs.zip(kern.out[(first_full + 1) * 3..].chunks_mut(BLOCK * 3)) {
+            let len = block.len();
+            fast = lin_scan(simd, fast_decay, fast_alpha, block, fast, &mut fast_block[..len]);
+            slow = lin_scan(simd, slow_decay, slow_alpha, block, slow, &mut slow_block[..len]);
+            for (line, &sl) in fast_block[..len].iter_mut().zip(&slow_block[..len]) {
+                *line -= sl;
+            }
+            signal = lin_scan(
+                simd,
+                signal_decay,
+                signal_alpha,
+                &fast_block[..len],
+                signal,
+                &mut signal_block[..len],
+            );
+            let lines = fast_block[..len].iter().zip(&signal_block[..len]);
+            for (row, (&line, &sig)) in rows.chunks_exact_mut(3).zip(lines) {
+                row.copy_from_slice(&[line, sig, line - sig]);
+            }
+        }
+        (fast, slow, signal)
+    }
+}
+
+kernel! {
+    /// ATR's steady state: blocks of true ranges (lane-parallel, each against
+    /// the previous close) smoothed by a Wilder scan. `out` starts at the first
+    /// value after the seed; returns the last average.
+    AtrFast {
+        high: &'a [f64],
+        low: &'a [f64],
+        prev_close: &'a [f64],
+        seed: f64,
+        n_minus_1: f64,
+        inv_period: f64,
+        out: &'a mut [f64],
+    } -> f64 = |simd, kern| {
+        let (decay, gain) = (kern.n_minus_1 * kern.inv_period, kern.inv_period);
+        let mut avg = kern.seed;
+        let mut ranges = [0.0; BLOCK];
+        let columns = kern.high.chunks(BLOCK).zip(kern.low.chunks(BLOCK)).zip(kern.prev_close.chunks(BLOCK));
+        for (((highs, lows), prevs), dest) in columns.zip(kern.out.chunks_mut(BLOCK)) {
+            let len = dest.len();
+            for (((range, &hi), &lo), &pc) in ranges.iter_mut().zip(highs).zip(lows).zip(prevs) {
+                *range = (hi - lo).max((hi - pc).abs()).max((lo - pc).abs());
+            }
+            avg = lin_scan(simd, decay, gain, &ranges[..len], avg, dest);
+        }
+        avg
+    }
+}
+
+/// The money-flow volume of one bar, exactly as `Adl::update` computes it.
+#[inline(always)]
+fn money_flow(high: f64, low: f64, close: f64, volume: f64) -> f64 {
+    let range = high - low;
+    if range == 0.0 {
+        0.0
+    } else {
+        ((close - low) - (high - close)) / range * volume
+    }
+}
+
+kernel! {
+    /// Chaikin oscillator `EMA_fast(ADL) − EMA_slow(ADL)`: the warmup until the
+    /// slow EMA is seeded runs the exact accumulation and recurrences, then
+    /// blocks of money-flow volumes, their running sum (a scan with decay 1)
+    /// and both EMA scans. Returns the last ADL, fast EMA and slow EMA.
+    ChaikinFast {
+        high: &'a [f64],
+        low: &'a [f64],
+        close: &'a [f64],
+        volume: &'a [f64],
+        periods: (usize, usize),
+        alphas: (f64, f64),
+        out: &'a mut [f64],
+    } -> (f64, f64, f64) = |simd, kern| {
+        let (fast_period, slow_period) = kern.periods;
+        let (fast_alpha, slow_alpha) = kern.alphas;
+        let (fast_decay, slow_decay) = (1.0 - fast_alpha, 1.0 - slow_alpha);
+        let first = slow_period - 1;
+        kern.out[..first].fill(f64::NAN);
+        let mut adl = 0.0_f64;
+        let (mut fast_sum, mut slow_sum) = (-0.0_f64, -0.0_f64);
+        let mut fast = 0.0;
+        for idx in 0..=first {
+            adl += money_flow(kern.high[idx], kern.low[idx], kern.close[idx], kern.volume[idx]);
+            if idx < fast_period {
+                fast_sum += adl;
+                if idx + 1 == fast_period {
+                    fast = fast_sum / fast_period as f64;
+                }
+            } else {
+                fast = ema_step(fast_alpha, fast_decay, fast, adl);
+            }
+            slow_sum += adl;
+        }
+        let mut slow = slow_sum / slow_period as f64;
+        kern.out[first] = fast - slow;
+        let mut flows = [0.0; BLOCK];
+        let mut adl_block = [0.0; BLOCK];
+        let mut fast_block = [0.0; BLOCK];
+        let mut slow_block = [0.0; BLOCK];
+        let start = first + 1;
+        let mut pos = start;
+        for dest in kern.out[start..].chunks_mut(BLOCK) {
+            let len = dest.len();
+            let bars = kern.high[pos..pos + len]
+                .iter()
+                .zip(&kern.low[pos..pos + len])
+                .zip(&kern.close[pos..pos + len])
+                .zip(&kern.volume[pos..pos + len]);
+            for (flow, (((&hi, &lo), &cl), &vol)) in flows.iter_mut().zip(bars) {
+                *flow = money_flow(hi, lo, cl, vol);
+            }
+            adl = lin_scan(simd, 1.0, 1.0, &flows[..len], adl, &mut adl_block[..len]);
+            fast = lin_scan(simd, fast_decay, fast_alpha, &adl_block[..len], fast, &mut fast_block[..len]);
+            slow = lin_scan(simd, slow_decay, slow_alpha, &adl_block[..len], slow, &mut slow_block[..len]);
+            for ((slot, &f), &s) in dest.iter_mut().zip(&fast_block[..len]).zip(&slow_block[..len]) {
+                *slot = f - s;
+            }
+            pos += len;
+        }
+        (adl, fast, slow)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -808,5 +1259,392 @@ mod tests {
         });
         let second = with_scratch(16, |buf| buf.len());
         assert_eq!((first, second), (8, 16));
+    }
+
+    /// OHLCV columns with a real range on every bar.
+    fn bars(n: usize) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let close = series(n);
+        let high: Vec<f64> = close
+            .iter()
+            .enumerate()
+            .map(|(i, c)| c + 0.5 + (f64::from(u32::try_from(i).unwrap()) * 0.7).sin().abs())
+            .collect();
+        let low: Vec<f64> = close
+            .iter()
+            .enumerate()
+            .map(|(i, c)| c - 0.5 - (f64::from(u32::try_from(i).unwrap()) * 0.9).cos().abs())
+            .collect();
+        let volume: Vec<f64> = (0..n)
+            .map(|i| 1000.0 + f64::from(u32::try_from(i % 97).unwrap()) * 10.0)
+            .collect();
+        (high, low, close, volume)
+    }
+
+    /// Same `NaN` placement and agreement within `tol` of `scale`.
+    fn close_to(exact: &[f64], fast: &[f64], tol: f64, scale: f64) {
+        assert_eq!(exact.len(), fast.len());
+        for (i, (x, y)) in exact.iter().zip(fast).enumerate() {
+            assert_eq!(x.is_nan(), y.is_nan(), "NaN mismatch at {i}");
+            if x.is_finite() {
+                assert!(
+                    (x - y).abs() <= tol * scale.max(x.abs()),
+                    "at {i}: {x} vs {y}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn macd_fast_agrees_and_falls_back() {
+        use crate::indicators::MacdIndicator;
+        let xs = series(4003);
+        for (fast, slow, signal) in [(12, 26, 9), (3, 7, 1), (2, 5, 4)] {
+            let make = || MacdIndicator::new(fast, slow, signal).unwrap();
+            let (mut exact, mut quick) = (make(), make());
+            close_to(
+                &exact.batch_macd(&xs),
+                &quick.batch_macd_fast(&xs),
+                1e-12,
+                1.0,
+            );
+            let (u, v) = (exact.update(101.0).unwrap(), quick.update(101.0).unwrap());
+            assert!((u.macd - v.macd).abs() < 1e-12 && (u.signal - v.signal).abs() < 1e-12);
+            let mut warm = make();
+            let _ = warm.update(100.0);
+            let mut warm2 = warm.clone();
+            assert_eq!(
+                bits(&warm.batch_macd_fast(&xs)),
+                bits(&warm2.batch_macd(&xs))
+            );
+            let mut wild = xs[..300].to_vec();
+            wild[150] = 1e200;
+            assert_eq!(
+                bits(&make().batch_macd_fast(&wild)),
+                bits(&make().batch_macd(&wild))
+            );
+            let short = &xs[..slow + signal - 2];
+            assert_eq!(
+                bits(&make().batch_macd_fast(short)),
+                bits(&make().batch_macd(short))
+            );
+        }
+    }
+
+    #[test]
+    fn bollinger_fast_agrees_and_falls_back() {
+        use crate::indicators::BollingerBands;
+        let xs = series(4003);
+        for period in [2, 20, 33] {
+            let make = || BollingerBands::new(period, 2.0).unwrap();
+            let (mut exact, mut quick) = (make(), make());
+            close_to(
+                &exact.batch_bands(&xs),
+                &quick.batch_bands_fast(&xs),
+                1e-11,
+                1.0,
+            );
+            let (u, v) = (exact.update(101.0).unwrap(), quick.update(101.0).unwrap());
+            assert!((u.middle - v.middle).abs() < 1e-11 && (u.stddev - v.stddev).abs() < 1e-11);
+            let mut warm = make();
+            let _ = warm.update(100.0);
+            let mut warm2 = warm.clone();
+            assert_eq!(
+                bits(&warm.batch_bands_fast(&xs)),
+                bits(&warm2.batch_bands(&xs))
+            );
+            let mut wild = xs[..300].to_vec();
+            wild[150] = f64::INFINITY;
+            assert_eq!(
+                bits(&make().batch_bands_fast(&wild)),
+                bits(&make().batch_bands(&wild))
+            );
+            let short = &xs[..period - 1];
+            assert_eq!(
+                bits(&make().batch_bands_fast(short)),
+                bits(&make().batch_bands(short))
+            );
+        }
+    }
+
+    #[test]
+    fn skewness_fast_agrees_and_falls_back() {
+        use crate::indicators::Skewness;
+        // Skewness divides by m2^1.5; compare in absolute terms on its [-3, 3]
+        // scale, where the fast and exact moments differ by ~1e-13.
+        let xs = series(4003);
+        for period in [3, 20, 33] {
+            let make = || Skewness::new(period).unwrap();
+            close_to(&make().batch_nan(&xs), &make().batch_fast(&xs), 1e-9, 1.0);
+            let mut warm = make();
+            let _ = warm.update(100.0);
+            falls_back(&warm, &xs);
+            let mut wild = xs[..300].to_vec();
+            wild[150] = 1e200;
+            falls_back(&make(), &wild);
+            falls_back(&make(), &xs[..period - 1]);
+        }
+        // A flat window has no dispersion: 0, like the exact path.
+        let flat = vec![5.0; 64];
+        let fast = Skewness::new(8).unwrap().batch_fast(&flat);
+        assert!(fast[7..].iter().all(|&v| v == 0.0));
+    }
+
+    #[test]
+    fn pearson_fast_agrees_and_falls_back() {
+        use crate::indicators::PearsonCorrelation;
+        let a = series(4003);
+        let b: Vec<f64> = a
+            .iter()
+            .enumerate()
+            .map(|(i, v)| v * 0.5 + (f64::from(u32::try_from(i).unwrap()) * 0.21).cos())
+            .collect();
+        for period in [2, 20, 33] {
+            let make = || PearsonCorrelation::new(period).unwrap();
+            let (mut exact, mut quick) = (make(), make());
+            let (mut ea, mut fa) = (vec![0.0; a.len()], vec![0.0; a.len()]);
+            exact.batch_pairs_into(&a, &b, &mut ea);
+            quick.batch_pairs_fast_into(&a, &b, &mut fa);
+            close_to(&ea, &fa, 1e-9, 1.0);
+            // The replayed window continues within the same tolerance (its
+            // accumulator sums carry a different reseed history, so the last
+            // bits may differ).
+            let u = exact.update((101.0, 50.0)).unwrap();
+            let v = quick.update((101.0, 50.0)).unwrap();
+            assert!((u - v).abs() < 1e-9, "continuation {u} vs {v}");
+            let mut warm = make();
+            let _ = warm.update((1.0, 2.0));
+            let mut warm2 = warm.clone();
+            warm.batch_pairs_fast_into(&a, &b, &mut fa);
+            warm2.batch_pairs_into(&a, &b, &mut ea);
+            assert_eq!(bits(&ea), bits(&fa));
+            let mut wild = b[..300].to_vec();
+            wild[150] = 1e200;
+            let (mut e2, mut f2) = (vec![0.0; 300], vec![0.0; 300]);
+            make().batch_pairs_into(&a[..300], &wild, &mut e2);
+            make().batch_pairs_fast_into(&a[..300], &wild, &mut f2);
+            assert_eq!(bits(&e2), bits(&f2));
+            let (mut e3, mut f3) = (vec![0.0; period - 1], vec![0.0; period - 1]);
+            make().batch_pairs_into(&a[..period - 1], &b[..period - 1], &mut e3);
+            make().batch_pairs_fast_into(&a[..period - 1], &b[..period - 1], &mut f3);
+            assert_eq!(bits(&e3), bits(&f3));
+        }
+        // A flat channel: correlation undefined, reported as 0 on both paths.
+        let flat = vec![3.0; 64];
+        let mut out = vec![0.0; 64];
+        PearsonCorrelation::new(8)
+            .unwrap()
+            .batch_pairs_fast_into(&a[..64], &flat, &mut out);
+        assert!(out[7..].iter().all(|&v| v == 0.0));
+    }
+
+    #[test]
+    fn atr_fast_agrees_and_falls_back() {
+        use crate::indicators::Atr;
+        use crate::ohlcv::Candle;
+        let (high, low, close, _) = bars(4003);
+        for period in [1, 14, 33] {
+            let make = || Atr::new(period).unwrap();
+            let (mut exact, mut quick) = (make(), make());
+            close_to(
+                &exact.batch_atr(&high, &low, &close),
+                &quick.batch_atr_fast(&high, &low, &close),
+                1e-12,
+                1.0,
+            );
+            let bar = Candle::new_unchecked(100.0, 101.0, 99.0, 100.5, 0.0, 0);
+            assert!((exact.update(bar).unwrap() - quick.update(bar).unwrap()).abs() < 1e-12);
+            let mut warm = make();
+            let _ = warm.update(bar);
+            let mut warm2 = warm.clone();
+            assert_eq!(
+                bits(&warm.batch_atr_fast(&high, &low, &close)),
+                bits(&warm2.batch_atr(&high, &low, &close))
+            );
+            let mut wild = high[..300].to_vec();
+            wild[150] = 1e200;
+            assert_eq!(
+                bits(&make().batch_atr_fast(&wild, &low[..300], &close[..300])),
+                bits(&make().batch_atr(&wild, &low[..300], &close[..300]))
+            );
+        }
+        let short = Atr::new(14)
+            .unwrap()
+            .batch_atr_fast(&high[..13], &low[..13], &close[..13]);
+        assert!(short.iter().all(|v| v.is_nan()));
+    }
+
+    #[test]
+    fn chaikin_fast_agrees_and_falls_back() {
+        use crate::indicators::ChaikinOscillator;
+        use crate::ohlcv::Candle;
+        let (high, low, close, volume) = bars(4003);
+        let scale = volume.iter().sum::<f64>();
+        for (fast, slow) in [(3, 10), (1, 2), (5, 34)] {
+            let make = || ChaikinOscillator::new(fast, slow).unwrap();
+            let (mut exact, mut quick) = (make(), make());
+            let (mut ea, mut fa) = (vec![0.0; high.len()], vec![0.0; high.len()]);
+            exact.batch_hlcv_into(&high, &low, &close, &volume, &mut ea);
+            quick.batch_hlcv_fast_into(&high, &low, &close, &volume, &mut fa);
+            close_to(&ea, &fa, 1e-13, scale);
+            let bar = Candle::new_unchecked(100.0, 101.0, 99.0, 100.5, 5000.0, 0);
+            assert!(
+                (exact.update(bar).unwrap() - quick.update(bar).unwrap()).abs() < 1e-13 * scale
+            );
+            let mut warm = make();
+            let _ = warm.update(bar);
+            let mut warm2 = warm.clone();
+            warm.batch_hlcv_fast_into(&high, &low, &close, &volume, &mut fa);
+            warm2.batch_hlcv_into(&high, &low, &close, &volume, &mut ea);
+            assert_eq!(bits(&ea), bits(&fa));
+            let mut wild = volume[..300].to_vec();
+            wild[150] = 1e200;
+            let (mut e2, mut f2) = (vec![0.0; 300], vec![0.0; 300]);
+            make().batch_hlcv_into(&high[..300], &low[..300], &close[..300], &wild, &mut e2);
+            make().batch_hlcv_fast_into(&high[..300], &low[..300], &close[..300], &wild, &mut f2);
+            assert_eq!(bits(&e2), bits(&f2));
+            let n = slow - 1;
+            let (mut e3, mut f3) = (vec![0.0; n], vec![0.0; n]);
+            make().batch_hlcv_into(&high[..n], &low[..n], &close[..n], &volume[..n], &mut e3);
+            make().batch_hlcv_fast_into(&high[..n], &low[..n], &close[..n], &volume[..n], &mut f3);
+            assert_eq!(bits(&e3), bits(&f3));
+        }
+        // Flat bars carry no money flow: the zero-range branch.
+        let flat = vec![7.0; 40];
+        let mut out = vec![0.0; 40];
+        ChaikinOscillator::classic().batch_hlcv_fast_into(&flat, &flat, &flat, &flat, &mut out);
+        assert!(out[9..].iter().all(|&v| v == 0.0));
+    }
+
+    /// The recurrence kernels over columns (MACD, ATR, Chaikin) return the same
+    /// bits through the dispatcher as in the portable baseline build.
+    #[test]
+    fn recurrence_column_kernels_are_identical_on_every_dispatch_path() {
+        let xs = series(3001);
+        let (high, low, close, volume) = bars(3001);
+        let n = xs.len();
+        let (mut a, mut b) = (vec![0.0; n * 3], vec![0.0; n * 3]);
+        let ra = wickra_simd::dispatch(MacdFast {
+            x: &xs,
+            periods: (12, 26, 9),
+            alphas: (2.0 / 13.0, 2.0 / 27.0, 0.2),
+            out: &mut a[..n * 3],
+            _borrow: PhantomData,
+        });
+        let rb = wickra_simd::run_baseline(MacdFast {
+            x: &xs,
+            periods: (12, 26, 9),
+            alphas: (2.0 / 13.0, 2.0 / 27.0, 0.2),
+            out: &mut b[..n * 3],
+            _borrow: PhantomData,
+        });
+        assert_eq!(bits(&a[..n * 3]), bits(&b[..n * 3]));
+        assert_eq!(bits(&[ra.0, ra.1, ra.2]), bits(&[rb.0, rb.1, rb.2]));
+        let ra = wickra_simd::dispatch(AtrFast {
+            high: &high[14..],
+            low: &low[14..],
+            prev_close: &close[13..n - 1],
+            seed: 1.3,
+            n_minus_1: 13.0,
+            inv_period: 1.0 / 14.0,
+            out: &mut a[..n - 14],
+            _borrow: PhantomData,
+        });
+        let rb = wickra_simd::run_baseline(AtrFast {
+            high: &high[14..],
+            low: &low[14..],
+            prev_close: &close[13..n - 1],
+            seed: 1.3,
+            n_minus_1: 13.0,
+            inv_period: 1.0 / 14.0,
+            out: &mut b[..n - 14],
+            _borrow: PhantomData,
+        });
+        assert_eq!(bits(&a[..n - 14]), bits(&b[..n - 14]));
+        assert_eq!(ra.to_bits(), rb.to_bits());
+        let ra = wickra_simd::dispatch(ChaikinFast {
+            high: &high,
+            low: &low,
+            close: &close,
+            volume: &volume,
+            periods: (3, 10),
+            alphas: (0.5, 2.0 / 11.0),
+            out: &mut a[..n],
+            _borrow: PhantomData,
+        });
+        let rb = wickra_simd::run_baseline(ChaikinFast {
+            high: &high,
+            low: &low,
+            close: &close,
+            volume: &volume,
+            periods: (3, 10),
+            alphas: (0.5, 2.0 / 11.0),
+            out: &mut b[..n],
+            _borrow: PhantomData,
+        });
+        assert_eq!(bits(&a[..n]), bits(&b[..n]));
+        assert_eq!(bits(&[ra.0, ra.1, ra.2]), bits(&[rb.0, rb.1, rb.2]));
+    }
+
+    /// The multi-output, candle and pair kernels return the same bits through
+    /// the dispatcher as in the portable baseline build.
+    #[test]
+    fn column_kernels_are_identical_on_every_dispatch_path() {
+        let xs = series(3001);
+        let (_, _, close, _) = bars(3001);
+        let n = xs.len();
+        let (mut a, mut b) = (vec![0.0; n * 4], vec![0.0; n * 4]);
+        let (mut sa, mut sb) = (
+            vec![0.0; power_scratch_len(5, 20)],
+            vec![0.0; power_scratch_len(5, 20)],
+        );
+        wickra_simd::dispatch(BollingerFast {
+            x: &xs,
+            period: 20,
+            multiplier: 2.0,
+            scratch: &mut sa,
+            out: &mut a,
+            _borrow: PhantomData,
+        });
+        wickra_simd::run_baseline(BollingerFast {
+            x: &xs,
+            period: 20,
+            multiplier: 2.0,
+            scratch: &mut sb,
+            out: &mut b,
+            _borrow: PhantomData,
+        });
+        assert_eq!(bits(&a), bits(&b));
+        wickra_simd::dispatch(SkewnessFast {
+            x: &xs,
+            period: 20,
+            scratch: &mut sa,
+            out: &mut a[..n],
+            _borrow: PhantomData,
+        });
+        wickra_simd::run_baseline(SkewnessFast {
+            x: &xs,
+            period: 20,
+            scratch: &mut sb,
+            out: &mut b[..n],
+            _borrow: PhantomData,
+        });
+        assert_eq!(bits(&a[..n]), bits(&b[..n]));
+        wickra_simd::dispatch(PearsonFast {
+            a: &xs,
+            b: &close,
+            period: 20,
+            scratch: &mut sa,
+            out: &mut a[..n],
+            _borrow: PhantomData,
+        });
+        wickra_simd::run_baseline(PearsonFast {
+            a: &xs,
+            b: &close,
+            period: 20,
+            scratch: &mut sb,
+            out: &mut b[..n],
+            _borrow: PhantomData,
+        });
+        assert_eq!(bits(&a[..n]), bits(&b[..n]));
     }
 }

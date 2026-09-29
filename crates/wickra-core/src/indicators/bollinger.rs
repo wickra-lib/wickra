@@ -192,6 +192,52 @@ impl BollingerBands {
         self.count = count;
     }
 
+    /// Opt-in fast variant of [`batch_bands_into`](Self::batch_bands_into):
+    /// the window's shifted first and second power sums run as SIMD
+    /// window-sum scans, re-anchored every `16 · period` values like the exact
+    /// accumulator, and the bands are finished lane-parallel. Every value agrees
+    /// with the exact batch to within a few units in the last place; warmup rows
+    /// and length are identical, and the result is the same on every platform.
+    /// Only a fresh indicator over finite values within `1e100`, at least one
+    /// window long, takes the kernel; anything else is the exact batch.
+    /// Bollinger bands only remember their last `period` inputs, so afterwards
+    /// the state is rebuilt exactly by replaying them.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out.len() != inputs.len() * 4`.
+    pub fn batch_bands_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            out.len(),
+            inputs.len() * 4,
+            "batch_bands output must hold four values per input"
+        );
+        let p = self.period;
+        if self.count != 0 || inputs.len() < p || !crate::fast::in_range(inputs) {
+            self.batch_bands_into(inputs, out);
+            return;
+        }
+        crate::fast::with_scratch(crate::fast::power_scratch_len(2, p), |scratch| {
+            wickra_simd::dispatch(crate::fast::BollingerFast {
+                x: inputs,
+                period: p,
+                multiplier: self.multiplier,
+                scratch,
+                out,
+                _borrow: std::marker::PhantomData,
+            });
+        });
+        crate::fast::replay_tail(self, &inputs[inputs.len() - p..]);
+    }
+
+    /// [`batch_bands_fast_into`](Self::batch_bands_fast_into) into a fresh
+    /// vector.
+    pub fn batch_bands_fast(&mut self, inputs: &[f64]) -> Vec<f64> {
+        let mut out = vec![0.0; inputs.len() * 4];
+        self.batch_bands_fast_into(inputs, &mut out);
+        out
+    }
+
     fn current(&self) -> Option<BollingerOutput> {
         if self.count != self.period {
             return None;

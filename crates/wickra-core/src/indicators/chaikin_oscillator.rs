@@ -78,6 +78,89 @@ impl ChaikinOscillator {
     }
 }
 
+impl ChaikinOscillator {
+    /// Exact batch over high/low/close/volume columns: one output per bar
+    /// (`NaN` during warmup), bit for bit what replaying `update` over the same
+    /// candles gives (the oscillator reads no open or timestamp). The caller
+    /// guarantees valid OHLCV bars, as the bindings validate them once up
+    /// front.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the five slices differ in length.
+    pub fn batch_hlcv_into(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+        out: &mut [f64],
+    ) {
+        let n = high.len();
+        assert!(
+            low.len() == n && close.len() == n && volume.len() == n && out.len() == n,
+            "high, low, close, volume and the output must be equal length"
+        );
+        for (i, slot) in out.iter_mut().enumerate() {
+            let candle = Candle::new_unchecked(close[i], high[i], low[i], close[i], volume[i], 0);
+            *slot = self.update(candle).unwrap_or(f64::NAN);
+        }
+    }
+
+    /// Opt-in fast variant of [`batch_hlcv_into`](Self::batch_hlcv_into): after
+    /// the exact warmup, blocks of money-flow volumes, the accumulation line as
+    /// a running-sum scan and both EMAs as SIMD linear-recurrence scans. Every
+    /// value agrees with the exact batch to within a few units in the last
+    /// place relative to the accumulation line; the first value, warmup `NaN`s
+    /// and length are identical, and the result is the same on every platform.
+    /// Only a fresh indicator over finite values within `1e100`, at least
+    /// `slow` bars long, takes the kernel; anything else is the exact batch.
+    /// Afterwards the oscillator continues streaming from the kernel's last
+    /// values.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the five slices differ in length.
+    pub fn batch_hlcv_fast_into(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+        out: &mut [f64],
+    ) {
+        let n = high.len();
+        assert!(
+            low.len() == n && close.len() == n && volume.len() == n && out.len() == n,
+            "high, low, close, volume and the output must be equal length"
+        );
+        if self.adl.value().is_some()
+            || !self.fast.is_fresh()
+            || !self.slow.is_fresh()
+            || n < self.slow_period
+            || ![high, low, close, volume]
+                .iter()
+                .all(|col| crate::fast::in_range(col))
+        {
+            self.batch_hlcv_into(high, low, close, volume, out);
+            return;
+        }
+        let (adl, fast, slow) = wickra_simd::dispatch(crate::fast::ChaikinFast {
+            high,
+            low,
+            close,
+            volume,
+            periods: (self.fast_period, self.slow_period),
+            alphas: (self.fast.alpha(), self.slow.alpha()),
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        self.adl.resume_at(adl);
+        self.fast.seed_to(fast);
+        self.slow.seed_to(slow);
+    }
+}
+
 impl Indicator for ChaikinOscillator {
     type Input = Candle;
     type Output = f64;

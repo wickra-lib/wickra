@@ -163,6 +163,79 @@ impl Atr {
         self.avg = avg;
         self.seeded = true;
     }
+
+    /// Opt-in fast variant of [`batch_atr_into`](Self::batch_atr_into): the
+    /// exact seed, then blocks of true ranges smoothed by a SIMD Wilder scan.
+    /// Every value agrees with the exact batch to within a few units in the
+    /// last place; the seed, warmup `NaN`s and length are identical, and the
+    /// result is the same on every platform. Only a fresh indicator over finite
+    /// values within `1e100`, at least `period` bars long, takes the kernel;
+    /// anything else is the exact batch. Afterwards the ATR continues
+    /// streaming from the kernel's last average.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the four slices differ in length.
+    pub fn batch_atr_fast_into(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        out: &mut [f64],
+    ) {
+        let n = high.len();
+        assert!(
+            low.len() == n && close.len() == n && out.len() == n,
+            "high, low, close and the output must be equal length"
+        );
+        let p = self.period;
+        if self.seeded
+            || self.seed_count != 0
+            || self.prev_close.is_some()
+            || n < p
+            || !crate::fast::in_range(high)
+            || !crate::fast::in_range(low)
+            || !crate::fast::in_range(close)
+        {
+            self.batch_atr_into(high, low, close, out);
+            return;
+        }
+        out[..p - 1].fill(f64::NAN);
+        let mut prev_close = close[0];
+        let mut sum_tr = -0.0 + (high[0] - low[0]);
+        for i in 1..p {
+            let (h, l) = (high[i], low[i]);
+            let tr = (h - l)
+                .max((h - prev_close).abs())
+                .max((l - prev_close).abs());
+            prev_close = close[i];
+            sum_tr += tr;
+        }
+        let seed = sum_tr / p as f64;
+        out[p - 1] = seed;
+        let avg = wickra_simd::dispatch(crate::fast::AtrFast {
+            high: &high[p..],
+            low: &low[p..],
+            prev_close: &close[p - 1..n - 1],
+            seed,
+            n_minus_1: self.n_minus_1,
+            inv_period: self.inv_period,
+            out: &mut out[p..],
+            _borrow: std::marker::PhantomData,
+        });
+        self.prev_close = Some(close[n - 1]);
+        self.seed_sum = sum_tr;
+        self.seed_count = p;
+        self.avg = avg;
+        self.seeded = true;
+    }
+
+    /// [`batch_atr_fast_into`](Self::batch_atr_fast_into) into a fresh vector.
+    pub fn batch_atr_fast(&mut self, high: &[f64], low: &[f64], close: &[f64]) -> Vec<f64> {
+        let mut out = vec![0.0; high.len()];
+        self.batch_atr_fast_into(high, low, close, &mut out);
+        out
+    }
 }
 
 /// ATR's steady-state Wilder smoothing as a [`wickra_simd::Kernel`], so the

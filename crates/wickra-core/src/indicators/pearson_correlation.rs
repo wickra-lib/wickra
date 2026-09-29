@@ -81,6 +81,69 @@ impl PearsonCorrelation {
     }
 }
 
+impl PearsonCorrelation {
+    /// Exact batch over two columns: one output per pair (`NaN` during warmup),
+    /// bit for bit what replaying `update` gives, written into `out`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `a`, `b` and `out` differ in length.
+    pub fn batch_pairs_into(&mut self, a: &[f64], b: &[f64], out: &mut [f64]) {
+        assert!(
+            a.len() == b.len() && out.len() == a.len(),
+            "both series and the output must be equal length"
+        );
+        for ((slot, &x), &y) in out.iter_mut().zip(a).zip(b) {
+            *slot = self.update((x, y)).unwrap_or(f64::NAN);
+        }
+    }
+
+    /// Opt-in fast variant of [`batch_pairs_into`](Self::batch_pairs_into):
+    /// the shifted sums of `a`, `b`, `a²`, `b²` and `a·b` run as SIMD
+    /// window-sum scans, re-anchored every `16 · period` values like the exact
+    /// accumulator, and the correlation is finished lane-parallel. Every value
+    /// agrees with the exact batch to within a few units in the last place;
+    /// warmup `NaN`s and length are identical, and the result is the same on
+    /// every platform. Only a fresh indicator over finite values within
+    /// `1e100`, at least one window long, takes the kernel; anything else is
+    /// the exact batch. The correlation only remembers its last `period` pairs,
+    /// so afterwards the state is rebuilt exactly by replaying them.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `a`, `b` and `out` differ in length.
+    pub fn batch_pairs_fast_into(&mut self, a: &[f64], b: &[f64], out: &mut [f64]) {
+        assert!(
+            a.len() == b.len() && out.len() == a.len(),
+            "both series and the output must be equal length"
+        );
+        let p = self.period;
+        let n = a.len();
+        if !self.window.is_empty()
+            || n < p
+            || !crate::fast::in_range(a)
+            || !crate::fast::in_range(b)
+        {
+            self.batch_pairs_into(a, b, out);
+            return;
+        }
+        crate::fast::with_scratch(crate::fast::power_scratch_len(5, p), |scratch| {
+            wickra_simd::dispatch(crate::fast::PearsonFast {
+                a,
+                b,
+                period: p,
+                scratch,
+                out,
+                _borrow: std::marker::PhantomData,
+            });
+        });
+        self.reset();
+        for (&x, &y) in a[n - p..].iter().zip(&b[n - p..]) {
+            let _ = self.update((x, y));
+        }
+    }
+}
+
 impl Indicator for PearsonCorrelation {
     type Input = (f64, f64);
     type Output = f64;

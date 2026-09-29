@@ -100,6 +100,67 @@ impl MacdIndicator {
         out
     }
 
+    /// Opt-in fast variant of [`batch_macd_into`](Self::batch_macd_into): after
+    /// the exact warmup (those rows are identical to the exact batch), the
+    /// fast, slow and signal EMAs run as SIMD linear-recurrence scans over
+    /// blocks. Every value agrees with the exact batch to within a few units in
+    /// the last place; warmup rows and length are identical, and the result is
+    /// the same on every platform. Only a fresh indicator over finite values
+    /// within `1e100`, long enough for a full output, takes the kernel;
+    /// anything else is the exact batch. Afterwards the three EMAs continue
+    /// streaming from the kernel's last values.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out.len() != inputs.len() * 3`.
+    pub fn batch_macd_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        let n = inputs.len();
+        assert_eq!(
+            out.len(),
+            n * 3,
+            "batch_macd output must hold three values per input"
+        );
+        let (fp, sp, gp) = (self.fast_period, self.slow_period, self.signal_period);
+        if self.last.is_some()
+            || !self.fast.is_fresh()
+            || !self.slow.is_fresh()
+            || !self.signal_ema.is_fresh()
+            || n < sp + gp - 1
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_macd_into(inputs, out);
+            return;
+        }
+        let (fast, slow, signal) = wickra_simd::dispatch(crate::fast::MacdFast {
+            x: inputs,
+            periods: (fp, sp, gp),
+            alphas: (
+                self.fast.alpha(),
+                self.slow.alpha(),
+                self.signal_ema.alpha(),
+            ),
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        self.fast.seed_to(fast);
+        self.slow.seed_to(slow);
+        self.signal_ema.seed_to(signal);
+        let tail = &out[(n - 1) * 3..];
+        self.last = Some(MacdOutput {
+            macd: tail[0],
+            signal: tail[1],
+            histogram: tail[2],
+        });
+    }
+
+    /// [`batch_macd_fast_into`](Self::batch_macd_fast_into) into a fresh
+    /// vector.
+    pub fn batch_macd_fast(&mut self, inputs: &[f64]) -> Vec<f64> {
+        let mut out = vec![0.0; inputs.len() * 3];
+        self.batch_macd_fast_into(inputs, &mut out);
+        out
+    }
+
     /// [`batch_macd`](Self::batch_macd) into a caller-owned buffer of
     /// `inputs.len() * 3` values, overwriting every cell.
     ///
