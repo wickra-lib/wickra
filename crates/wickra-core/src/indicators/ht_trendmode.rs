@@ -3,6 +3,7 @@
 
 use std::f64::consts::PI;
 
+use crate::indicators::dc_phasor::{self, MAX_DC_PERIOD};
 use crate::traits::Indicator;
 
 /// Ehlers' Hilbert Transform Trend Mode (`HT_TRENDMODE`).
@@ -97,7 +98,7 @@ impl Indicator for HtTrendMode {
             + 2.0 * self.smooth_buf[2]
             + self.smooth_buf[3])
             / 10.0;
-        Self::push_front(&mut self.smooth_price, smooth, 50);
+        Self::push_front(&mut self.smooth_price, smooth, MAX_DC_PERIOD);
 
         let period = self.prev_period.max(6.0).min(50.0);
         let adj = 0.075 * period + 0.54;
@@ -165,11 +166,9 @@ impl Indicator for HtTrendMode {
         // Dominant-cycle phase over one cycle window.
         let mut real_part = 0.0;
         let mut imag_part = 0.0;
-        for i in 0..dc_period {
-            let angle = (i as f64) * 2.0 * PI / (dc_period as f64);
-            let sp = self.smooth_price[i];
-            real_part += angle.sin() * sp;
-            imag_part += angle.cos() * sp;
+        for (&(sin, cos), &sp) in dc_phasor::phasor(dc_period).iter().zip(&self.smooth_price) {
+            real_part += sin * sp;
+            imag_part += cos * sp;
         }
         let dc_phase = compute_dc_phase(real_part, imag_part, smooth_period);
 

@@ -12,6 +12,7 @@ pub(crate) mod pattern_swing;
 // Internal shared building block for every rolling variance/dispersion
 // indicator. Declared `pub(crate)` (not `mod`) for the same reason as
 // `pattern_swing`: it is not a catalogue entry.
+pub(crate) mod dc_phasor;
 pub(crate) mod rolling_moments;
 pub(crate) mod sorted_window;
 
