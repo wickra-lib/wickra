@@ -101,6 +101,24 @@ impl Wma {
 
     /// The weighted sum `Σ (k + 1) · x_k` over the window in chronological
     /// order (oldest first, weight 1).
+    /// The steady state of a full window as a [`Steady`] run, for a batch loop.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless the window is full.
+    pub(crate) fn steady(&mut self) -> Steady<'_> {
+        assert!(self.is_ready(), "a steady run needs a full window");
+        Steady {
+            weight_sum: self.weight_sum,
+            value_sum: self.value_sum,
+            head: self.head,
+            laps: self.laps_since_reseed,
+            period_f: self.period as f64,
+            total: self.weights_total,
+            wma: self,
+        }
+    }
+
     fn weighted_window_sum(&self) -> f64 {
         self.buf[self.head..]
             .iter()
@@ -108,6 +126,60 @@ impl Wma {
             .enumerate()
             .map(|(i, v)| (i as f64 + 1.0) * v)
             .sum()
+    }
+}
+
+/// A full-window [`Wma`] advanced input by input with its sums, cursor and
+/// reseed count in locals: `update`'s steady-state operations in `update`'s
+/// order -- the same bits and reseed cadence -- held in registers rather than
+/// written back through the indicator for every input, which made a replay of
+/// `update` three times slower than streaming at long periods. The state goes
+/// back into the indicator when the run is dropped.
+pub(crate) struct Steady<'a> {
+    wma: &'a mut Wma,
+    weight_sum: f64,
+    value_sum: f64,
+    head: usize,
+    laps: usize,
+    period_f: f64,
+    total: f64,
+}
+
+impl Steady<'_> {
+    /// `update(x)` for a finite `x`: the new average.
+    // Inlined into the batch loop, where the locals become registers.
+    #[allow(clippy::inline_always)]
+    #[inline(always)]
+    pub(crate) fn step(&mut self, x: f64) -> f64 {
+        let buf = &mut self.wma.buf;
+        let oldest = std::mem::replace(&mut buf[self.head], x);
+        self.weight_sum = self.weight_sum - self.value_sum + self.period_f * x;
+        self.value_sum = self.value_sum - oldest + x;
+        self.head += 1;
+        if self.head == buf.len() {
+            self.head = 0;
+            self.laps += 1;
+            if self.laps == RESEED_EVERY {
+                // The cursor just wrapped, so the window runs oldest-first from 0.
+                self.value_sum = buf.iter().sum();
+                self.weight_sum = buf
+                    .iter()
+                    .enumerate()
+                    .map(|(i, v)| (i as f64 + 1.0) * v)
+                    .sum();
+                self.laps = 0;
+            }
+        }
+        self.weight_sum / self.total
+    }
+}
+
+impl Drop for Steady<'_> {
+    fn drop(&mut self) {
+        self.wma.weight_sum = self.weight_sum;
+        self.wma.value_sum = self.value_sum;
+        self.wma.head = self.head;
+        self.wma.laps_since_reseed = self.laps;
     }
 }
 
@@ -157,6 +229,31 @@ impl Indicator for Wma {
             }
         }
         self.value()
+    }
+
+    /// The exact batch with the window sums, cursor and reseed count in
+    /// locals: `update`'s operations in `update`'s order -- the same bits,
+    /// the same reseed cadence -- held in registers rather than written back
+    /// through `self` for every input, which made the replay three times slower
+    /// than streaming at long periods. The warmup still goes through `update`.
+    fn batch_nan_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let mut start = 0;
+        while !self.is_ready() && start < inputs.len() {
+            out[start] = self.update(inputs[start]).unwrap_or(f64::NAN);
+            start += 1;
+        }
+        if start == inputs.len() {
+            return;
+        }
+        let mut run = self.steady();
+        for (slot, &x) in out[start..].iter_mut().zip(&inputs[start..]) {
+            *slot = if x.is_finite() { run.step(x) } else { f64::NAN };
+        }
     }
 
     fn reset(&mut self) {
@@ -375,6 +472,38 @@ mod tests {
             a.batch(&prices),
             prices.iter().map(|p| b.update(*p)).collect::<Vec<_>>()
         );
+    }
+
+    /// The fused exact batch is the `update` replay bit for bit: across several
+    /// reseeds, with non-finite inputs in the warmup and in the steady state,
+    /// split into two calls at every point, and at period 1.
+    #[test]
+    fn batch_nan_into_is_the_update_replay_bit_for_bit() {
+        let mut series: Vec<f64> = (0..400)
+            .map(|i| 100.0 + (f64::from(i) * 0.37).sin() * 7.0 + f64::from(i % 11) * 0.3)
+            .collect();
+        series[3] = f64::NAN;
+        series[150] = f64::INFINITY;
+        series[151] = f64::NEG_INFINITY;
+        series[222] = f64::NAN;
+        let bits = |v: &[f64]| v.iter().map(|x| x.to_bits()).collect::<Vec<_>>();
+        for period in [1, 2, 7] {
+            let mut replay = Wma::new(period).unwrap();
+            let want: Vec<f64> = series
+                .iter()
+                .map(|&x| replay.update(x).unwrap_or(f64::NAN))
+                .collect();
+            for split in (0..series.len()).step_by(13).chain([series.len()]) {
+                let mut wma = Wma::new(period).unwrap();
+                let mut got = vec![0.0; series.len()];
+                let (head, tail) = got.split_at_mut(split);
+                wma.batch_nan_into(&series[..split], head);
+                wma.batch_nan_into(&series[split..], tail);
+                assert_eq!(bits(&got), bits(&want), "period {period} split {split}");
+                // And the state carries on as the replay's does.
+                assert_eq!(wma.update(101.5), replay.clone().update(101.5));
+            }
+        }
     }
 
     #[test]

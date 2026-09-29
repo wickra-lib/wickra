@@ -79,7 +79,10 @@ definition (see Fixed).
   paths written to perform the same arithmetic in the same order as `update`:
   SMA, EMA, RSI, MACD (with its tail through the SIMD dispatch, so its fused
   multiply-adds become hardware FMA), Bollinger Bands, ATR, the Chaikin
-  oscillator and Pearson correlation. The C ABI's scalar `_batch` now calls
+  oscillator, WMA and HMA. WMA keeps its sums in registers instead of writing
+  them back per input (period 220: 4.2 -> 1.4 ns a value, as fast as
+  streaming), and HMA steps its three WMAs in one loop (3.3 -> 2.5 ns). The
+  C ABI's scalar `_batch` now calls
   them instead of replaying `update`, which carries them to C, C++, C#, Go,
   Java and R; Node and WASM batches run them too.
   Through C#, SMA(20) over 200,000 bars: 297 -> 744 million updates per

@@ -75,6 +75,47 @@ impl Indicator for Hma {
         self.smooth_wma.update(diff)
     }
 
+    /// The exact batch: until all three WMAs are full it replays `update`, then
+    /// runs the three in one loop with their state in locals ([`Wma::steady`]).
+    /// Per input that is `update`'s own sequence -- skip a non-finite input,
+    /// step both windowed WMAs, and step the smoothing one on `2 * half - full`
+    /// only when that is finite, as its `update` would skip it -- so the same
+    /// bits and the same state, with the three independent chains interleaved.
+    fn batch_nan_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let mut start = 0;
+        while !(self.half_wma.is_ready() && self.full_wma.is_ready() && self.smooth_wma.is_ready())
+            && start < inputs.len()
+        {
+            out[start] = self.update(inputs[start]).unwrap_or(f64::NAN);
+            start += 1;
+        }
+        if start == inputs.len() {
+            return;
+        }
+        let (mut half, mut full, mut smooth) = (
+            self.half_wma.steady(),
+            self.full_wma.steady(),
+            self.smooth_wma.steady(),
+        );
+        for (slot, &x) in out[start..].iter_mut().zip(&inputs[start..]) {
+            if !x.is_finite() {
+                *slot = f64::NAN;
+                continue;
+            }
+            let diff = 2.0 * half.step(x) - full.step(x);
+            *slot = if diff.is_finite() {
+                smooth.step(diff)
+            } else {
+                f64::NAN
+            };
+        }
+    }
+
     fn reset(&mut self) {
         self.half_wma.reset();
         self.full_wma.reset();
@@ -161,6 +202,40 @@ mod tests {
             a.batch(&prices),
             prices.iter().map(|p| b.update(*p)).collect::<Vec<_>>()
         );
+    }
+
+    /// The block-wise exact batch is the `update` replay bit for bit: across
+    /// block boundaries, with non-finite inputs, with values large enough that
+    /// the WMA sums overflow and `2 * half - full` itself is `NaN`, and split
+    /// into two calls.
+    #[test]
+    fn batch_nan_into_is_the_update_replay_bit_for_bit() {
+        let mut series: Vec<f64> = (0..2_600)
+            .map(|i| 50.0 + (f64::from(i) * 0.11).sin() * 9.0 + f64::from(i % 13))
+            .collect();
+        series[5] = f64::NAN;
+        series[1_030] = f64::INFINITY;
+        series[2_047] = f64::NEG_INFINITY;
+        for x in &mut series[1_500..1_520] {
+            *x = 1.5e308;
+        }
+        let bits = |v: &[f64]| v.iter().map(|x| x.to_bits()).collect::<Vec<_>>();
+        for period in [1, 2, 4, 9, 20] {
+            let mut replay = Hma::new(period).unwrap();
+            let want: Vec<f64> = series
+                .iter()
+                .map(|&x| replay.update(x).unwrap_or(f64::NAN))
+                .collect();
+            for split in [0, 1, 7, 1_023, 1_024, 1_025, 1_900, series.len()] {
+                let mut hma = Hma::new(period).unwrap();
+                let mut got = vec![0.0; series.len()];
+                let (head, tail) = got.split_at_mut(split);
+                hma.batch_nan_into(&series[..split], head);
+                hma.batch_nan_into(&series[split..], tail);
+                assert_eq!(bits(&got), bits(&want), "period {period} split {split}");
+                assert_eq!(hma.update(55.0), replay.clone().update(55.0));
+            }
+        }
     }
 
     #[test]
