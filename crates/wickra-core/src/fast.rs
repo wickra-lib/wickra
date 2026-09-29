@@ -153,6 +153,37 @@ fn sum_lanes<S: Simd>(simd: S, xs: &[f64]) -> f64 {
     total
 }
 
+/// Running sums `out[i] = start + xs[0] + … + xs[i]`; returns the last (or
+/// `start` for an empty slice). [`lin_scan`] with unit decay and gain, without
+/// its multiplications: in-vector steps by one and two lanes, the carry kept
+/// as a scalar off the vector shuffles.
+#[inline(always)]
+pub(crate) fn prefix_sums<S: Simd>(simd: S, xs: &[f64], start: f64, out: &mut [f64]) -> f64 {
+    debug_assert_eq!(xs.len(), out.len());
+    let mut acc = start;
+    let head = xs.len() / 8 * 8;
+    let (xs_head, xs_tail) = xs.split_at(head);
+    let (out_head, out_tail) = out.split_at_mut(head);
+    for (chunk, dest) in xs_head.chunks_exact(8).zip(out_head.chunks_exact_mut(8)) {
+        let mut lo = simd.load(quad(chunk));
+        let mut hi = simd.load(quad(&chunk[4..]));
+        lo = simd.add(lo, simd.shift1(lo));
+        hi = simd.add(hi, simd.shift1(hi));
+        lo = simd.add(lo, simd.shift2(lo));
+        hi = simd.add(hi, simd.shift2(hi));
+        let (dest_lo, dest_hi) = dest.split_at_mut(4);
+        simd.store(simd.add(lo, simd.splat(acc)), quad_mut(dest_lo));
+        let mid = acc + simd.last_lane(lo);
+        simd.store(simd.add(hi, simd.splat(mid)), quad_mut(dest_hi));
+        acc = mid + simd.last_lane(hi);
+    }
+    for (slot, &value) in out_tail.iter_mut().zip(xs_tail) {
+        acc += value;
+        *slot = acc;
+    }
+    acc
+}
+
 /// For `idx` in `range`: `out[idx] = scale * sum[idx]` with
 /// `sum[idx] = sum[idx - 1] + (xs[idx] - xs[idx - lag])` and
 /// `sum[range.start - 1] = start`. Returns the unscaled last sum (or `start`
@@ -615,17 +646,22 @@ impl PowerSegment<'_> {
 
 /// Rolling sums of powers of shifted values, the heart of the moment kernels.
 ///
-/// The series is cut into segments of `period` outputs. For each, the shift is
-/// the mean of the segment's first window — the re-anchoring the exact
-/// accumulators perform every `period` values — and `POWERS` sums of
-/// `(x - shift)^k` run as window-sum scans over the segment plus its
-/// `period - 1` lookback. `finish` then receives each segment. Re-anchoring
-/// every window keeps each deviation within about two windows' spread, which is
-/// what keeps the higher powers from cancelling: anchoring only every
-/// `16 · period` values cost a skewness up to three orders of magnitude of
-/// accuracy on a drifting series.
+/// The series is cut into segments of `period` outputs, each taken about a
+/// shift: the mean of its first window, the re-anchoring the exact
+/// accumulators perform every `period` values. Within a segment the `POWERS`
+/// window sums of `(x - shift)^k` advance by the entering value's power minus
+/// the leaving one's, a prefix scan per power. At the next segment the sums
+/// move to the new shift -- the old one plus the window's mean deviation --
+/// through the binomial expansion ([`recentre`]); that shift is at most a
+/// window's drift, so the move costs no accuracy, and every
+/// [`fresh_cadence`] segments the sums are taken afresh from the window so
+/// rounding cannot accumulate. Re-centring every window keeps each deviation within about a
+/// window's spread, which is what keeps the higher powers from cancelling: a
+/// shift held for `16 · period` values cost a skewness up to three orders of
+/// magnitude of accuracy on a drifting series.
 ///
-/// `scratch` must hold [`power_scratch_len`]`(POWERS, period)` values.
+/// `finish` receives each segment. `scratch` must hold
+/// [`power_scratch_len`]`(POWERS, period)` values.
 #[inline(always)]
 pub(crate) fn shifted_power_sums<S: Simd, const POWERS: usize>(
     simd: S,
@@ -635,47 +671,180 @@ pub(crate) fn shifted_power_sums<S: Simd, const POWERS: usize>(
     mut finish: impl FnMut(PowerSegment<'_>),
 ) {
     let len = xs.len();
-    let segment = period;
-    let stride = segment + period;
-    let (powers, sums) = scratch.split_at_mut(POWERS * stride);
+    let stride = period;
+    let count = period as f64;
+    let (steps, sums) = scratch.split_at_mut(POWERS * stride);
     let mut anchor = period - 1;
-    while anchor < len {
-        let end = (anchor + segment).min(len);
-        let lookback = anchor + 1 - period;
-        let local = end - lookback;
-        let shift = sum_lanes(simd, &xs[lookback..=anchor]) / period as f64;
-        for (pos, &value) in xs[lookback..end].iter().enumerate() {
-            let dev = value - shift;
-            let mut power = dev;
-            for k in 0..POWERS {
-                powers[k * stride + pos] = power;
-                power *= dev;
-            }
-        }
-        for k in 0..POWERS {
-            let series = &powers[k * stride..k * stride + local];
-            window_sums(
+    let (mut shift, mut window) = window_power_sums::<S, POWERS>(simd, &xs[..period]);
+    let fresh_every = fresh_cadence(period);
+    let mut since_fresh = 0;
+    loop {
+        let end = (anchor + period).min(len);
+        let outputs = end - anchor;
+        power_steps::<S, POWERS>(simd, xs, period, shift, anchor + 1..end, steps, stride);
+        for (k, &start) in window.iter().enumerate() {
+            let row = k * stride;
+            sums[row] = start;
+            prefix_sums(
                 simd,
-                series,
-                period,
-                1.0,
-                &mut sums[k * stride..k * stride + local],
+                &steps[row..row + outputs - 1],
+                start,
+                &mut sums[row + 1..row + outputs],
             );
         }
-        // Sums from local index `period - 1` on belong to outputs `anchor..end`.
         finish(PowerSegment {
             outputs: anchor..end,
             shift,
-            sums: &sums[period - 1..],
+            sums,
             stride,
         });
+        if end == len {
+            break;
+        }
+        // The window ending at `end`, still about `shift`.
+        let (enter, leave) = (xs[end] - shift, xs[end - period] - shift);
+        let (mut up, mut down) = (enter, leave);
+        for (k, slot) in window.iter_mut().enumerate() {
+            *slot = sums[k * stride + outputs - 1] + (up - down);
+            up *= enter;
+            down *= leave;
+        }
+        since_fresh += 1;
+        if since_fresh == fresh_every {
+            (shift, window) = window_power_sums::<S, POWERS>(simd, &xs[end + 1 - period..=end]);
+            since_fresh = 0;
+        } else {
+            let next = shift + window[0] / count;
+            window = recentre(window, shift - next, count);
+            shift = next;
+        }
         anchor = end;
     }
 }
 
-/// Scratch values [`shifted_power_sums`] needs for `powers` power series.
+/// The mean of `window` and the sums of the first `POWERS` powers of its
+/// values' deviations from it, over four lanes folded in a fixed order.
+#[inline(always)]
+fn window_power_sums<S: Simd, const POWERS: usize>(
+    simd: S,
+    window: &[f64],
+) -> (f64, [f64; POWERS]) {
+    let shift = sum_lanes(simd, window) / window.len() as f64;
+    let shift_v = simd.splat(shift);
+    let mut lanes = [simd.splat(0.0); POWERS];
+    let mut chunks = window.chunks_exact(4);
+    for chunk in &mut chunks {
+        let dev = simd.sub(simd.load(quad(chunk)), shift_v);
+        let mut power = dev;
+        for lane in &mut lanes {
+            *lane = simd.add(*lane, power);
+            power = simd.mul(power, dev);
+        }
+    }
+    let mut sums = [0.0; POWERS];
+    for (sum, lane) in sums.iter_mut().zip(lanes) {
+        let parts = simd.to_array(lane);
+        *sum = (parts[0] + parts[1]) + (parts[2] + parts[3]);
+    }
+    for &value in chunks.remainder() {
+        let dev = value - shift;
+        let mut power = dev;
+        for sum in &mut sums {
+            *sum += power;
+            power *= dev;
+        }
+    }
+    (shift, sums)
+}
+
+/// For outputs `idx` in `range`: the entering value's powers minus the leaving
+/// one's, `(xs[idx] - shift)^k - (xs[idx - period] - shift)^k`, into
+/// `steps[(k - 1) * stride + idx - range.start]` for `k` in `1..=POWERS`.
+/// Lane-wise subtractions and products only, so the vector and scalar steps
+/// round alike.
+#[inline(always)]
+fn power_steps<S: Simd, const POWERS: usize>(
+    simd: S,
+    xs: &[f64],
+    period: usize,
+    shift: f64,
+    range: std::ops::Range<usize>,
+    steps: &mut [f64],
+    stride: usize,
+) {
+    let shift_v = simd.splat(shift);
+    let mut idx = range.start;
+    while idx + 4 <= range.end {
+        let enter = simd.sub(simd.load(quad(&xs[idx..])), shift_v);
+        let leave = simd.sub(simd.load(quad(&xs[idx - period..])), shift_v);
+        let (mut up, mut down) = (enter, leave);
+        let at = idx - range.start;
+        for k in 0..POWERS {
+            simd.store(simd.sub(up, down), quad_mut(&mut steps[k * stride + at..]));
+            up = simd.mul(up, enter);
+            down = simd.mul(down, leave);
+        }
+        idx += 4;
+    }
+    while idx < range.end {
+        let (enter, leave) = (xs[idx] - shift, xs[idx - period] - shift);
+        let (mut up, mut down) = (enter, leave);
+        let at = idx - range.start;
+        for k in 0..POWERS {
+            steps[k * stride + at] = up - down;
+            up *= enter;
+            down *= leave;
+        }
+        idx += 1;
+    }
+}
+
+/// Window sums of the first `POWERS` powers moved to a shift `delta` lower:
+/// `Σ (d + delta)^k = Σ_j C(k, j) · delta^(k - j) · S_j` with `S_0 = count`,
+/// each power evaluated by Horner's rule in `delta`.
+fn recentre<const POWERS: usize>(sums: [f64; POWERS], delta: f64, count: f64) -> [f64; POWERS] {
+    const BINOMIAL: [[f64; 4]; 4] = [
+        [1.0, 0.0, 0.0, 0.0],
+        [1.0, 1.0, 0.0, 0.0],
+        [1.0, 2.0, 1.0, 0.0],
+        [1.0, 3.0, 3.0, 1.0],
+    ];
+    let mut moments = [0.0; 4];
+    moments[0] = count;
+    moments[1..=POWERS].copy_from_slice(&sums);
+    let mut out = [0.0; POWERS];
+    for (k, slot) in (1..=POWERS).zip(out.iter_mut()) {
+        let mut acc = 0.0;
+        for j in 0..=k {
+            acc = acc * delta + BINOMIAL[k][j] * moments[j];
+        }
+        *slot = acc;
+    }
+    out
+}
+
+/// Segments between fresh window sums in the carried moment kernels.
+///
+/// A short window's spread is small next to the drift between windows, so the
+/// rounding a carried sum picks up is large next to what it measures: at a
+/// period of 2 a sixteen-segment carry cost a correlation five orders of
+/// magnitude of accuracy. Below [`SHORT_PERIOD`] every segment starts from
+/// fresh sums, which at those periods costs no more than the segment itself.
+const fn fresh_cadence(period: usize) -> usize {
+    if period < SHORT_PERIOD {
+        1
+    } else {
+        RESEED_EVERY
+    }
+}
+
+/// See [`fresh_cadence`].
+const SHORT_PERIOD: usize = 16;
+
+/// Scratch values [`shifted_power_sums`] needs for `powers` power series: a
+/// segment of steps and a segment of sums per power.
 pub(crate) const fn power_scratch_len(powers: usize, period: usize) -> usize {
-    2 * powers * 2 * period
+    2 * powers * period
 }
 
 /// `if a > 0 { a } else { 0 }`, the scalar form of `simd.max(a, 0)`.
@@ -803,40 +972,33 @@ kernel! {
         let inv = 1.0 / period as f64;
         let (inv_v, zero, one, minus_one) = (simd.splat(inv), simd.splat(0.0), simd.splat(1.0), simd.splat(-1.0));
         let len = kern.a.len();
-        // Re-anchor every window, as `shifted_power_sums` does.
-        let segment = period;
-        let stride = segment + period;
+        let count_f = period as f64;
+        // Carried, re-centred sums as in `shifted_power_sums`: rows `a`, `b`,
+        // `a²`, `b²` and `a·b` of deviations from the two shifts.
+        let stride = period;
         kern.out[..period - 1].fill(f64::NAN);
-        let (series, sums) = kern.scratch.split_at_mut(5 * stride);
+        let (steps, sums) = kern.scratch.split_at_mut(5 * stride);
         let mut anchor = period - 1;
-        while anchor < len {
-            let end = (anchor + segment).min(len);
-            let lookback = anchor + 1 - period;
-            let local = end - lookback;
-            let shift_a = sum_lanes(simd, &kern.a[lookback..=anchor]) * inv;
-            let shift_b = sum_lanes(simd, &kern.b[lookback..=anchor]) * inv;
-            let pairs = kern.a[lookback..end].iter().zip(&kern.b[lookback..end]);
-            for (pos, (&va, &vb)) in pairs.enumerate() {
-                let (da, db) = (va - shift_a, vb - shift_b);
-                series[pos] = da;
-                series[stride + pos] = db;
-                series[2 * stride + pos] = da * da;
-                series[3 * stride + pos] = db * db;
-                series[4 * stride + pos] = da * db;
-            }
-            for k in 0..5 {
-                window_sums(
-                    simd,
-                    &series[k * stride..k * stride + local],
-                    period,
-                    1.0,
-                    &mut sums[k * stride..k * stride + local],
+        let (mut shift_a, mut shift_b, mut window) =
+            pair_window_sums(simd, &kern.a[..period], &kern.b[..period]);
+        let fresh_every = fresh_cadence(period);
+        let mut since_fresh = 0;
+        loop {
+            let end = (anchor + period).min(len);
+            let outputs = end - anchor;
+            pair_steps(simd, kern.a, kern.b, period, (shift_a, shift_b), anchor + 1..end, steps, stride);
+            for (k, &start) in window.iter().enumerate() {
+                let row = k * stride;
+                sums[row] = start;
+                prefix_sums(simd, &steps[row..row + outputs - 1],
+                    start,
+                    &mut sums[row + 1..row + outputs],
                 );
             }
             let seg = PowerSegment {
                 outputs: anchor..end,
                 shift: 0.0,
-                sums: &sums[period - 1..],
+                sums,
                 stride,
             };
             let count = end - anchor;
@@ -872,9 +1034,135 @@ kernel! {
                 dest[pos] = if denom == 0.0 { 0.0 } else { (cov / denom).clamp(-1.0, 1.0) };
                 pos += 1;
             }
+            if end == len {
+                break;
+            }
+            // The window ending at `end`, still about the current shifts.
+            let (enter_a, leave_a) = (kern.a[end] - shift_a, kern.a[end - period] - shift_a);
+            let (enter_b, leave_b) = (kern.b[end] - shift_b, kern.b[end - period] - shift_b);
+            let last = outputs - 1;
+            window = [
+                sums[last] + (enter_a - leave_a),
+                sums[stride + last] + (enter_b - leave_b),
+                sums[2 * stride + last] + (enter_a * enter_a - leave_a * leave_a),
+                sums[3 * stride + last] + (enter_b * enter_b - leave_b * leave_b),
+                sums[4 * stride + last] + (enter_a * enter_b - leave_a * leave_b),
+            ];
+            since_fresh += 1;
+            if since_fresh == fresh_every {
+                let lo = end + 1 - period;
+                (shift_a, shift_b, window) =
+                    pair_window_sums(simd, &kern.a[lo..=end], &kern.b[lo..=end]);
+                since_fresh = 0;
+            } else {
+                let (next_a, next_b) = (shift_a + window[0] / count_f, shift_b + window[1] / count_f);
+                window = recentre_pair(window, shift_a - next_a, shift_b - next_b, count_f);
+                (shift_a, shift_b) = (next_a, next_b);
+            }
             anchor = end;
         }
     }
+}
+
+/// The means of the windows `a` and `b` and the sums of `da`, `db`, `da²`,
+/// `db²` and `da·db` of their deviations from them, over four lanes folded in
+/// a fixed order.
+#[inline(always)]
+fn pair_window_sums<S: Simd>(simd: S, a: &[f64], b: &[f64]) -> (f64, f64, [f64; 5]) {
+    let count = a.len() as f64;
+    let (shift_a, shift_b) = (sum_lanes(simd, a) / count, sum_lanes(simd, b) / count);
+    let (sa, sb) = (simd.splat(shift_a), simd.splat(shift_b));
+    let mut lanes = [simd.splat(0.0); 5];
+    let mut chunks = a.chunks_exact(4).zip(b.chunks_exact(4));
+    for (ca, cb) in &mut chunks {
+        let da = simd.sub(simd.load(quad(ca)), sa);
+        let db = simd.sub(simd.load(quad(cb)), sb);
+        let terms = [da, db, simd.mul(da, da), simd.mul(db, db), simd.mul(da, db)];
+        for (lane, term) in lanes.iter_mut().zip(terms) {
+            *lane = simd.add(*lane, term);
+        }
+    }
+    let mut sums = [0.0; 5];
+    for (sum, lane) in sums.iter_mut().zip(lanes) {
+        let parts = simd.to_array(lane);
+        *sum = (parts[0] + parts[1]) + (parts[2] + parts[3]);
+    }
+    let head = a.len() / 4 * 4;
+    for (&va, &vb) in a[head..].iter().zip(&b[head..]) {
+        let (da, db) = (va - shift_a, vb - shift_b);
+        for (sum, term) in sums.iter_mut().zip([da, db, da * da, db * db, da * db]) {
+            *sum += term;
+        }
+    }
+    (shift_a, shift_b, sums)
+}
+
+/// For outputs `idx` in `range`: the entering pair's terms minus the leaving
+/// pair's (`da`, `db`, `da²`, `db²`, `da·db` about `shifts`), into
+/// `steps[k * stride + idx - range.start]`. Lane-wise subtractions and products
+/// only, so the vector and scalar steps round alike.
+#[allow(clippy::too_many_arguments)]
+#[inline(always)]
+fn pair_steps<S: Simd>(
+    simd: S,
+    a: &[f64],
+    b: &[f64],
+    period: usize,
+    shifts: (f64, f64),
+    range: std::ops::Range<usize>,
+    steps: &mut [f64],
+    stride: usize,
+) {
+    let (sa, sb) = (simd.splat(shifts.0), simd.splat(shifts.1));
+    let mut idx = range.start;
+    while idx + 4 <= range.end {
+        let ea = simd.sub(simd.load(quad(&a[idx..])), sa);
+        let la = simd.sub(simd.load(quad(&a[idx - period..])), sa);
+        let eb = simd.sub(simd.load(quad(&b[idx..])), sb);
+        let lb = simd.sub(simd.load(quad(&b[idx - period..])), sb);
+        let at = idx - range.start;
+        let terms = [
+            simd.sub(ea, la),
+            simd.sub(eb, lb),
+            simd.sub(simd.mul(ea, ea), simd.mul(la, la)),
+            simd.sub(simd.mul(eb, eb), simd.mul(lb, lb)),
+            simd.sub(simd.mul(ea, eb), simd.mul(la, lb)),
+        ];
+        for (k, term) in terms.into_iter().enumerate() {
+            simd.store(term, quad_mut(&mut steps[k * stride + at..]));
+        }
+        idx += 4;
+    }
+    while idx < range.end {
+        let (ea, la) = (a[idx] - shifts.0, a[idx - period] - shifts.0);
+        let (eb, lb) = (b[idx] - shifts.1, b[idx - period] - shifts.1);
+        let at = idx - range.start;
+        let terms = [
+            ea - la,
+            eb - lb,
+            ea * ea - la * la,
+            eb * eb - lb * lb,
+            ea * eb - la * lb,
+        ];
+        for (k, term) in terms.into_iter().enumerate() {
+            steps[k * stride + at] = term;
+        }
+        idx += 1;
+    }
+}
+
+/// The five pair sums moved to shifts `delta_a` / `delta_b` lower, by the
+/// binomial expansion: `Σ(da + δa)² = S_aa + δa·(2·S_a + n·δa)` and
+/// `Σ(da + δa)(db + δb) = S_ab + δa·S_b + δb·(S_a + n·δa)`.
+fn recentre_pair(sums: [f64; 5], delta_a: f64, delta_b: f64, count: f64) -> [f64; 5] {
+    let [sum_a, sum_b, sum_aa, sum_bb, sum_ab] = sums;
+    [
+        sum_a + count * delta_a,
+        sum_b + count * delta_b,
+        sum_aa + delta_a * (2.0 * sum_a + count * delta_a),
+        sum_bb + delta_b * (2.0 * sum_b + count * delta_b),
+        sum_ab + delta_a * sum_b + delta_b * (sum_a + count * delta_a),
+    ]
 }
 kernel! {
     /// MACD rows `[macd, signal, histogram]`: the warmup until the signal EMA
@@ -1025,7 +1313,7 @@ kernel! {
             for (flow, (((&hi, &lo), &cl), &vol)) in flows.iter_mut().zip(bars) {
                 *flow = money_flow(hi, lo, cl, vol);
             }
-            adl = lin_scan(simd, 1.0, 1.0, &flows[..len], adl, &mut adl_block[..len]);
+            adl = prefix_sums(simd, &flows[..len], adl, &mut adl_block[..len]);
             fast = lin_scan(simd, fast_decay, fast_alpha, &adl_block[..len], fast, &mut fast_block[..len]);
             slow = lin_scan(simd, slow_decay, slow_alpha, &adl_block[..len], slow, &mut slow_block[..len]);
             for ((slot, &f), &s) in dest.iter_mut().zip(&fast_block[..len]).zip(&slow_block[..len]) {
