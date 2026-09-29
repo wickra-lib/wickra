@@ -108,6 +108,40 @@ impl Indicator for Trima {
     fn name(&self) -> &'static str {
         "TRIMA"
     }
+
+    /// SIMD kernel: the inner and outer SMAs as the rolling-sum prefix-scan
+    /// kernel. Agrees with the exact batch to within a few units in the last
+    /// place; warmup `NaN`s and length are identical. TRIMA only remembers its
+    /// last `inner + outer − 1` inputs, so afterwards its state is rebuilt
+    /// exactly by replaying them.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let (inner, outer) = (self.inner.period(), self.outer.period());
+        let n = inputs.len();
+        let span = inner + outer - 1;
+        if !(self.inner.is_fresh() && self.outer.is_fresh())
+            || n < span
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        crate::fast::with_scratch(n, |tmp| {
+            wickra_simd::dispatch(crate::fast::TrimaFast {
+                x: inputs,
+                inner,
+                outer,
+                tmp,
+                out,
+                _borrow: std::marker::PhantomData,
+            });
+        });
+        crate::fast::replay_tail(self, &inputs[n - span..]);
+    }
 }
 
 #[cfg(test)]

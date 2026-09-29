@@ -186,7 +186,7 @@ impl wickra_simd::Kernel for FusedMacd<'_> {
     type Output = (f64, f64, f64);
 
     #[inline(always)]
-    fn run(self) -> (f64, f64, f64) {
+    fn run<S: wickra_simd::Simd>(self, _simd: S) -> (f64, f64, f64) {
         let Self {
             inputs,
             out,

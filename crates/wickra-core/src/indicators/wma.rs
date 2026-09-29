@@ -81,6 +81,10 @@ impl Wma {
         self.period
     }
 
+    /// Whether the WMA has taken no input since construction or reset.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.count == 0
+    }
 
     /// Current value if available.
     pub fn value(&self) -> Option<f64> {
@@ -173,6 +177,32 @@ impl Indicator for Wma {
     #[inline]
     fn name(&self) -> &'static str {
         "WMA"
+    }
+
+    /// SIMD kernel: rolling sums and the weighted-numerator recurrence
+    /// `N = N − S + period · x` as prefix scans, re-anchored on exact window
+    /// values every `16 · period` inputs, scaled by `1 / Σ weights`. Agrees with
+    /// the exact batch to within a few units in the last place; warmup `NaN`s
+    /// and length are identical. Afterwards the window is rebuilt exactly from
+    /// the last `period` inputs.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        if self.count != 0 || inputs.len() < p || !crate::fast::in_range(inputs) {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        wickra_simd::dispatch(crate::fast::WmaFast {
+            x: inputs,
+            period: p,
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        crate::fast::replay_tail(self, &inputs[inputs.len() - p..]);
     }
 }
 

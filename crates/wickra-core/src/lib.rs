@@ -49,6 +49,7 @@ mod calendar;
 mod cross_section;
 mod derivatives;
 mod error;
+mod fast;
 mod microstructure;
 mod ohlcv;
 mod traits;

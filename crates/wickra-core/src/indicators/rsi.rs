@@ -95,6 +95,34 @@ impl Rsi {
         crate::traits::BatchNanExt::batch_nan(self, inputs)
     }
 
+    /// The batch paths' shared seed: `out[..p]` becomes `NaN`, `out[p]` the RSI
+    /// of the mean gain and loss over the first `period` changes, with the seed
+    /// gains and losses retained exactly as `update` leaves them. Returns the
+    /// last close and the two averages. Requires `inputs.len() > period` and a
+    /// fresh indicator.
+    fn seed_batch(&mut self, inputs: &[f64], out: &mut [f64]) -> (f64, f64, f64) {
+        let p = self.period;
+        out[..p].fill(f64::NAN);
+        // Index 0 only sets the baseline.
+        let mut prev = inputs[0];
+        let (mut sum_gain, mut sum_loss) = (0.0_f64, 0.0_f64);
+        for &x in &inputs[1..=p] {
+            let diff = x - prev;
+            prev = x;
+            let gain = if diff > 0.0 { diff } else { 0.0 };
+            let loss = if diff < 0.0 { -diff } else { 0.0 };
+            self.seed_buf_gains.push(gain);
+            self.seed_buf_losses.push(loss);
+            sum_gain += gain;
+            sum_loss += loss;
+        }
+        let p_f64 = p as f64;
+        let ag = sum_gain / p_f64;
+        let al = sum_loss / p_f64;
+        out[p] = Self::rsi_from_avgs(ag, al);
+        (prev, ag, al)
+    }
+
     #[inline]
     fn rsi_from_avgs(avg_gain: f64, avg_loss: f64) -> f64 {
         // Algebraically `100 - 100/(1 + ag/al)` collapses to `100·ag/(ag+al)`,
@@ -130,7 +158,7 @@ impl wickra_simd::Kernel for WilderTail<'_> {
     type Output = (f64, f64, f64);
 
     #[inline(always)]
-    fn run(self) -> (f64, f64, f64) {
+    fn run<S: wickra_simd::Simd>(self, _simd: S) -> (f64, f64, f64) {
         let (mut prev, mut ag, mut al) = self.state;
         let (n_minus_1, inv_period) = (self.n_minus_1, self.inv_period);
         for (slot, &x) in self.out.iter_mut().zip(self.inputs) {
@@ -249,27 +277,7 @@ impl Indicator for Rsi {
             return;
         }
 
-        // Warmup `[0, p)` is `NaN`; the seed lands on `p`, the recurrence after.
-        out[..p].fill(f64::NAN);
-        // Seed from the first `period` diffs (inputs[1..=p]); index 0 only sets the
-        // baseline. Retain the seed gains/losses exactly as `update` leaves them.
-        let mut prev = inputs[0];
-        let (mut sum_gain, mut sum_loss) = (0.0_f64, 0.0_f64);
-        for &x in &inputs[1..=p] {
-            let diff = x - prev;
-            prev = x;
-            let gain = if diff > 0.0 { diff } else { 0.0 };
-            let loss = if diff < 0.0 { -diff } else { 0.0 };
-            self.seed_buf_gains.push(gain);
-            self.seed_buf_losses.push(loss);
-            sum_gain += gain;
-            sum_loss += loss;
-        }
-        let p_f64 = p as f64;
-        let mut ag = sum_gain / p_f64;
-        let mut al = sum_loss / p_f64;
-        out[p] = Self::rsi_from_avgs(ag, al);
-
+        let (mut prev, mut ag, mut al) = self.seed_batch(inputs, out);
         // Steady state: Wilder smoothing, reciprocal hoisted, one `rsi_from_avgs`,
         // dispatched so the two `mul_add` chains become hardware FMA.
         (prev, ag, al) = wickra_simd::dispatch(WilderTail {
@@ -282,6 +290,48 @@ impl Indicator for Rsi {
 
         // Leave state where a full `update` replay would.
         self.prev_close = prev;
+        self.has_prev = true;
+        self.avg_gain = ag;
+        self.avg_loss = al;
+        self.avgs_seeded = true;
+        self.last_value = Some(out[n - 1]);
+    }
+
+    /// SIMD kernel: the exact seed, then blocks of gains and losses whose two
+    /// Wilder averages run as linear-recurrence scans, combined as
+    /// `100 · ag / (ag + al)`. Agrees with the exact batch to within a few units
+    /// in the last place; the seed value, warmup `NaN`s and length are
+    /// identical. Afterwards the RSI continues streaming from the kernel's last
+    /// averages.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        let n = inputs.len();
+        if self.has_prev
+            || self.avgs_seeded
+            || !self.seed_buf_gains.is_empty()
+            || n <= p
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        let (_, ag, al) = self.seed_batch(inputs, out);
+        let (ag, al) = wickra_simd::dispatch(crate::fast::RsiFast {
+            x: inputs,
+            period: p,
+            avg_gain: ag,
+            avg_loss: al,
+            n_minus_1: self.n_minus_1,
+            inv_period: self.inv_period,
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        self.prev_close = inputs[n - 1];
         self.has_prev = true;
         self.avg_gain = ag;
         self.avg_loss = al;

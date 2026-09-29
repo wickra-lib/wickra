@@ -83,6 +83,11 @@ impl Sma {
         self.period
     }
 
+    /// Whether the SMA has taken no input since construction or reset.
+    pub(crate) fn is_fresh(&self) -> bool {
+        self.count == 0 && self.updates_since_recompute == 0
+    }
+
     /// Current value if available.
     pub fn value(&self) -> Option<f64> {
         if self.count == self.period {
@@ -246,6 +251,49 @@ impl Indicator for Sma {
             lap += 1;
         }
         self.head = inputs.len() % p;
+    }
+
+    /// SIMD kernel: rolling sums as a prefix scan of `x[i] - x[i - period]`,
+    /// re-anchored on an exact window sum every `16 · period` values like the
+    /// exact path's reseed, each sum scaled by `1 / period`. Agrees with the
+    /// exact batch to within a few units in the last place (a multiply by the
+    /// reciprocal replaces the division, and the running sum is reassociated);
+    /// warmup `NaN`s and length are identical. Afterwards the window holds the
+    /// last `period` inputs and its sum is recomputed exactly, so streaming
+    /// continues from a freshly reseeded state.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        let n = inputs.len();
+        if self.count != 0
+            || self.updates_since_recompute != 0
+            || n < p
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        wickra_simd::dispatch(crate::fast::SmaFast {
+            x: inputs,
+            period: p,
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        for (idx, &x) in inputs.iter().enumerate().skip(n - p) {
+            self.buf[idx % p] = x;
+        }
+        self.head = n % p;
+        self.count = p;
+        self.sum = self.buf[self.head..]
+            .iter()
+            .chain(&self.buf[..self.head])
+            .copied()
+            .sum();
+        self.updates_since_recompute = 0;
     }
 }
 

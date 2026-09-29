@@ -96,6 +96,46 @@ impl Indicator for Hma {
     fn name(&self) -> &'static str {
         "HMA"
     }
+
+    /// SIMD kernel: the half and full WMAs, their `2 · half − full`
+    /// difference and the smoothing WMA over it, each as the WMA prefix-scan
+    /// kernel. Agrees with the exact batch to within a few units in the last
+    /// place; warmup `NaN`s and length are identical. HMA only remembers its
+    /// last `period + smooth − 1` inputs, so afterwards its state is rebuilt
+    /// exactly by replaying them.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let (half, full, smooth) = (
+            self.half_wma.period(),
+            self.full_wma.period(),
+            self.smooth_wma.period(),
+        );
+        let n = inputs.len();
+        let span = full + smooth - 1;
+        if !(self.half_wma.is_empty() && self.full_wma.is_empty() && self.smooth_wma.is_empty())
+            || n < span
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        crate::fast::with_scratch(n, |tmp| {
+            wickra_simd::dispatch(crate::fast::HmaFast {
+                x: inputs,
+                half,
+                full,
+                smooth,
+                tmp,
+                out,
+                _borrow: std::marker::PhantomData,
+            });
+        });
+        crate::fast::replay_tail(self, &inputs[n - span..]);
+    }
 }
 
 #[cfg(test)]

@@ -248,6 +248,42 @@ impl Indicator for Ema {
         self.warmup_sum = seed_sum;
         self.warmup_count = p;
     }
+
+    /// SIMD kernel: after the same seed (the mean of the first `period`
+    /// inputs) the recurrence `y = alpha * x + (1 - alpha) * y` runs as a
+    /// linear-recurrence scan, eight values per step. Agrees with the exact
+    /// batch to within a few units in the last place (the scan reassociates
+    /// the recurrence through powers of `1 - alpha`); warmup `NaN`s and length
+    /// are identical. Afterwards the EMA continues streaming from the kernel's
+    /// last value.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        if self.seeded
+            || self.warmup_count != 0
+            || inputs.len() < p
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        let (last, seed_sum) = wickra_simd::dispatch(crate::fast::EmaFast {
+            x: inputs,
+            period: p,
+            alpha: self.alpha,
+            one_minus_alpha: self.one_minus_alpha,
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        self.current = last;
+        self.seeded = true;
+        self.warmup_sum = seed_sum;
+        self.warmup_count = p;
+    }
 }
 
 #[cfg(test)]

@@ -185,7 +185,7 @@ impl wickra_simd::Kernel for AtrTail<'_> {
     type Output = (f64, f64);
 
     #[inline(always)]
-    fn run(self) -> (f64, f64) {
+    fn run<S: wickra_simd::Simd>(self, _simd: S) -> (f64, f64) {
         let (mut prev_close, mut avg) = self.state;
         let (n_minus_1, inv_period) = (self.n_minus_1, self.inv_period);
         for (((slot, &h), &l), &c) in self
