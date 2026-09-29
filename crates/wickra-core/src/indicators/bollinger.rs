@@ -108,72 +108,88 @@ impl BollingerBands {
     /// Vectorized flat batch for bindings: returns `n * 4` values laid out as
     /// `[upper, middle, lower, stddev]` per input row, warmup rows all `NaN`.
     ///
-    /// For a fresh, all-finite slice it inlines `update`'s rolling `sum`/`sum_sq`
-    /// and drift-reseed, writing the four band values directly instead of an
-    /// `Option<BollingerOutput>` per element. Same add/subtract order, same reseed
-    /// cadence, same variance/`sqrt` math — so it is *bit-for-bit* equal to
-    /// replaying `update`, including the long-stream drift bound. Any other state,
-    /// or a non-finite element, defers to the exact `update` replay.
-    ///
-    /// This is a *separate* entry point from the trait [`batch`](crate::BatchExt::batch),
-    /// which returns `Vec<Option<BollingerOutput>>`; only the bindings, which want
-    /// a flat `f64` buffer, call this.
+    /// Allocates the result and fills it through
+    /// [`batch_bands_into`](Self::batch_bands_into). This is a *separate* entry
+    /// point from the trait [`batch`](crate::BatchExt::batch), which returns
+    /// `Vec<Option<BollingerOutput>>`.
     pub fn batch_bands(&mut self, inputs: &[f64]) -> Vec<f64> {
-        let p = self.period;
-        let n = inputs.len();
+        let mut out = vec![0.0; inputs.len() * 4];
+        self.batch_bands_into(inputs, &mut out);
+        out
+    }
+
+    /// [`batch_bands`](Self::batch_bands) into a caller-owned buffer of
+    /// `inputs.len() * 4` values, overwriting every cell.
+    ///
+    /// For a fresh, all-finite slice it inlines `update`'s rolling moments and
+    /// drift-reseed on local copies of the ring cursor and the accumulator —
+    /// the state is written back once at the end rather than through `self` on
+    /// every element — and writes the four band values straight into the row.
+    /// Same add/subtract order, same reseed cadence, same variance/`sqrt` math,
+    /// so it is *bit-for-bit* equal to replaying `update`, including the
+    /// long-stream drift bound. Any other state, or a non-finite element,
+    /// defers to the exact `update` replay.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `out.len() != inputs.len() * 4`.
+    pub fn batch_bands_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            out.len(),
+            inputs.len() * 4,
+            "batch_bands output must hold four values per input"
+        );
         // `count == 0` is the only pristine state: the reseed counter can only
         // be non-zero once a value has been pushed, so it adds nothing here.
         if self.count != 0 || !inputs.iter().all(|x| x.is_finite()) {
-            // Slow path: exact replay of `update` into the flat layout.
-            let mut out = vec![f64::NAN; n * 4];
-            for (i, &x) in inputs.iter().enumerate() {
-                if let Some(o) = self.update(x) {
-                    out[i * 4] = o.upper;
-                    out[i * 4 + 1] = o.middle;
-                    out[i * 4 + 2] = o.lower;
-                    out[i * 4 + 3] = o.stddev;
+            for (row, &x) in out.chunks_exact_mut(4).zip(inputs) {
+                match self.update(x) {
+                    Some(o) => row.copy_from_slice(&[o.upper, o.middle, o.lower, o.stddev]),
+                    None => row.fill(f64::NAN),
                 }
             }
-            return out;
+            return;
         }
 
+        let p = self.period;
         let mult = self.multiplier;
-        // Pre-sized output: warmup rows stay NaN, ready rows are written in place
-        // by index — no per-row `push` length/capacity check.
-        let mut out = vec![f64::NAN; n * 4];
-        for (i, &x) in inputs.iter().enumerate() {
-            if self.count == p {
-                self.moments.evict(self.buf[self.head]);
-                self.buf[self.head] = x;
-                self.moments.push(x);
+        let mut moments = self.moments.clone();
+        let (mut head, mut count) = (self.head, self.count);
+        let buf = &mut self.buf[..];
+        for (row, &x) in out.chunks_exact_mut(4).zip(inputs) {
+            if count == p {
+                moments.evict(buf[head]);
+                buf[head] = x;
+                moments.push(x);
             } else {
-                self.buf[self.head] = x;
-                self.moments.push(x);
-                self.count += 1;
+                buf[head] = x;
+                moments.push(x);
+                count += 1;
             }
-            self.head += 1;
-            if self.head == p {
-                self.head = 0;
+            head += 1;
+            if head == p {
+                head = 0;
             }
-            if self.moments.needs_reseed(p) {
-                let (older, newer) = if self.count == p {
-                    (&self.buf[self.head..], &self.buf[..self.head])
+            if moments.needs_reseed(p) {
+                let (older, newer) = if count == p {
+                    (&buf[head..], &buf[..head])
                 } else {
-                    (&self.buf[..self.count], &self.buf[..0])
+                    (&buf[..count], &buf[..0])
                 };
-                self.moments.reseed(older.iter().chain(newer).copied());
+                moments.reseed(older.iter().chain(newer).copied());
             }
-            if self.count == p {
-                let mean = self.moments.mean(p);
-                let stddev = self.moments.std_dev(p);
+            if count == p {
+                let mean = moments.mean(p);
+                let stddev = moments.std_dev(p);
                 let band = mult * stddev;
-                out[i * 4] = mean + band;
-                out[i * 4 + 1] = mean;
-                out[i * 4 + 2] = mean - band;
-                out[i * 4 + 3] = stddev;
+                row.copy_from_slice(&[mean + band, mean, mean - band, stddev]);
+            } else {
+                row.fill(f64::NAN);
             }
         }
-        out
+        self.moments = moments;
+        self.head = head;
+        self.count = count;
     }
 
     fn current(&self) -> Option<BollingerOutput> {
@@ -459,6 +475,31 @@ mod tests {
             }
         }
         out
+    }
+
+    /// Into a buffer that already holds values, every cell is overwritten:
+    /// warmup rows with `NaN`, the rest with the replay's values, bit for bit.
+    #[test]
+    fn batch_bands_into_overwrites_a_dirty_buffer() {
+        let series: Vec<f64> = (0..400)
+            .map(|i| (f64::from(i) * 0.17).sin() * 6.0 + f64::from(i % 5) + 90.0)
+            .collect();
+        let mut out = vec![5.5; series.len() * 4];
+        BollingerBands::new(20, 2.0)
+            .unwrap()
+            .batch_bands_into(&series, &mut out);
+        let want = bb_replay(20, 2.0, &series);
+        let bits = |v: &[f64]| v.iter().map(|x| x.to_bits()).collect::<Vec<_>>();
+        assert_eq!(bits(&out), bits(&want));
+    }
+
+    #[test]
+    #[should_panic(expected = "batch_bands output must hold four values per input")]
+    fn batch_bands_into_rejects_a_short_buffer() {
+        let mut out = vec![0.0; 7];
+        BollingerBands::new(3, 2.0)
+            .unwrap()
+            .batch_bands_into(&[1.0, 2.0], &mut out);
     }
 
     #[test]

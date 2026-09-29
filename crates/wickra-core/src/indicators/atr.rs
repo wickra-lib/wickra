@@ -34,7 +34,13 @@ pub struct Atr {
     /// divides.
     inv_period: f64,
     prev_close: Option<f64>,
-    seed_buf: Vec<f64>,
+    /// Running sum of the seed true ranges, from `-0.0` in bar order — exactly
+    /// how `f64::sum` folds, so the seed mean is the one a buffered
+    /// `iter().sum()` gives, without a heap buffer keeping the per-tick state
+    /// out of registers.
+    seed_sum: f64,
+    /// Number of seed true ranges taken so far.
+    seed_count: usize,
     /// Smoothed ATR, valid once `seeded` is set. Bare `f64` + flag rather than
     /// `Option<f64>` so the hot recurrence avoids an enum-tag read per tick.
     avg: f64,
@@ -61,7 +67,8 @@ impl Atr {
             n_minus_1: (period - 1) as f64,
             inv_period: 1.0 / period as f64,
             prev_close: None,
-            seed_buf: Vec::with_capacity(period),
+            seed_sum: -0.0,
+            seed_count: 0,
             avg: 0.0,
             seeded: false,
         })
@@ -86,60 +93,116 @@ impl Atr {
     /// length and finite with valid OHLC ordering (the binding validates once up
     /// front); ATR only reads high, low and the previous close.
     ///
-    /// For a fresh indicator long enough to seed (`n >= period`) it runs the
-    /// true-range seed once and then the bare Wilder recurrence in a tight loop —
-    /// no per-bar `Candle` construction/validation, no `Option`, identical
-    /// division at the seed and `mul_add` afterwards, so the result is
-    /// *bit-for-bit* equal to replaying `update` over the same candles. Shorter
-    /// or non-fresh inputs defer to an exact `update` replay.
+    /// Allocates the result and fills it through
+    /// [`batch_atr_into`](Self::batch_atr_into).
     pub fn batch_atr(&mut self, high: &[f64], low: &[f64], close: &[f64]) -> Vec<f64> {
-        let p = self.period;
+        let mut out = vec![0.0; high.len()];
+        self.batch_atr_into(high, low, close, &mut out);
+        out
+    }
+
+    /// [`batch_atr`](Self::batch_atr) into a caller-owned buffer, overwriting
+    /// every cell.
+    ///
+    /// For a fresh indicator long enough to seed (`n >= period`) it runs the
+    /// true-range seed once and then the bare Wilder recurrence as a dispatched
+    /// kernel (hardware FMA where the CPU has it) — no per-bar `Candle`
+    /// construction/validation, no `Option`, identical division at the seed and
+    /// `mul_add` afterwards, so every value is *bit-for-bit* equal to replaying
+    /// `update` over the same candles. Shorter or non-fresh inputs defer to an
+    /// exact `update` replay.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the four slices differ in length.
+    pub fn batch_atr_into(&mut self, high: &[f64], low: &[f64], close: &[f64], out: &mut [f64]) {
         let n = high.len();
-        if self.seeded || !self.seed_buf.is_empty() || self.prev_close.is_some() || n < p {
-            let mut out = vec![f64::NAN; n];
-            for i in 0..n {
+        assert!(
+            low.len() == n && close.len() == n && out.len() == n,
+            "high, low, close and the output must be equal length"
+        );
+        let p = self.period;
+        if self.seeded || self.seed_count != 0 || self.prev_close.is_some() || n < p {
+            for (i, slot) in out.iter_mut().enumerate() {
                 let candle = Candle::new_unchecked(close[i], high[i], low[i], close[i], 0.0, 0);
-                if let Some(v) = self.update(candle) {
-                    out[i] = v;
-                }
+                *slot = self.update(candle).unwrap_or(f64::NAN);
             }
-            return out;
+            return;
         }
 
         // Warmup `[0, p-1)` is `NaN`; the first ATR is emitted at index `p - 1`.
-        let mut out = vec![f64::NAN; p - 1];
-        out.reserve(n - (p - 1));
+        out[..p - 1].fill(f64::NAN);
         // Seed: mean of the first `period` true ranges. TR₀ has no previous close.
         let mut prev_close = close[0];
-        let mut sum_tr = high[0] - low[0];
-        self.seed_buf.push(sum_tr);
+        let mut sum_tr = -0.0 + (high[0] - low[0]);
         for i in 1..p {
             let (h, l) = (high[i], low[i]);
             let tr = (h - l)
                 .max((h - prev_close).abs())
                 .max((l - prev_close).abs());
             prev_close = close[i];
-            self.seed_buf.push(tr);
             sum_tr += tr;
         }
-        let mut avg = sum_tr / p as f64;
-        out.push(avg);
+        let avg = sum_tr / p as f64;
+        out[p - 1] = avg;
         // Steady state: Wilder smoothing, reciprocal hoisted out of the loop.
-        for i in p..n {
-            let (h, l) = (high[i], low[i]);
+        let (prev_close, avg) = wickra_simd::dispatch(AtrTail {
+            high: &high[p..],
+            low: &low[p..],
+            close: &close[p..],
+            out: &mut out[p..],
+            state: (prev_close, avg),
+            n_minus_1: self.n_minus_1,
+            inv_period: self.inv_period,
+        });
+
+        // Leave state where a full `update` replay would.
+        self.prev_close = Some(prev_close);
+        self.seed_sum = sum_tr;
+        self.seed_count = p;
+        self.avg = avg;
+        self.seeded = true;
+    }
+}
+
+/// ATR's steady-state Wilder smoothing as a [`wickra_simd::Kernel`], so the
+/// `mul_add` becomes a hardware FMA where the CPU has one. Returns the final
+/// previous close and average.
+struct AtrTail<'a> {
+    high: &'a [f64],
+    low: &'a [f64],
+    close: &'a [f64],
+    out: &'a mut [f64],
+    state: (f64, f64),
+    n_minus_1: f64,
+    inv_period: f64,
+}
+
+// Inlining into the dispatching function is what compiles the body with its
+// features; see `wickra_simd::Kernel`.
+#[allow(clippy::inline_always)]
+impl wickra_simd::Kernel for AtrTail<'_> {
+    type Output = (f64, f64);
+
+    #[inline(always)]
+    fn run(self) -> (f64, f64) {
+        let (mut prev_close, mut avg) = self.state;
+        let (n_minus_1, inv_period) = (self.n_minus_1, self.inv_period);
+        for (((slot, &h), &l), &c) in self
+            .out
+            .iter_mut()
+            .zip(self.high)
+            .zip(self.low)
+            .zip(self.close)
+        {
             let tr = (h - l)
                 .max((h - prev_close).abs())
                 .max((l - prev_close).abs());
-            prev_close = close[i];
-            avg = avg.mul_add(self.n_minus_1, tr) * self.inv_period;
-            out.push(avg);
+            prev_close = c;
+            avg = avg.mul_add(n_minus_1, tr) * inv_period;
+            *slot = avg;
         }
-
-        // Leave state where a full `update` replay would (seeded; seed_buf retained).
-        self.prev_close = Some(prev_close);
-        self.avg = avg;
-        self.seeded = true;
-        out
+        (prev_close, avg)
     }
 }
 
@@ -159,9 +222,10 @@ impl Indicator for Atr {
             return Some(new_avg);
         }
 
-        self.seed_buf.push(tr);
-        if self.seed_buf.len() == self.period {
-            let seed = self.seed_buf.iter().copied().sum::<f64>() / self.period as f64;
+        self.seed_sum += tr;
+        self.seed_count += 1;
+        if self.seed_count == self.period {
+            let seed = self.seed_sum / self.period as f64;
             self.avg = seed;
             self.seeded = true;
             return Some(seed);
@@ -171,7 +235,8 @@ impl Indicator for Atr {
 
     fn reset(&mut self) {
         self.prev_close = None;
-        self.seed_buf.clear();
+        self.seed_sum = -0.0;
+        self.seed_count = 0;
         self.avg = 0.0;
         self.seeded = false;
     }
@@ -361,6 +426,87 @@ mod tests {
         let high = base.iter().map(|b| b + 1.0).collect();
         let low = base.iter().map(|b| b - 1.0).collect();
         (high, low, base)
+    }
+
+    fn to_bits(v: &[f64]) -> Vec<u64> {
+        v.iter().map(|x| x.to_bits()).collect()
+    }
+
+    /// Into a buffer that already holds values, every cell is overwritten —
+    /// warmup with `NaN`, the rest with the replay's values, bit for bit.
+    #[test]
+    fn batch_atr_into_overwrites_a_dirty_buffer() {
+        let (high, low, close) = columns(260);
+        let mut out = vec![3.0; high.len()];
+        Atr::new(14)
+            .unwrap()
+            .batch_atr_into(&high, &low, &close, &mut out);
+        assert_eq!(to_bits(&out), to_bits(&atr_replay(14, &high, &low, &close)));
+    }
+
+    #[test]
+    #[should_panic(expected = "high, low, close and the output must be equal length")]
+    fn batch_atr_into_rejects_mismatched_lengths() {
+        let (high, low, close) = columns(20);
+        let mut out = vec![0.0; 19];
+        Atr::new(5)
+            .unwrap()
+            .batch_atr_into(&high, &low, &close, &mut out);
+    }
+
+    /// The seed is a running sum from `-0.0`; it must equal the buffered
+    /// `iter().sum()` the indicator used to keep, the sign of a zero-range
+    /// window included.
+    #[test]
+    fn seed_matches_a_buffered_sum_bit_for_bit() {
+        let flat = [-0.0_f64; 6];
+        let mut atr = Atr::new(6).unwrap();
+        let seed = flat
+            .iter()
+            .filter_map(|&c| atr.update(Candle::new_unchecked(c, c, c, c, 0.0, 0)))
+            .last()
+            .unwrap();
+        let trs: Vec<f64> = std::iter::once(-0.0 - -0.0)
+            .chain(std::iter::repeat_n(0.0_f64, 5))
+            .collect();
+        let buffered = trs.iter().copied().sum::<f64>() / 6.0;
+        assert_eq!(seed.to_bits(), buffered.to_bits());
+        let (high, low, close) = columns(40);
+        let want = atr_replay(9, &high, &low, &close);
+        let got = Atr::new(9).unwrap().batch_atr(&high, &low, &close);
+        assert_eq!(to_bits(&got), to_bits(&want));
+    }
+
+    /// The dispatched Wilder tail and the baseline build write the same bits
+    /// and end in the same state.
+    #[test]
+    fn atr_tail_is_identical_on_every_dispatch_path() {
+        let (high, low, close) = columns(3000);
+        let atr = Atr::new(14).unwrap();
+        let (mut a, mut b) = (vec![0.0; 2990], vec![0.0; 2990]);
+        let make = |out: &mut [f64]| -> (f64, f64) {
+            wickra_simd::run_baseline(AtrTail {
+                high: &high[10..],
+                low: &low[10..],
+                close: &close[10..],
+                out,
+                state: (close[9], 1.7),
+                n_minus_1: atr.n_minus_1,
+                inv_period: atr.inv_period,
+            })
+        };
+        let rb = make(&mut b);
+        let ra = wickra_simd::dispatch(AtrTail {
+            high: &high[10..],
+            low: &low[10..],
+            close: &close[10..],
+            out: &mut a,
+            state: (close[9], 1.7),
+            n_minus_1: atr.n_minus_1,
+            inv_period: atr.inv_period,
+        });
+        assert_eq!(to_bits(&a), to_bits(&b));
+        assert_eq!(to_bits(&[ra.0, ra.1]), to_bits(&[rb.0, rb.1]));
     }
 
     #[test]
