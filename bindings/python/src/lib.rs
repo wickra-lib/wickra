@@ -17,39 +17,158 @@
 
 use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict};
+use pyo3::sync::PyOnceLock;
+use pyo3::types::{PyBytes, PyDict, PyList, PyMemoryView, PyTuple, PyType};
 use pyo3::Borrowed;
 use wickra_core as wc;
-use wickra_core::{BarBuilder, BatchExt, BatchNanExt, Indicator};
+use wickra_core::{BarBuilder, BatchExt, Indicator};
+
+/// The element type a one-dimensional buffer carries, read from its
+/// `memoryview` format string.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Elem {
+    Float,
+    Signed,
+    Unsigned,
+}
+
+/// Classify a `memoryview` format string (`struct` syntax) as a native-order
+/// number of `itemsize` bytes, or `None` for anything the fast path does not
+/// read itself (booleans, half floats, complex, records, the other byte order).
+fn native_elem(format: &str, itemsize: usize) -> Option<Elem> {
+    let code = match format.as_bytes() {
+        [c] | [b'@' | b'=', c] => *c,
+        [b'<', c] if cfg!(target_endian = "little") => *c,
+        [b'>' | b'!', c] if cfg!(target_endian = "big") => *c,
+        _ => return None,
+    };
+    let elem = match code {
+        b'f' | b'd' => Elem::Float,
+        b'b' | b'h' | b'i' | b'l' | b'q' | b'n' => Elem::Signed,
+        b'B' | b'H' | b'I' | b'L' | b'Q' | b'N' => Elem::Unsigned,
+        _ => return None,
+    };
+    let width_ok = match elem {
+        Elem::Float => itemsize == 4 || itemsize == 8,
+        Elem::Signed | Elem::Unsigned => matches!(itemsize, 1 | 2 | 4 | 8),
+    };
+    width_ok.then_some(elem)
+}
+
+/// The raw bytes of a one-dimensional numeric buffer and how to read them, or
+/// `None` when `obj` is a list/tuple, exposes no buffer, or is a buffer the
+/// fast path leaves to the sequence protocol.
+///
+/// `tobytes()` is one C-level copy of the whole buffer (it also flattens a
+/// strided view into order), which replaces converting every element through a
+/// Python float object — the abi3 wheels cannot borrow the buffer in place,
+/// since `PyObject_GetBuffer` only joined the limited API in Python 3.11.
+fn buffer_bytes<'py>(obj: &Bound<'py, PyAny>) -> Option<(Bound<'py, PyBytes>, Elem, usize)> {
+    if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyTuple>() {
+        return None;
+    }
+    let view = PyMemoryView::from(obj).ok()?;
+    if view.getattr("ndim").ok()?.extract::<usize>().ok()? != 1 {
+        return None;
+    }
+    let itemsize = view.getattr("itemsize").ok()?.extract::<usize>().ok()?;
+    let format = view.getattr("format").ok()?;
+    let elem = native_elem(&format.extract::<String>().ok()?, itemsize)?;
+    let bytes = view
+        .call_method0("tobytes")
+        .ok()?
+        .cast_into::<PyBytes>()
+        .ok()?;
+    Some((bytes, elem, itemsize))
+}
+
+/// Read one native-order element of `width` bytes as `f64`, with the rounding
+/// Python's own `float(x)` applies (integers round to nearest, ties to even).
+fn elem_f64(chunk: &[u8], elem: Elem) -> f64 {
+    macro_rules! read {
+        ($t:ty) => {
+            <$t>::from_ne_bytes(chunk.try_into().expect("chunk is exactly one element"))
+        };
+    }
+    #[allow(clippy::cast_precision_loss)]
+    match (elem, chunk.len()) {
+        (Elem::Float, 4) => f64::from(read!(f32)),
+        (Elem::Float, _) => read!(f64),
+        (Elem::Signed, 1) => f64::from(read!(i8)),
+        (Elem::Signed, 2) => f64::from(read!(i16)),
+        (Elem::Signed, 4) => f64::from(read!(i32)),
+        (Elem::Signed, _) => read!(i64) as f64,
+        (Elem::Unsigned, 1) => f64::from(read!(u8)),
+        (Elem::Unsigned, 2) => f64::from(read!(u16)),
+        (Elem::Unsigned, 4) => f64::from(read!(u32)),
+        (Elem::Unsigned, _) => read!(u64) as f64,
+    }
+}
 
 /// A one-dimensional `f64` input.
 ///
-/// Accepts `array.array('d')`, `memoryview`, a `NumPy` `ndarray`, or any plain Python
-/// sequence of numbers — the same set the previous `NumPy` `PyReadonlyArray1` covered,
-/// now without depending on `NumPy`. The values are copied into an owned `Vec` once.
+/// Accepts `array.array`, `memoryview`, a `NumPy` `ndarray`, or any plain Python
+/// sequence of numbers — the same set the previous `NumPy` `PyReadonlyArray1`
+/// covered, without depending on `NumPy`. A native `float64` buffer is read with a
+/// single copy and borrowed in place when that copy is 8-byte aligned (the
+/// `bytes` object stays alive inside the value); other numeric buffers are
+/// widened to `f64` in one pass; lists, tuples and anything else go through the
+/// sequence protocol exactly as before.
 struct Buf1 {
-    data: Vec<f64>,
+    /// A native `float64` buffer's single `tobytes()` copy, read in place when
+    /// its data is 8-byte aligned. Python `bytes` are immutable, so the values
+    /// cannot change while this value holds the reference.
+    bytes: Option<Py<PyBytes>>,
+    /// Values converted element by element (other dtypes, lists, a misaligned
+    /// copy) — used when `bytes` is `None`.
+    owned: Vec<f64>,
 }
 
 impl<'py> FromPyObject<'_, 'py> for Buf1 {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
-        Vec::<f64>::extract(obj).map(|data| Self { data })
+        if let Some((bytes, elem, itemsize)) = buffer_bytes(&obj) {
+            let raw = bytes.as_bytes();
+            if elem == Elem::Float
+                && itemsize == 8
+                && bytemuck::try_cast_slice::<u8, f64>(raw).is_ok()
+            {
+                return Ok(Self {
+                    bytes: Some(bytes.unbind()),
+                    owned: Vec::new(),
+                });
+            }
+            let owned = raw
+                .chunks_exact(itemsize)
+                .map(|c| elem_f64(c, elem))
+                .collect();
+            return Ok(Self { bytes: None, owned });
+        }
+        Vec::<f64>::extract(obj).map(|owned| Self { bytes: None, owned })
     }
 }
 
 impl Buf1 {
     /// Borrow the values as a slice.
     fn as_slice(&self) -> &[f64] {
-        &self.data
+        match &self.bytes {
+            // `Py::as_bytes` ties the slice to `self`, not to the `Python` token,
+            // and the alignment was checked when the value was built.
+            Some(bytes) => Python::attach(|py| {
+                bytemuck::try_cast_slice(bytes.as_bytes(py)).expect("checked aligned at extraction")
+            }),
+            None => &self.owned,
+        }
     }
 }
 
 /// A one-dimensional `i64` input (e.g. millisecond timestamps for seasonality).
 ///
-/// Mirrors [`Buf1`]: accepts any `i64` buffer-protocol object or a Python sequence
-/// of integers, copied once into an owned `Vec`.
+/// Mirrors [`Buf1`]: a native integer buffer is read with one copy and widened
+/// in one pass (an unsigned 64-bit value above `i64::MAX` is left to the
+/// sequence protocol, which raises the overflow error it always did); floats,
+/// lists and everything else go through the sequence protocol as before.
 struct BufI64 {
     data: Vec<i64>,
 }
@@ -58,8 +177,40 @@ impl<'py> FromPyObject<'_, 'py> for BufI64 {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
+        if let Some((bytes, elem, itemsize)) = buffer_bytes(&obj) {
+            if elem != Elem::Float {
+                let raw = bytes.as_bytes();
+                let data: Option<Vec<i64>> = raw
+                    .chunks_exact(itemsize)
+                    .map(|c| elem_i64(c, elem))
+                    .collect();
+                if let Some(data) = data {
+                    return Ok(Self { data });
+                }
+            }
+        }
         Vec::<i64>::extract(obj).map(|data| Self { data })
     }
+}
+
+/// Read one native-order integer element as `i64`, or `None` for an unsigned
+/// 64-bit value that does not fit.
+fn elem_i64(chunk: &[u8], elem: Elem) -> Option<i64> {
+    macro_rules! read {
+        ($t:ty) => {
+            <$t>::from_ne_bytes(chunk.try_into().expect("chunk is exactly one element"))
+        };
+    }
+    Some(match (elem, chunk.len()) {
+        (Elem::Signed, 1) => i64::from(read!(i8)),
+        (Elem::Signed, 2) => i64::from(read!(i16)),
+        (Elem::Signed, 4) => i64::from(read!(i32)),
+        (Elem::Signed, _) => read!(i64),
+        (Elem::Unsigned, 1) => i64::from(read!(u8)),
+        (Elem::Unsigned, 2) => i64::from(read!(u16)),
+        (Elem::Unsigned, 4) => i64::from(read!(u32)),
+        (_, _) => i64::try_from(read!(u64)).ok()?,
+    })
 }
 
 impl BufI64 {
@@ -69,13 +220,44 @@ impl BufI64 {
     }
 }
 
+/// `array.array`, imported once per interpreter.
+static ARRAY_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+
 /// Build a stdlib `array.array('d')` from a slice of `f64`s.
 ///
-/// `array.array` is a buffer-protocol object, so `numpy.asarray(result)` wraps it
-/// zero-copy for callers who opt into `NumPy` — but importing `NumPy` is never required.
+/// `array('d', x)` iterates any `x` that is not `bytes`/`list`/`array` element
+/// by element, so the values go in as one `bytes` object, which `array` copies
+/// with a single `memcpy`. `array.array` is a buffer-protocol object, so
+/// `numpy.asarray(result)` wraps it zero-copy for callers who opt into `NumPy` —
+/// but importing `NumPy` is never required.
 fn f64_array<'py>(py: Python<'py>, data: &[f64]) -> PyResult<Bound<'py, PyAny>> {
     let bytes = PyBytes::new(py, bytemuck::cast_slice(data));
-    py.import("array")?.getattr("array")?.call1(("d", bytes))
+    ARRAY_TYPE.import(py, "array", "array")?.call1(("d", bytes))
+}
+
+/// Run a batch that writes one `f64` per input straight into the result's
+/// storage and return it as `array.array('d')`.
+///
+/// `fill` writes into the `bytes` object that seeds the array, so the values
+/// are copied once (into the array) instead of going through an intermediate
+/// `Vec` first. `bytes` data is 16-byte aligned in `CPython`; should it ever not
+/// be `f64`-aligned, the values are computed in a `Vec` and copied in.
+fn f64_batch(
+    py: Python<'_>,
+    len: usize,
+    fill: impl FnOnce(&mut [f64]),
+) -> PyResult<Bound<'_, PyAny>> {
+    let bytes = PyBytes::new_with(py, len * std::mem::size_of::<f64>(), |raw| {
+        if let Ok(out) = bytemuck::try_cast_slice_mut::<u8, f64>(raw) {
+            fill(out);
+        } else {
+            let mut values = vec![0.0; len];
+            fill(&mut values);
+            raw.copy_from_slice(bytemuck::cast_slice(&values));
+        }
+        Ok(())
+    })?;
+    ARRAY_TYPE.import(py, "array", "array")?.call1(("d", bytes))
 }
 
 /// A row-major, two-dimensional `f64` result returned by multi-output batch helpers.
@@ -269,7 +451,7 @@ impl PySma {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -318,7 +500,7 @@ impl PyEma {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -371,7 +553,7 @@ impl PyWma {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -421,7 +603,7 @@ impl PyRsi {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1091,7 +1273,7 @@ impl PyMidPoint {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1200,7 +1382,7 @@ impl PyRocp {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1246,7 +1428,7 @@ impl PyRocr {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1292,7 +1474,7 @@ impl PyRocr100 {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1342,7 +1524,7 @@ impl PyLinRegIntercept {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1388,7 +1570,7 @@ impl PyTsf {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1717,7 +1899,7 @@ impl PyLogReturn {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1767,7 +1949,7 @@ impl PyRealizedVolatility {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1813,7 +1995,7 @@ impl PyRollingIqr {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1863,7 +2045,7 @@ impl PyRollingPercentileRank {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -1913,7 +2095,7 @@ impl PyRollingQuantile {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2219,7 +2401,7 @@ impl PyTrendLabel {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2265,7 +2447,7 @@ impl PyJumpIndicator {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2316,7 +2498,7 @@ impl PyRegimeLabel {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn vol_period(&self) -> usize {
@@ -2367,7 +2549,7 @@ impl PyWinRate {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2413,7 +2595,7 @@ impl PyExpectancy {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2459,7 +2641,7 @@ impl PySineWeightedMa {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2505,7 +2687,7 @@ impl PyGeometricMa {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2551,7 +2733,7 @@ impl PyEhma {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2597,7 +2779,7 @@ impl PyMedianMa {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2647,7 +2829,7 @@ impl PyAdaptiveLaguerreFilter {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2697,7 +2879,7 @@ impl PyDisparityIndex {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2743,7 +2925,7 @@ impl PyFisherRsi {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -2789,7 +2971,7 @@ impl PyRsx {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn length(&self) -> usize {
@@ -2839,7 +3021,7 @@ impl PyDynamicMomentumIndex {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3021,7 +3203,7 @@ impl PyTrendStrengthIndex {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3133,7 +3315,7 @@ impl PyPolarizedFractalEfficiency {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3180,7 +3362,7 @@ impl PyWavePm {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn length(&self) -> usize {
@@ -3364,7 +3546,7 @@ impl PyTsfOscillator {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3410,7 +3592,7 @@ impl PyMacdHistogram {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -3453,7 +3635,7 @@ impl PyPpoHistogram {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -3500,7 +3682,7 @@ impl PyBipowerVariation {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3753,7 +3935,7 @@ impl PyJarqueBera {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3799,7 +3981,7 @@ impl PyRollingMinMaxScaler {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3845,7 +4027,7 @@ impl PyHighpassFilter {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3891,7 +4073,7 @@ impl PyReflex {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3937,7 +4119,7 @@ impl PyTrendflex {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -3983,7 +4165,7 @@ impl PyCorrelationTrendIndicator {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4029,7 +4211,7 @@ impl PyAdaptiveRsi {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4075,7 +4257,7 @@ impl PyUniversalOscillator {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4187,7 +4369,7 @@ impl PySterlingRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4233,7 +4415,7 @@ impl PyBurkeRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4279,7 +4461,7 @@ impl PyMartinRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4325,7 +4507,7 @@ impl PyTailRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4371,7 +4553,7 @@ impl PyKRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4421,7 +4603,7 @@ impl PyCommonSenseRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4471,7 +4653,7 @@ impl PyGainToPainRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4833,7 +5015,7 @@ impl PyDema {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4878,7 +5060,7 @@ impl PyTema {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4923,7 +5105,7 @@ impl PyHma {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -4969,7 +5151,7 @@ impl PyKama {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -5075,7 +5257,7 @@ impl PyConnorsRsi {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -5118,7 +5300,7 @@ impl PyLaguerreRsi {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn gamma(&self) -> f64 {
@@ -5426,7 +5608,7 @@ impl PyFrama {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -5598,7 +5780,7 @@ impl PyJma {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -5641,7 +5823,7 @@ impl PyVidya {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -5688,7 +5870,7 @@ impl PyMcGinleyDynamic {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -5734,7 +5916,7 @@ impl PyAlma {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -5855,7 +6037,7 @@ impl PyStc {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -5904,7 +6086,7 @@ impl PyElderImpulse {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -6001,7 +6183,7 @@ impl PyCfo {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -6047,7 +6229,7 @@ impl PyApo {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -6155,7 +6337,7 @@ impl PyRoc {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -6456,7 +6638,7 @@ impl PyTrix {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -7056,7 +7238,7 @@ impl PyBollingerBandwidth {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -7114,7 +7296,7 @@ impl PyPercentB {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -7242,7 +7424,7 @@ impl PyStdDev {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -7292,7 +7474,7 @@ impl PyUlcerIndex {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -7346,7 +7528,7 @@ impl PyHistoricalVolatility {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
@@ -7753,7 +7935,7 @@ impl PyPpo {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
@@ -7804,7 +7986,7 @@ impl PyDpo {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -7858,7 +8040,7 @@ impl PyCoppock {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize, usize) {
@@ -7909,7 +8091,7 @@ impl PyStochRsi {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
@@ -8035,7 +8217,7 @@ impl PyMom {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -8085,7 +8267,7 @@ impl PyCmo {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -8135,7 +8317,7 @@ impl PyTsi {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
@@ -8186,7 +8368,7 @@ impl PyPmo {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
@@ -8237,7 +8419,7 @@ impl PyTii {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
@@ -8287,7 +8469,7 @@ impl PyZlema {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -8341,7 +8523,7 @@ impl PyT3 {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -8399,7 +8581,7 @@ impl PyGeneralizedDema {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -8453,7 +8635,7 @@ impl PyHoltWinters {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn alpha(&self) -> f64 {
@@ -8519,7 +8701,7 @@ impl PyRmi {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -8583,7 +8765,7 @@ impl PyDerivativeOscillator {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -8688,7 +8870,7 @@ impl PySmma {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -8737,7 +8919,7 @@ impl PyTrima {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -9307,7 +9489,7 @@ impl PyAnchoredRsi {
     /// Batch over a close-price column.
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn value(&self) -> Option<f64> {
@@ -10327,7 +10509,7 @@ impl PyPercentageTrailingStop {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn percent(&self) -> f64 {
@@ -10377,7 +10559,7 @@ impl PyStepTrailingStop {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn step_size(&self) -> f64 {
@@ -10427,7 +10609,7 @@ impl PyRenkoTrailingStop {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn block_size(&self) -> f64 {
@@ -11020,7 +11202,7 @@ impl PyLinearRegression {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -11066,7 +11248,7 @@ impl PyLinRegSlope {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -11321,7 +11503,7 @@ impl PyVerticalHorizontalFilter {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -11495,7 +11677,7 @@ impl PyZScore {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -11541,7 +11723,7 @@ impl PyLinRegAngle {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -11879,7 +12061,7 @@ impl PyRviVolatility {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -14583,7 +14765,7 @@ macro_rules! py_scalar_one_period {
             }
             fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
                 let slice = prices.as_slice();
-                self.inner.batch_nan(slice).into_pydata(py)
+                f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
             }
             #[getter]
             fn period(&self) -> usize {
@@ -14651,7 +14833,7 @@ impl PyInverseFisherTransform {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn scale(&self) -> f64 {
@@ -14704,7 +14886,7 @@ impl PyDecyclerOscillator {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
@@ -14751,7 +14933,7 @@ impl PyRoofingFilter {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
@@ -14802,7 +14984,7 @@ impl PyEmd {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -14857,7 +15039,7 @@ macro_rules! py_no_params_scalar {
             }
             fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
                 let slice = prices.as_slice();
-                self.inner.batch_nan(slice).into_pydata(py)
+                f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
             }
             #[getter]
             fn value(&self) -> Option<f64> {
@@ -14913,7 +15095,7 @@ impl PySineWave {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn value(&self) -> Option<f64> {
@@ -15020,7 +15202,7 @@ impl PyFama {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn limits(&self) -> (f64, f64) {
@@ -15240,7 +15422,7 @@ impl PyVariance {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -15792,7 +15974,7 @@ impl PyCoefficientOfVariation {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -15838,7 +16020,7 @@ impl PySkewness {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -15884,7 +16066,7 @@ impl PyKurtosis {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -15930,7 +16112,7 @@ impl PyStandardError {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -15980,7 +16162,7 @@ impl PyDetrendedStdDev {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -16026,7 +16208,7 @@ impl PyRSquared {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -16076,7 +16258,7 @@ impl PyAutocorrelation {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -16134,7 +16316,7 @@ impl PyMedianAbsoluteDeviation {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -16180,7 +16362,7 @@ impl PyHurstExponent {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let s = prices.as_slice();
-        self.inner.batch_nan(s).into_pydata(py)
+        f64_batch(py, s.len(), |out| self.inner.batch_nan_into(s, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -21832,7 +22014,7 @@ impl PyUpsidePotentialRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -21884,7 +22066,7 @@ impl PyM2Measure {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -21941,7 +22123,7 @@ impl PySharpeRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -21993,7 +22175,7 @@ impl PySortinoRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22044,7 +22226,7 @@ impl PyCalmarRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22088,7 +22270,7 @@ impl PyOmegaRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22139,7 +22321,7 @@ impl PyMaxDrawdown {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22186,7 +22368,7 @@ impl PyAverageDrawdown {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22278,7 +22460,7 @@ impl PyPainIndex {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22322,7 +22504,7 @@ impl PyValueAtRisk {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22378,7 +22560,7 @@ impl PyConditionalValueAtRisk {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22429,7 +22611,7 @@ impl PyProfitFactor {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22472,7 +22654,7 @@ impl PyGainLossRatio {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -22519,7 +22701,7 @@ impl PyRecoveryFactor {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -22562,7 +22744,7 @@ impl PyKellyCriterion {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn period(&self) -> usize {
@@ -24778,7 +24960,7 @@ impl PyEwmaVolatility {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn lambda_(&self) -> f64 {
@@ -24825,7 +25007,7 @@ impl PyGarch11 {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn params(&self) -> (f64, f64, f64) {
@@ -24880,7 +25062,7 @@ impl PyVolatilityOfVolatility {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn windows(&self) -> (usize, usize) {
@@ -25481,7 +25663,7 @@ impl PyShannonEntropy {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn params(&self) -> (usize, usize) {
@@ -25532,7 +25714,7 @@ impl PySampleEntropy {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn params(&self) -> (usize, usize, f64) {
@@ -25642,7 +25824,7 @@ impl PyBandpassFilter {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn params(&self) -> (usize, f64) {
@@ -25697,7 +25879,7 @@ impl PyEvenBetterSinewave {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn params(&self) -> (usize, usize) {
@@ -25748,7 +25930,7 @@ impl PyAutocorrelationPeriodogram {
     }
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
-        self.inner.batch_nan(slice).into_pydata(py)
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
