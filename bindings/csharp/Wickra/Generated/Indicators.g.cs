@@ -127,7 +127,8 @@ public sealed class AbandonedBaby : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_abandoned_baby_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_abandoned_baby_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -237,7 +238,8 @@ public sealed class Abcd : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_abcd_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_abcd_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -378,10 +380,11 @@ public sealed class AbsoluteBreadthIndex : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_absolute_breadth_index_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_absolute_breadth_index_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -502,9 +505,10 @@ public sealed class AccelerationBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_acceleration_bands_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_acceleration_bands_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new AccelerationBandsOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -514,6 +518,20 @@ public sealed class AccelerationBands : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public AccelerationBandsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<AccelerationBandsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<AccelerationBandsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -536,8 +554,11 @@ public sealed class AccelerationBands : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraAccelerationBandsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -546,19 +567,11 @@ public sealed class AccelerationBands : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraAccelerationBandsOutput* nativePtr = native)
+            fixed (AccelerationBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_acceleration_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_acceleration_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraAccelerationBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<AccelerationBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new AccelerationBandsOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -610,7 +623,8 @@ public sealed class AcceleratorOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_accelerator_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_accelerator_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -720,7 +734,8 @@ public sealed class AdOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_ad_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_ad_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -861,10 +876,11 @@ public sealed class AdVolumeLine : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_ad_volume_line_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_ad_volume_line_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -981,7 +997,8 @@ public sealed class AdaptiveCci : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_adaptive_cci_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_adaptive_cci_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -1091,7 +1108,8 @@ public sealed class AdaptiveCycle : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_adaptive_cycle_update(_handle, @value);
+        var result = NativeMethods.wickra_adaptive_cycle_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -1216,7 +1234,8 @@ public sealed class AdaptiveLaguerreFilter : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_adaptive_laguerre_filter_update(_handle, @value);
+        var result = NativeMethods.wickra_adaptive_laguerre_filter_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -1341,7 +1360,8 @@ public sealed class AdaptiveRsi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_adaptive_rsi_update(_handle, @value);
+        var result = NativeMethods.wickra_adaptive_rsi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -1465,7 +1485,8 @@ public sealed class Adl : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_adl_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_adl_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -1575,7 +1596,8 @@ public sealed class AdvanceBlock : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_advance_block_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_advance_block_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -1716,10 +1738,11 @@ public sealed class AdvanceDecline : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_advance_decline_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_advance_decline_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -1866,10 +1889,11 @@ public sealed class AdvanceDeclineRatio : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_advance_decline_ratio_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_advance_decline_ratio_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -1990,9 +2014,10 @@ public sealed class Adx : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_adx_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_adx_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new AdxOutput(native.plus_di, native.minus_di, native.adx) : null;
     }
 
@@ -2002,6 +2027,20 @@ public sealed class Adx : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public AdxOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<AdxOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<AdxOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -2024,8 +2063,11 @@ public sealed class Adx : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraAdxOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -2034,19 +2076,11 @@ public sealed class Adx : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraAdxOutput* nativePtr = native)
+            fixed (AdxOutput* outputPtr = output)
             {
-                NativeMethods.wickra_adx_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_adx_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraAdxOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<AdxOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new AdxOutput(native[i].plus_di, native[i].minus_di, native[i].adx);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -2096,7 +2130,8 @@ public sealed class Adxr : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_adxr_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_adxr_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -2213,9 +2248,10 @@ public sealed class Alligator : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_alligator_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_alligator_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new AlligatorOutput(native.jaw, native.teeth, native.lips) : null;
     }
 
@@ -2225,6 +2261,20 @@ public sealed class Alligator : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public AlligatorOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<AlligatorOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<AlligatorOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -2247,8 +2297,11 @@ public sealed class Alligator : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraAlligatorOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -2257,19 +2310,11 @@ public sealed class Alligator : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraAlligatorOutput* nativePtr = native)
+            fixed (AlligatorOutput* outputPtr = output)
             {
-                NativeMethods.wickra_alligator_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_alligator_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraAlligatorOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<AlligatorOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new AlligatorOutput(native[i].jaw, native[i].teeth, native[i].lips);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -2319,7 +2364,8 @@ public sealed class Alma : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_alma_update(_handle, @value);
+        var result = NativeMethods.wickra_alma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -2444,7 +2490,8 @@ public sealed class Alpha : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_alpha_update(_handle, x, y);
+        var result = NativeMethods.wickra_alpha_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -2535,7 +2582,8 @@ public sealed class AmihudIlliquidity : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp)
     {
-        var result = NativeMethods.wickra_amihud_illiquidity_update(_handle, price, size, isBuy, timestamp);
+        var result = NativeMethods.wickra_amihud_illiquidity_update(_handle.Live, price, size, isBuy, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -2635,7 +2683,8 @@ public sealed class AnchoredRsi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_anchored_rsi_update(_handle, @value);
+        var result = NativeMethods.wickra_anchored_rsi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -2759,7 +2808,8 @@ public sealed class AnchoredVwap : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_anchored_vwap_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_anchored_vwap_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -2874,9 +2924,10 @@ public sealed class AndrewsPitchfork : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_andrews_pitchfork_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_andrews_pitchfork_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new AndrewsPitchforkOutput(native.median, native.upper, native.lower) : null;
     }
 
@@ -2886,6 +2937,20 @@ public sealed class AndrewsPitchfork : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public AndrewsPitchforkOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<AndrewsPitchforkOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<AndrewsPitchforkOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -2908,8 +2973,11 @@ public sealed class AndrewsPitchfork : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraAndrewsPitchforkOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -2918,19 +2986,11 @@ public sealed class AndrewsPitchfork : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraAndrewsPitchforkOutput* nativePtr = native)
+            fixed (AndrewsPitchforkOutput* outputPtr = output)
             {
-                NativeMethods.wickra_andrews_pitchfork_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_andrews_pitchfork_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraAndrewsPitchforkOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<AndrewsPitchforkOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new AndrewsPitchforkOutput(native[i].median, native[i].upper, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -2981,7 +3041,8 @@ public sealed class Apo : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_apo_update(_handle, @value);
+        var result = NativeMethods.wickra_apo_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -3110,9 +3171,10 @@ public sealed class Aroon : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_aroon_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_aroon_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new AroonOutput(native.up, native.down) : null;
     }
 
@@ -3122,6 +3184,20 @@ public sealed class Aroon : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public AroonOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<AroonOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<AroonOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -3144,8 +3220,11 @@ public sealed class Aroon : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraAroonOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -3154,19 +3233,11 @@ public sealed class Aroon : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraAroonOutput* nativePtr = native)
+            fixed (AroonOutput* outputPtr = output)
             {
-                NativeMethods.wickra_aroon_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_aroon_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraAroonOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<AroonOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new AroonOutput(native[i].up, native[i].down);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -3216,7 +3287,8 @@ public sealed class AroonOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_aroon_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_aroon_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -3327,7 +3399,8 @@ public sealed class Atr : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_atr_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_atr_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -3506,9 +3579,10 @@ public sealed class AtrBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_atr_bands_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_atr_bands_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new AtrBandsOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -3518,6 +3592,20 @@ public sealed class AtrBands : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public AtrBandsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<AtrBandsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<AtrBandsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -3540,8 +3628,11 @@ public sealed class AtrBands : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraAtrBandsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -3550,19 +3641,11 @@ public sealed class AtrBands : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraAtrBandsOutput* nativePtr = native)
+            fixed (AtrBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_atr_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_atr_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraAtrBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<AtrBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new AtrBandsOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -3616,9 +3699,10 @@ public sealed class AtrRatchet : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_atr_ratchet_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_atr_ratchet_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new AtrRatchetOutput(native.@value, native.direction) : null;
     }
 
@@ -3628,6 +3712,20 @@ public sealed class AtrRatchet : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public AtrRatchetOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<AtrRatchetOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<AtrRatchetOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -3650,8 +3748,11 @@ public sealed class AtrRatchet : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraAtrRatchetOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -3660,19 +3761,11 @@ public sealed class AtrRatchet : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraAtrRatchetOutput* nativePtr = native)
+            fixed (AtrRatchetOutput* outputPtr = output)
             {
-                NativeMethods.wickra_atr_ratchet_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_atr_ratchet_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraAtrRatchetOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<AtrRatchetOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new AtrRatchetOutput(native[i].@value, native[i].direction);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -3722,7 +3815,8 @@ public sealed class AtrTrailingStop : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_atr_trailing_stop_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_atr_trailing_stop_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -3836,9 +3930,10 @@ public sealed class AutoFib : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_auto_fib_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_auto_fib_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new AutoFibOutput(native.level_0, native.level_236, native.level_382, native.level_500, native.level_618, native.level_786, native.level_1000) : null;
     }
 
@@ -3848,6 +3943,20 @@ public sealed class AutoFib : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public AutoFibOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<AutoFibOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<AutoFibOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -3870,8 +3979,11 @@ public sealed class AutoFib : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraAutoFibOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -3880,19 +3992,11 @@ public sealed class AutoFib : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraAutoFibOutput* nativePtr = native)
+            fixed (AutoFibOutput* outputPtr = output)
             {
-                NativeMethods.wickra_auto_fib_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_auto_fib_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraAutoFibOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<AutoFibOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new AutoFibOutput(native[i].level_0, native[i].level_236, native[i].level_382, native[i].level_500, native[i].level_618, native[i].level_786, native[i].level_1000);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -3943,7 +4047,8 @@ public sealed class Autocorrelation : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_autocorrelation_update(_handle, @value);
+        var result = NativeMethods.wickra_autocorrelation_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4069,7 +4174,8 @@ public sealed class AutocorrelationPeriodogram : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_autocorrelation_periodogram_update(_handle, @value);
+        var result = NativeMethods.wickra_autocorrelation_periodogram_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4194,7 +4300,8 @@ public sealed class AverageDailyRange : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_average_daily_range_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_average_daily_range_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4305,7 +4412,8 @@ public sealed class AverageDrawdown : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_average_drawdown_update(_handle, @value);
+        var result = NativeMethods.wickra_average_drawdown_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4429,7 +4537,8 @@ public sealed class AvgPrice : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_avg_price_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_avg_price_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4541,7 +4650,8 @@ public sealed class AwesomeOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_awesome_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_awesome_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4654,7 +4764,8 @@ public sealed class AwesomeOscillatorHistogram : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_awesome_oscillator_histogram_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_awesome_oscillator_histogram_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4764,7 +4875,8 @@ public sealed class BalanceOfPower : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_balance_of_power_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_balance_of_power_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4875,7 +4987,8 @@ public sealed class BandpassFilter : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_bandpass_filter_update(_handle, @value);
+        var result = NativeMethods.wickra_bandpass_filter_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -4999,7 +5112,8 @@ public sealed class Bat : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_bat_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_bat_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -5109,7 +5223,8 @@ public sealed class BeltHold : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_belt_hold_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_belt_hold_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -5220,7 +5335,8 @@ public sealed class Beta : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_beta_update(_handle, x, y);
+        var result = NativeMethods.wickra_beta_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -5311,7 +5427,8 @@ public sealed class BetaNeutralSpread : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_beta_neutral_spread_update(_handle, x, y);
+        var result = NativeMethods.wickra_beta_neutral_spread_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -5402,7 +5519,8 @@ public sealed class BetterVolume : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_better_volume_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_better_volume_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -5513,7 +5631,8 @@ public sealed class BipowerVariation : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_bipower_variation_update(_handle, @value);
+        var result = NativeMethods.wickra_bipower_variation_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -5637,7 +5756,8 @@ public sealed class BodySizePct : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_body_size_pct_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_body_size_pct_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -5752,9 +5872,10 @@ public sealed class BollingerBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_bollinger_bands_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_bollinger_bands_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new BollingerOutput(native.upper, native.middle, native.lower, native.stddev) : null;
     }
 
@@ -5765,25 +5886,34 @@ public sealed class BollingerBands : IDisposable
     /// </summary>
     public BollingerOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<BollingerOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraBollingerOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<BollingerOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraBollingerOutput* nativePtr = native)
+            fixed (BollingerOutput* outputPtr = output)
             {
-                NativeMethods.wickra_bollinger_bands_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_bollinger_bands_batch(_handle, inputPtr, (WickraBollingerOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<BollingerOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new BollingerOutput(native[i].upper, native[i].middle, native[i].lower, native[i].stddev);
-        }
-
-        return result;
     }
 
     /// <summary>
@@ -5794,25 +5924,35 @@ public sealed class BollingerBands : IDisposable
     /// </summary>
     public BollingerOutput[] BatchFast(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<BollingerOutput>(input.Length);
+        BatchFast(input, output);
+        return output;
+    }
 
-        var native = new WickraBollingerOutput[n];
+    /// <summary>
+    /// Opt-in fast batch: the SIMD kernel reassociates the arithmetic, so each
+    /// field agrees with Batch to within a few units in the last place rather
+    /// than bit for bit; warmup rows and length are identical, and the result
+    /// is the same on every platform.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void BatchFast(ReadOnlySpan<double> input, Span<BollingerOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraBollingerOutput* nativePtr = native)
+            fixed (BollingerOutput* outputPtr = output)
             {
-                NativeMethods.wickra_bollinger_bands_batch_fast(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_bollinger_bands_batch_fast(_handle, inputPtr, (WickraBollingerOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<BollingerOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new BollingerOutput(native[i].upper, native[i].middle, native[i].lower, native[i].stddev);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -5862,7 +6002,8 @@ public sealed class BollingerBandwidth : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_bollinger_bandwidth_update(_handle, @value);
+        var result = NativeMethods.wickra_bollinger_bandwidth_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -5991,9 +6132,10 @@ public sealed class BomarBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_bomar_bands_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_bomar_bands_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new BomarBandsOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -6004,25 +6146,34 @@ public sealed class BomarBands : IDisposable
     /// </summary>
     public BomarBandsOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<BomarBandsOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraBomarBandsOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<BomarBandsOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraBomarBandsOutput* nativePtr = native)
+            fixed (BomarBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_bomar_bands_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_bomar_bands_batch(_handle, inputPtr, (WickraBomarBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<BomarBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new BomarBandsOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -6103,10 +6254,11 @@ public sealed class BreadthThrust : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_breadth_thrust_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_breadth_thrust_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -6222,7 +6374,8 @@ public sealed class Breakaway : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_breakaway_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_breakaway_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -6363,10 +6516,11 @@ public sealed class BullishPercentIndex : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_bullish_percent_index_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_bullish_percent_index_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -6483,7 +6637,8 @@ public sealed class BurkeRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_burke_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_burke_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -6607,7 +6762,8 @@ public sealed class Butterfly : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_butterfly_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_butterfly_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -6717,7 +6873,8 @@ public sealed class CalendarSpread : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_calendar_spread_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_calendar_spread_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -6858,7 +7015,8 @@ public sealed class CalmarRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_calmar_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_calmar_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -6986,9 +7144,10 @@ public sealed class Camarilla : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_camarilla_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_camarilla_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new CamarillaPivotsOutput(native.pp, native.r1, native.r2, native.r3, native.r4, native.s1, native.s2, native.s3, native.s4) : null;
     }
 
@@ -6998,6 +7157,20 @@ public sealed class Camarilla : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public CamarillaPivotsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<CamarillaPivotsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<CamarillaPivotsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -7020,8 +7193,11 @@ public sealed class Camarilla : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraCamarillaPivotsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -7030,19 +7206,11 @@ public sealed class Camarilla : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraCamarillaPivotsOutput* nativePtr = native)
+            fixed (CamarillaPivotsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_camarilla_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_camarilla_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraCamarillaPivotsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<CamarillaPivotsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new CamarillaPivotsOutput(native[i].pp, native[i].r1, native[i].r2, native[i].r3, native[i].r4, native[i].s1, native[i].s2, native[i].s3, native[i].s4);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -7148,9 +7316,10 @@ public sealed class CandleVolume : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_candle_volume_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_candle_volume_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new CandleVolumeOutput(native.body, native.width) : null;
     }
 
@@ -7160,6 +7329,20 @@ public sealed class CandleVolume : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public CandleVolumeOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<CandleVolumeOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<CandleVolumeOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -7182,8 +7365,11 @@ public sealed class CandleVolume : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraCandleVolumeOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -7192,19 +7378,11 @@ public sealed class CandleVolume : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraCandleVolumeOutput* nativePtr = native)
+            fixed (CandleVolumeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_candle_volume_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_candle_volume_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraCandleVolumeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<CandleVolumeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new CandleVolumeOutput(native[i].body, native[i].width);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -7254,7 +7432,8 @@ public sealed class Cci : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_cci_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_cci_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -7365,7 +7544,8 @@ public sealed class CenterOfGravity : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_center_of_gravity_update(_handle, @value);
+        var result = NativeMethods.wickra_center_of_gravity_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -7493,9 +7673,10 @@ public sealed class CentralPivotRange : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_central_pivot_range_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_central_pivot_range_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new CentralPivotRangeOutput(native.pivot, native.tc, native.bc) : null;
     }
 
@@ -7505,6 +7686,20 @@ public sealed class CentralPivotRange : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public CentralPivotRangeOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<CentralPivotRangeOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<CentralPivotRangeOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -7527,8 +7722,11 @@ public sealed class CentralPivotRange : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraCentralPivotRangeOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -7537,19 +7735,11 @@ public sealed class CentralPivotRange : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraCentralPivotRangeOutput* nativePtr = native)
+            fixed (CentralPivotRangeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_central_pivot_range_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_central_pivot_range_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraCentralPivotRangeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<CentralPivotRangeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new CentralPivotRangeOutput(native[i].pivot, native[i].tc, native[i].bc);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -7599,7 +7789,8 @@ public sealed class Cfo : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_cfo_update(_handle, @value);
+        var result = NativeMethods.wickra_cfo_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -7724,7 +7915,8 @@ public sealed class ChaikinMoneyFlow : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_chaikin_money_flow_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_chaikin_money_flow_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -7836,7 +8028,8 @@ public sealed class ChaikinOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_chaikin_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_chaikin_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -8012,7 +8205,8 @@ public sealed class ChaikinVolatility : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_chaikin_volatility_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_chaikin_volatility_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -8128,9 +8322,10 @@ public sealed class ChandeKrollStop : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_chande_kroll_stop_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_chande_kroll_stop_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ChandeKrollStopOutput(native.stop_long, native.stop_short) : null;
     }
 
@@ -8140,6 +8335,20 @@ public sealed class ChandeKrollStop : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ChandeKrollStopOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ChandeKrollStopOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ChandeKrollStopOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -8162,8 +8371,11 @@ public sealed class ChandeKrollStop : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraChandeKrollStopOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -8172,19 +8384,11 @@ public sealed class ChandeKrollStop : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraChandeKrollStopOutput* nativePtr = native)
+            fixed (ChandeKrollStopOutput* outputPtr = output)
             {
-                NativeMethods.wickra_chande_kroll_stop_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_chande_kroll_stop_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraChandeKrollStopOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ChandeKrollStopOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ChandeKrollStopOutput(native[i].stop_long, native[i].stop_short);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -8238,9 +8442,10 @@ public sealed class ChandelierExit : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_chandelier_exit_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_chandelier_exit_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ChandelierExitOutput(native.long_stop, native.short_stop) : null;
     }
 
@@ -8250,6 +8455,20 @@ public sealed class ChandelierExit : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ChandelierExitOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ChandelierExitOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ChandelierExitOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -8272,8 +8491,11 @@ public sealed class ChandelierExit : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraChandelierExitOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -8282,19 +8504,11 @@ public sealed class ChandelierExit : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraChandelierExitOutput* nativePtr = native)
+            fixed (ChandelierExitOutput* outputPtr = output)
             {
-                NativeMethods.wickra_chandelier_exit_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_chandelier_exit_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraChandelierExitOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ChandelierExitOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ChandelierExitOutput(native[i].long_stop, native[i].short_stop);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -8344,7 +8558,8 @@ public sealed class ChoppinessIndex : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_choppiness_index_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_choppiness_index_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -8458,9 +8673,10 @@ public sealed class ClassicPivots : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_classic_pivots_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_classic_pivots_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ClassicPivotsOutput(native.pp, native.r1, native.r2, native.r3, native.s1, native.s2, native.s3) : null;
     }
 
@@ -8470,6 +8686,20 @@ public sealed class ClassicPivots : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ClassicPivotsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ClassicPivotsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ClassicPivotsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -8492,8 +8722,11 @@ public sealed class ClassicPivots : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraClassicPivotsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -8502,19 +8735,11 @@ public sealed class ClassicPivots : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraClassicPivotsOutput* nativePtr = native)
+            fixed (ClassicPivotsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_classic_pivots_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_classic_pivots_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraClassicPivotsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ClassicPivotsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ClassicPivotsOutput(native[i].pp, native[i].r1, native[i].r2, native[i].r3, native[i].s1, native[i].s2, native[i].s3);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -8563,7 +8788,8 @@ public sealed class CloseVsOpen : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_close_vs_open_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_close_vs_open_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -8673,7 +8899,8 @@ public sealed class ClosingMarubozu : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_closing_marubozu_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_closing_marubozu_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -8784,7 +9011,8 @@ public sealed class Cmo : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_cmo_update(_handle, @value);
+        var result = NativeMethods.wickra_cmo_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -8909,7 +9137,8 @@ public sealed class CoefficientOfVariation : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_coefficient_of_variation_update(_handle, @value);
+        var result = NativeMethods.wickra_coefficient_of_variation_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -9039,9 +9268,10 @@ public sealed class Cointegration : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_cointegration_update(_handle, x, y, &native);
+            ok = NativeMethods.wickra_cointegration_update(_handle.Live, x, y, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new CointegrationOutput(native.hedge_ratio, native.spread, native.adf_stat) : null;
     }
 
@@ -9052,30 +9282,39 @@ public sealed class Cointegration : IDisposable
     /// </summary>
     public CointegrationOutput[] Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y)
     {
+        var output = GC.AllocateUninitializedArray<CointegrationOutput>(x.Length);
+        Batch(x, y, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Span<CointegrationOutput> output)
+    {
         var n = x.Length;
         if (y.Length != n)
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraCointegrationOutput[n];
         unsafe
         {
             fixed (double* xPtr = x)
             fixed (double* yPtr = y)
-            fixed (WickraCointegrationOutput* nativePtr = native)
+            fixed (CointegrationOutput* outputPtr = output)
             {
-                NativeMethods.wickra_cointegration_batch(_handle, xPtr, yPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_cointegration_batch(_handle, xPtr, yPtr, (WickraCointegrationOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<CointegrationOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new CointegrationOutput(native[i].hedge_ratio, native[i].spread, native[i].adf_stat);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -9125,7 +9364,8 @@ public sealed class CommonSenseRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_common_sense_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_common_sense_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -9255,9 +9495,10 @@ public sealed class CompositeProfile : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_composite_profile_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_composite_profile_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new CompositeProfileOutput(native.poc, native.vah, native.val) : null;
     }
 
@@ -9267,6 +9508,20 @@ public sealed class CompositeProfile : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public CompositeProfileOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<CompositeProfileOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<CompositeProfileOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -9289,8 +9544,11 @@ public sealed class CompositeProfile : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraCompositeProfileOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -9299,19 +9557,11 @@ public sealed class CompositeProfile : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraCompositeProfileOutput* nativePtr = native)
+            fixed (CompositeProfileOutput* outputPtr = output)
             {
-                NativeMethods.wickra_composite_profile_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_composite_profile_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraCompositeProfileOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<CompositeProfileOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new CompositeProfileOutput(native[i].poc, native[i].vah, native[i].val);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -9360,7 +9610,8 @@ public sealed class ConcealingBabySwallow : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_concealing_baby_swallow_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_concealing_baby_swallow_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -9471,7 +9722,8 @@ public sealed class ConditionalValueAtRisk : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_conditional_value_at_risk_update(_handle, @value);
+        var result = NativeMethods.wickra_conditional_value_at_risk_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -9598,7 +9850,8 @@ public sealed class ConnorsRsi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_connors_rsi_update(_handle, @value);
+        var result = NativeMethods.wickra_connors_rsi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -9725,7 +9978,8 @@ public sealed class Coppock : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_coppock_update(_handle, @value);
+        var result = NativeMethods.wickra_coppock_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -9850,7 +10104,8 @@ public sealed class CorrelationTrendIndicator : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_correlation_trend_indicator_update(_handle, @value);
+        var result = NativeMethods.wickra_correlation_trend_indicator_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -9974,7 +10229,8 @@ public sealed class Counterattack : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_counterattack_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_counterattack_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -10084,7 +10340,8 @@ public sealed class Crab : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_crab_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_crab_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -10194,7 +10451,8 @@ public sealed class CumulativeVolumeDelta : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp)
     {
-        var result = NativeMethods.wickra_cumulative_volume_delta_update(_handle, price, size, isBuy, timestamp);
+        var result = NativeMethods.wickra_cumulative_volume_delta_update(_handle.Live, price, size, isBuy, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -10325,10 +10583,11 @@ public sealed class CumulativeVolumeIndex : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_cumulative_volume_index_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_cumulative_volume_index_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -10444,7 +10703,8 @@ public sealed class CupAndHandle : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_cup_and_handle_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_cup_and_handle_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -10555,7 +10815,8 @@ public sealed class CyberneticCycle : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_cybernetic_cycle_update(_handle, @value);
+        var result = NativeMethods.wickra_cybernetic_cycle_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -10679,7 +10940,8 @@ public sealed class Cypher : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_cypher_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_cypher_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -10797,10 +11059,11 @@ public sealed class DayOfWeekProfile : IDisposable
         {
             fixed (double* valuesPtr = values)
             {
-                length = (long)NativeMethods.wickra_day_of_week_profile_update(_handle, open, high, low, close, volume, timestamp, valuesPtr, (nuint)_valuesCapacity);
+                length = (long)NativeMethods.wickra_day_of_week_profile_update(_handle.Live, open, high, low, close, volume, timestamp, valuesPtr, (nuint)_valuesCapacity);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (length < 0)
         {
             return null;
@@ -10921,7 +11184,8 @@ public sealed class Decycler : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_decycler_update(_handle, @value);
+        var result = NativeMethods.wickra_decycler_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -11047,7 +11311,8 @@ public sealed class DecyclerOscillator : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_decycler_oscillator_update(_handle, @value);
+        var result = NativeMethods.wickra_decycler_oscillator_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -11172,7 +11437,8 @@ public sealed class Dema : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_dema_update(_handle, @value);
+        var result = NativeMethods.wickra_dema_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -11297,7 +11563,8 @@ public sealed class DemandIndex : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_demand_index_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_demand_index_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -11411,9 +11678,10 @@ public sealed class DemarkPivots : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_demark_pivots_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_demark_pivots_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new DemarkPivotsOutput(native.pp, native.r1, native.s1) : null;
     }
 
@@ -11423,6 +11691,20 @@ public sealed class DemarkPivots : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public DemarkPivotsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<DemarkPivotsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<DemarkPivotsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -11445,8 +11727,11 @@ public sealed class DemarkPivots : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraDemarkPivotsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -11455,19 +11740,11 @@ public sealed class DemarkPivots : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraDemarkPivotsOutput* nativePtr = native)
+            fixed (DemarkPivotsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_demark_pivots_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_demark_pivots_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraDemarkPivotsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<DemarkPivotsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new DemarkPivotsOutput(native[i].pp, native[i].r1, native[i].s1);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -11533,10 +11810,11 @@ public sealed class DepthSlope : IDisposable
             fixed (double* askPricePtr = askPrice)
             fixed (double* askSizePtr = askSize)
             {
-                result = NativeMethods.wickra_depth_slope_update(_handle, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
+                result = NativeMethods.wickra_depth_slope_update(_handle.Live, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -11645,7 +11923,8 @@ public sealed class DerivativeOscillator : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_derivative_oscillator_update(_handle, @value);
+        var result = NativeMethods.wickra_derivative_oscillator_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -11770,7 +12049,8 @@ public sealed class DetrendedStdDev : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_detrended_std_dev_update(_handle, @value);
+        var result = NativeMethods.wickra_detrended_std_dev_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -11895,7 +12175,8 @@ public sealed class DisparityIndex : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_disparity_index_update(_handle, @value);
+        var result = NativeMethods.wickra_disparity_index_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -12020,7 +12301,8 @@ public sealed class DistanceSsd : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_distance_ssd_update(_handle, x, y);
+        var result = NativeMethods.wickra_distance_ssd_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -12110,7 +12392,8 @@ public sealed class Doji : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_doji_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_doji_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -12220,7 +12503,8 @@ public sealed class DojiStar : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_doji_star_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_doji_star_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -12337,10 +12621,11 @@ public sealed class DollarBars : IDisposable
         {
             fixed (WickraDollarBar* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_dollar_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_dollar_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<DollarBar>();
@@ -12484,9 +12769,10 @@ public sealed class Donchian : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_donchian_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_donchian_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new DonchianOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -12496,6 +12782,20 @@ public sealed class Donchian : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public DonchianOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<DonchianOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<DonchianOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -12518,8 +12818,11 @@ public sealed class Donchian : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraDonchianOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -12528,19 +12831,11 @@ public sealed class Donchian : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraDonchianOutput* nativePtr = native)
+            fixed (DonchianOutput* outputPtr = output)
             {
-                NativeMethods.wickra_donchian_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_donchian_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraDonchianOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<DonchianOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new DonchianOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -12594,9 +12889,10 @@ public sealed class DonchianStop : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_donchian_stop_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_donchian_stop_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new DonchianStopOutput(native.stop_long, native.stop_short) : null;
     }
 
@@ -12606,6 +12902,20 @@ public sealed class DonchianStop : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public DonchianStopOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<DonchianStopOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<DonchianStopOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -12628,8 +12938,11 @@ public sealed class DonchianStop : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraDonchianStopOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -12638,19 +12951,11 @@ public sealed class DonchianStop : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraDonchianStopOutput* nativePtr = native)
+            fixed (DonchianStopOutput* outputPtr = output)
             {
-                NativeMethods.wickra_donchian_stop_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_donchian_stop_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraDonchianStopOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<DonchianStopOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new DonchianStopOutput(native[i].stop_long, native[i].stop_short);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -12704,9 +13009,10 @@ public sealed class DoubleBollinger : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_double_bollinger_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_double_bollinger_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new DoubleBollingerOutput(native.upper_outer, native.upper_inner, native.middle, native.lower_inner, native.lower_outer) : null;
     }
 
@@ -12717,25 +13023,34 @@ public sealed class DoubleBollinger : IDisposable
     /// </summary>
     public DoubleBollingerOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<DoubleBollingerOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraDoubleBollingerOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<DoubleBollingerOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraDoubleBollingerOutput* nativePtr = native)
+            fixed (DoubleBollingerOutput* outputPtr = output)
             {
-                NativeMethods.wickra_double_bollinger_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_double_bollinger_batch(_handle, inputPtr, (WickraDoubleBollingerOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<DoubleBollingerOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new DoubleBollingerOutput(native[i].upper_outer, native[i].upper_inner, native[i].middle, native[i].lower_inner, native[i].lower_outer);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -12784,7 +13099,8 @@ public sealed class DoubleTopBottom : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_double_top_bottom_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_double_top_bottom_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -12894,7 +13210,8 @@ public sealed class DownsideGapThreeMethods : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_downside_gap_three_methods_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_downside_gap_three_methods_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13005,7 +13322,8 @@ public sealed class Dpo : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_dpo_update(_handle, @value);
+        var result = NativeMethods.wickra_dpo_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13129,7 +13447,8 @@ public sealed class DragonflyDoji : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_dragonfly_doji_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_dragonfly_doji_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13239,7 +13558,8 @@ public sealed class DrawdownDuration : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_drawdown_duration_update(_handle, @value);
+        var result = NativeMethods.wickra_drawdown_duration_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13325,7 +13645,8 @@ public sealed class DumplingTop : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_dumpling_top_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_dumpling_top_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13436,7 +13757,8 @@ public sealed class Dx : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_dx_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_dx_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13547,7 +13869,8 @@ public sealed class DynamicMomentumIndex : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_dynamic_momentum_index_update(_handle, @value);
+        var result = NativeMethods.wickra_dynamic_momentum_index_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13672,7 +13995,8 @@ public sealed class EaseOfMovement : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_ease_of_movement_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_ease_of_movement_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13782,7 +14106,8 @@ public sealed class EffectiveSpread : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp, double mid)
     {
-        var result = NativeMethods.wickra_effective_spread_update(_handle, price, size, isBuy, timestamp, mid);
+        var result = NativeMethods.wickra_effective_spread_update(_handle.Live, price, size, isBuy, timestamp, mid);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -13888,7 +14213,8 @@ public sealed class EhlersStochastic : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ehlers_stochastic_update(_handle, @value);
+        var result = NativeMethods.wickra_ehlers_stochastic_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -14013,7 +14339,8 @@ public sealed class Ehma : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ehma_update(_handle, @value);
+        var result = NativeMethods.wickra_ehma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -14141,7 +14468,8 @@ public sealed class ElderImpulse : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_elder_impulse_update(_handle, @value);
+        var result = NativeMethods.wickra_elder_impulse_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -14270,9 +14598,10 @@ public sealed class ElderRay : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_elder_ray_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_elder_ray_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ElderRayOutput(native.bull_power, native.bear_power) : null;
     }
 
@@ -14282,6 +14611,20 @@ public sealed class ElderRay : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ElderRayOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ElderRayOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ElderRayOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -14304,8 +14647,11 @@ public sealed class ElderRay : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraElderRayOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -14314,19 +14660,11 @@ public sealed class ElderRay : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraElderRayOutput* nativePtr = native)
+            fixed (ElderRayOutput* outputPtr = output)
             {
-                NativeMethods.wickra_elder_ray_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_elder_ray_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraElderRayOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ElderRayOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ElderRayOutput(native[i].bull_power, native[i].bear_power);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -14380,9 +14718,10 @@ public sealed class ElderSafeZone : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_elder_safe_zone_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_elder_safe_zone_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ElderSafeZoneOutput(native.@value, native.direction) : null;
     }
 
@@ -14392,6 +14731,20 @@ public sealed class ElderSafeZone : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ElderSafeZoneOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ElderSafeZoneOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ElderSafeZoneOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -14414,8 +14767,11 @@ public sealed class ElderSafeZone : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraElderSafeZoneOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -14424,19 +14780,11 @@ public sealed class ElderSafeZone : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraElderSafeZoneOutput* nativePtr = native)
+            fixed (ElderSafeZoneOutput* outputPtr = output)
             {
-                NativeMethods.wickra_elder_safe_zone_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_elder_safe_zone_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraElderSafeZoneOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ElderSafeZoneOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ElderSafeZoneOutput(native[i].@value, native[i].direction);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -14486,7 +14834,8 @@ public sealed class Ema : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ema_update(_handle, @value);
+        var result = NativeMethods.wickra_ema_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -14611,7 +14960,8 @@ public sealed class EmpiricalModeDecomposition : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_empirical_mode_decomposition_update(_handle, @value);
+        var result = NativeMethods.wickra_empirical_mode_decomposition_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -14735,7 +15085,8 @@ public sealed class Engulfing : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_engulfing_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_engulfing_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -14850,9 +15201,10 @@ public sealed class Equivolume : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_equivolume_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_equivolume_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new EquivolumeOutput(native.height, native.width) : null;
     }
 
@@ -14862,6 +15214,20 @@ public sealed class Equivolume : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public EquivolumeOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<EquivolumeOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<EquivolumeOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -14884,8 +15250,11 @@ public sealed class Equivolume : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraEquivolumeOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -14894,19 +15263,11 @@ public sealed class Equivolume : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraEquivolumeOutput* nativePtr = native)
+            fixed (EquivolumeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_equivolume_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_equivolume_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraEquivolumeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<EquivolumeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new EquivolumeOutput(native[i].height, native[i].width);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -14955,7 +15316,8 @@ public sealed class EstimatedLeverageRatio : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_estimated_leverage_ratio_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_estimated_leverage_ratio_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -15097,7 +15459,8 @@ public sealed class EvenBetterSinewave : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_even_better_sinewave_update(_handle, @value);
+        var result = NativeMethods.wickra_even_better_sinewave_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -15221,7 +15584,8 @@ public sealed class EveningDojiStar : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_evening_doji_star_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_evening_doji_star_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -15332,7 +15696,8 @@ public sealed class Evwma : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_evwma_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_evwma_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -15442,7 +15807,8 @@ public sealed class EwmaVolatility : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ewma_volatility_update(_handle, @value);
+        var result = NativeMethods.wickra_ewma_volatility_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -15567,7 +15933,8 @@ public sealed class Expectancy : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_expectancy_update(_handle, @value);
+        var result = NativeMethods.wickra_expectancy_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -15691,7 +16058,8 @@ public sealed class FallingThreeMethods : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_falling_three_methods_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_falling_three_methods_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -15801,7 +16169,8 @@ public sealed class Fama : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_fama_update(_handle, @value);
+        var result = NativeMethods.wickra_fama_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -15929,9 +16298,10 @@ public sealed class FibArcs : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fib_arcs_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fib_arcs_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibArcsOutput(native.arc_382, native.arc_500, native.arc_618) : null;
     }
 
@@ -15941,6 +16311,20 @@ public sealed class FibArcs : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibArcsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibArcsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibArcsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -15963,8 +16347,11 @@ public sealed class FibArcs : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibArcsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -15973,19 +16360,11 @@ public sealed class FibArcs : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibArcsOutput* nativePtr = native)
+            fixed (FibArcsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fib_arcs_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fib_arcs_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibArcsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibArcsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibArcsOutput(native[i].arc_382, native[i].arc_500, native[i].arc_618);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16038,9 +16417,10 @@ public sealed class FibChannel : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fib_channel_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fib_channel_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibChannelOutput(native.@base, native.level_618, native.level_1000, native.level_1618) : null;
     }
 
@@ -16050,6 +16430,20 @@ public sealed class FibChannel : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibChannelOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibChannelOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibChannelOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -16072,8 +16466,11 @@ public sealed class FibChannel : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibChannelOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -16082,19 +16479,11 @@ public sealed class FibChannel : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibChannelOutput* nativePtr = native)
+            fixed (FibChannelOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fib_channel_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fib_channel_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibChannelOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibChannelOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibChannelOutput(native[i].@base, native[i].level_618, native[i].level_1000, native[i].level_1618);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16147,9 +16536,10 @@ public sealed class FibConfluence : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fib_confluence_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fib_confluence_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibConfluenceOutput(native.price, native.strength) : null;
     }
 
@@ -16159,6 +16549,20 @@ public sealed class FibConfluence : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibConfluenceOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibConfluenceOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibConfluenceOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -16181,8 +16585,11 @@ public sealed class FibConfluence : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibConfluenceOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -16191,19 +16598,11 @@ public sealed class FibConfluence : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibConfluenceOutput* nativePtr = native)
+            fixed (FibConfluenceOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fib_confluence_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fib_confluence_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibConfluenceOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibConfluenceOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibConfluenceOutput(native[i].price, native[i].strength);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16256,9 +16655,10 @@ public sealed class FibExtension : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fib_extension_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fib_extension_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibExtensionOutput(native.level_1272, native.level_1414, native.level_1618, native.level_2000, native.level_2618) : null;
     }
 
@@ -16268,6 +16668,20 @@ public sealed class FibExtension : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibExtensionOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibExtensionOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibExtensionOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -16290,8 +16704,11 @@ public sealed class FibExtension : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibExtensionOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -16300,19 +16717,11 @@ public sealed class FibExtension : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibExtensionOutput* nativePtr = native)
+            fixed (FibExtensionOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fib_extension_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fib_extension_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibExtensionOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibExtensionOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibExtensionOutput(native[i].level_1272, native[i].level_1414, native[i].level_1618, native[i].level_2000, native[i].level_2618);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16365,9 +16774,10 @@ public sealed class FibFan : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fib_fan_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fib_fan_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibFanOutput(native.fan_382, native.fan_500, native.fan_618) : null;
     }
 
@@ -16377,6 +16787,20 @@ public sealed class FibFan : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibFanOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibFanOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibFanOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -16399,8 +16823,11 @@ public sealed class FibFan : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibFanOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -16409,19 +16836,11 @@ public sealed class FibFan : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibFanOutput* nativePtr = native)
+            fixed (FibFanOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fib_fan_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fib_fan_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibFanOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibFanOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibFanOutput(native[i].fan_382, native[i].fan_500, native[i].fan_618);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16474,9 +16893,10 @@ public sealed class FibProjection : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fib_projection_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fib_projection_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibProjectionOutput(native.level_618, native.level_1000, native.level_1618, native.level_2618) : null;
     }
 
@@ -16486,6 +16906,20 @@ public sealed class FibProjection : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibProjectionOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibProjectionOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibProjectionOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -16508,8 +16942,11 @@ public sealed class FibProjection : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibProjectionOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -16518,19 +16955,11 @@ public sealed class FibProjection : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibProjectionOutput* nativePtr = native)
+            fixed (FibProjectionOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fib_projection_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fib_projection_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibProjectionOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibProjectionOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibProjectionOutput(native[i].level_618, native[i].level_1000, native[i].level_1618, native[i].level_2618);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16583,9 +17012,10 @@ public sealed class FibRetracement : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fib_retracement_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fib_retracement_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibRetracementOutput(native.level_0, native.level_236, native.level_382, native.level_500, native.level_618, native.level_786, native.level_1000) : null;
     }
 
@@ -16595,6 +17025,20 @@ public sealed class FibRetracement : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibRetracementOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibRetracementOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibRetracementOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -16617,8 +17061,11 @@ public sealed class FibRetracement : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibRetracementOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -16627,19 +17074,11 @@ public sealed class FibRetracement : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibRetracementOutput* nativePtr = native)
+            fixed (FibRetracementOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fib_retracement_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fib_retracement_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibRetracementOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibRetracementOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibRetracementOutput(native[i].level_0, native[i].level_236, native[i].level_382, native[i].level_500, native[i].level_618, native[i].level_786, native[i].level_1000);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16692,9 +17131,10 @@ public sealed class FibTimeZones : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fib_time_zones_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fib_time_zones_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibTimeZonesOutput(native.on_zone, native.bars_to_next) : null;
     }
 
@@ -16704,6 +17144,20 @@ public sealed class FibTimeZones : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibTimeZonesOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibTimeZonesOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibTimeZonesOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -16726,8 +17180,11 @@ public sealed class FibTimeZones : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibTimeZonesOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -16736,19 +17193,11 @@ public sealed class FibTimeZones : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibTimeZonesOutput* nativePtr = native)
+            fixed (FibTimeZonesOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fib_time_zones_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fib_time_zones_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibTimeZonesOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibTimeZonesOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibTimeZonesOutput(native[i].on_zone, native[i].bars_to_next);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16801,9 +17250,10 @@ public sealed class FibonacciPivots : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fibonacci_pivots_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fibonacci_pivots_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FibonacciPivotsOutput(native.pp, native.r1, native.r2, native.r3, native.s1, native.s2, native.s3) : null;
     }
 
@@ -16813,6 +17263,20 @@ public sealed class FibonacciPivots : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FibonacciPivotsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FibonacciPivotsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FibonacciPivotsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -16835,8 +17299,11 @@ public sealed class FibonacciPivots : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFibonacciPivotsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -16845,19 +17312,11 @@ public sealed class FibonacciPivots : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFibonacciPivotsOutput* nativePtr = native)
+            fixed (FibonacciPivotsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fibonacci_pivots_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fibonacci_pivots_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFibonacciPivotsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FibonacciPivotsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FibonacciPivotsOutput(native[i].pp, native[i].r1, native[i].r2, native[i].r3, native[i].s1, native[i].s2, native[i].s3);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -16907,7 +17366,8 @@ public sealed class FisherRsi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_fisher_rsi_update(_handle, @value);
+        var result = NativeMethods.wickra_fisher_rsi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -17032,7 +17492,8 @@ public sealed class FisherTransform : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_fisher_transform_update(_handle, @value);
+        var result = NativeMethods.wickra_fisher_transform_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -17156,7 +17617,8 @@ public sealed class FlagPennant : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_flag_pennant_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_flag_pennant_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -17273,10 +17735,11 @@ public sealed class Footprint : IDisposable
         {
             fixed (WickraFootprintLevel* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_footprint_update(_handle, price, size, isBuy, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_footprint_update(_handle.Live, price, size, isBuy, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<FootprintLevel>();
@@ -17420,7 +17883,8 @@ public sealed class ForceIndex : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_force_index_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_force_index_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -17535,9 +17999,10 @@ public sealed class FractalChaosBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_fractal_chaos_bands_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_fractal_chaos_bands_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new FractalChaosBandsOutput(native.upper, native.lower) : null;
     }
 
@@ -17547,6 +18012,20 @@ public sealed class FractalChaosBands : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public FractalChaosBandsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<FractalChaosBandsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<FractalChaosBandsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -17569,8 +18048,11 @@ public sealed class FractalChaosBands : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraFractalChaosBandsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -17579,19 +18061,11 @@ public sealed class FractalChaosBands : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraFractalChaosBandsOutput* nativePtr = native)
+            fixed (FractalChaosBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_fractal_chaos_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_fractal_chaos_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraFractalChaosBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<FractalChaosBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new FractalChaosBandsOutput(native[i].upper, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -17641,7 +18115,8 @@ public sealed class Frama : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_frama_update(_handle, @value);
+        var result = NativeMethods.wickra_frama_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -17766,7 +18241,8 @@ public sealed class FryPanBottom : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_fry_pan_bottom_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_fry_pan_bottom_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -17876,7 +18352,8 @@ public sealed class FundingBasis : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_funding_basis_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_funding_basis_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -18016,7 +18493,8 @@ public sealed class FundingImpliedApr : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_funding_implied_apr_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_funding_implied_apr_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -18156,7 +18634,8 @@ public sealed class FundingRate : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_funding_rate_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_funding_rate_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -18297,7 +18776,8 @@ public sealed class FundingRateMean : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_funding_rate_mean_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_funding_rate_mean_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -18438,7 +18918,8 @@ public sealed class FundingRateZScore : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_funding_rate_z_score_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_funding_rate_z_score_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -18579,7 +19060,8 @@ public sealed class GainLossRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_gain_loss_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_gain_loss_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -18704,7 +19186,8 @@ public sealed class GainToPainRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_gain_to_pain_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_gain_to_pain_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -18828,7 +19311,8 @@ public sealed class GapSideBySideWhite : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_gap_side_by_side_white_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_gap_side_by_side_white_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -18938,7 +19422,8 @@ public sealed class Garch11 : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_garch11_update(_handle, @value);
+        var result = NativeMethods.wickra_garch11_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -19064,7 +19549,8 @@ public sealed class GarmanKlassVolatility : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_garman_klass_volatility_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_garman_klass_volatility_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -19174,7 +19660,8 @@ public sealed class Gartley : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_gartley_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_gartley_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -19291,9 +19778,10 @@ public sealed class GatorOscillator : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_gator_oscillator_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_gator_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new GatorOscillatorOutput(native.upper, native.lower) : null;
     }
 
@@ -19303,6 +19791,20 @@ public sealed class GatorOscillator : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public GatorOscillatorOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<GatorOscillatorOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<GatorOscillatorOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -19325,8 +19827,11 @@ public sealed class GatorOscillator : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraGatorOscillatorOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -19335,19 +19840,11 @@ public sealed class GatorOscillator : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraGatorOscillatorOutput* nativePtr = native)
+            fixed (GatorOscillatorOutput* outputPtr = output)
             {
-                NativeMethods.wickra_gator_oscillator_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_gator_oscillator_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraGatorOscillatorOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<GatorOscillatorOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new GatorOscillatorOutput(native[i].upper, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -19397,7 +19894,8 @@ public sealed class GeneralizedDema : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_generalized_dema_update(_handle, @value);
+        var result = NativeMethods.wickra_generalized_dema_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -19522,7 +20020,8 @@ public sealed class GeometricMa : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_geometric_ma_update(_handle, @value);
+        var result = NativeMethods.wickra_geometric_ma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -19650,9 +20149,10 @@ public sealed class GoldenPocket : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_golden_pocket_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_golden_pocket_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new GoldenPocketOutput(native.low, native.mid, native.high) : null;
     }
 
@@ -19662,6 +20162,20 @@ public sealed class GoldenPocket : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public GoldenPocketOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<GoldenPocketOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<GoldenPocketOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -19684,8 +20198,11 @@ public sealed class GoldenPocket : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraGoldenPocketOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -19694,19 +20211,11 @@ public sealed class GoldenPocket : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraGoldenPocketOutput* nativePtr = native)
+            fixed (GoldenPocketOutput* outputPtr = output)
             {
-                NativeMethods.wickra_golden_pocket_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_golden_pocket_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraGoldenPocketOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<GoldenPocketOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new GoldenPocketOutput(native[i].low, native[i].mid, native[i].high);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -19757,7 +20266,8 @@ public sealed class GrangerCausality : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_granger_causality_update(_handle, x, y);
+        var result = NativeMethods.wickra_granger_causality_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -19847,7 +20357,8 @@ public sealed class GravestoneDoji : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_gravestone_doji_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_gravestone_doji_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -19957,7 +20468,8 @@ public sealed class Hammer : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_hammer_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_hammer_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -20067,7 +20579,8 @@ public sealed class HangingMan : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_hanging_man_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_hanging_man_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -20177,7 +20690,8 @@ public sealed class Harami : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_harami_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_harami_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -20287,7 +20801,8 @@ public sealed class HaramiCross : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_harami_cross_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_harami_cross_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -20398,7 +20913,8 @@ public sealed class HasbrouckInformationShare : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_hasbrouck_information_share_update(_handle, x, y);
+        var result = NativeMethods.wickra_hasbrouck_information_share_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -20488,7 +21004,8 @@ public sealed class HeadAndShoulders : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_head_and_shoulders_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_head_and_shoulders_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -20602,9 +21119,10 @@ public sealed class HeikinAshi : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_heikin_ashi_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_heikin_ashi_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new HeikinAshiOutput(native.open, native.high, native.low, native.close) : null;
     }
 
@@ -20614,6 +21132,20 @@ public sealed class HeikinAshi : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public HeikinAshiOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<HeikinAshiOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<HeikinAshiOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -20636,8 +21168,11 @@ public sealed class HeikinAshi : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraHeikinAshiOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -20646,19 +21181,11 @@ public sealed class HeikinAshi : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraHeikinAshiOutput* nativePtr = native)
+            fixed (HeikinAshiOutput* outputPtr = output)
             {
-                NativeMethods.wickra_heikin_ashi_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_heikin_ashi_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraHeikinAshiOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<HeikinAshiOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new HeikinAshiOutput(native[i].open, native[i].high, native[i].low, native[i].close);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -20708,7 +21235,8 @@ public sealed class HeikinAshiOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_heikin_ashi_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_heikin_ashi_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -20819,7 +21347,8 @@ public sealed class HiLoActivator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_hi_lo_activator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_hi_lo_activator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -20961,10 +21490,11 @@ public sealed class HighLowIndex : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_high_low_index_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_high_low_index_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -21080,7 +21610,8 @@ public sealed class HighLowRange : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_high_low_range_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_high_low_range_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -21196,9 +21727,10 @@ public sealed class HighLowVolumeNodes : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_high_low_volume_nodes_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_high_low_volume_nodes_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new HighLowVolumeNodesOutput(native.hvn, native.lvn) : null;
     }
 
@@ -21208,6 +21740,20 @@ public sealed class HighLowVolumeNodes : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public HighLowVolumeNodesOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<HighLowVolumeNodesOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<HighLowVolumeNodesOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -21230,8 +21776,11 @@ public sealed class HighLowVolumeNodes : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraHighLowVolumeNodesOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -21240,19 +21789,11 @@ public sealed class HighLowVolumeNodes : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraHighLowVolumeNodesOutput* nativePtr = native)
+            fixed (HighLowVolumeNodesOutput* outputPtr = output)
             {
-                NativeMethods.wickra_high_low_volume_nodes_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_high_low_volume_nodes_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraHighLowVolumeNodesOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<HighLowVolumeNodesOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new HighLowVolumeNodesOutput(native[i].hvn, native[i].lvn);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -21301,7 +21842,8 @@ public sealed class HighWave : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_high_wave_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_high_wave_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -21412,7 +21954,8 @@ public sealed class HighpassFilter : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_highpass_filter_update(_handle, @value);
+        var result = NativeMethods.wickra_highpass_filter_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -21536,7 +22079,8 @@ public sealed class Hikkake : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_hikkake_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_hikkake_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -21646,7 +22190,8 @@ public sealed class HikkakeModified : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_hikkake_modified_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_hikkake_modified_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -21756,7 +22301,8 @@ public sealed class HilbertDominantCycle : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_hilbert_dominant_cycle_update(_handle, @value);
+        var result = NativeMethods.wickra_hilbert_dominant_cycle_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -21882,7 +22428,8 @@ public sealed class HistoricalVolatility : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_historical_volatility_update(_handle, @value);
+        var result = NativeMethods.wickra_historical_volatility_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -22007,7 +22554,8 @@ public sealed class Hma : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_hma_update(_handle, @value);
+        var result = NativeMethods.wickra_hma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -22131,7 +22679,8 @@ public sealed class HoltWinters : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_holt_winters_update(_handle, @value);
+        var result = NativeMethods.wickra_holt_winters_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -22255,7 +22804,8 @@ public sealed class HomingPigeon : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_homing_pigeon_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_homing_pigeon_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -22365,7 +22915,8 @@ public sealed class HtDcPhase : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ht_dc_phase_update(_handle, @value);
+        var result = NativeMethods.wickra_ht_dc_phase_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -22493,9 +23044,10 @@ public sealed class HtPhasor : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_ht_phasor_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_ht_phasor_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new HtPhasorOutput(native.inphase, native.quadrature) : null;
     }
 
@@ -22506,25 +23058,34 @@ public sealed class HtPhasor : IDisposable
     /// </summary>
     public HtPhasorOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<HtPhasorOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraHtPhasorOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<HtPhasorOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraHtPhasorOutput* nativePtr = native)
+            fixed (HtPhasorOutput* outputPtr = output)
             {
-                NativeMethods.wickra_ht_phasor_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_ht_phasor_batch(_handle, inputPtr, (WickraHtPhasorOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<HtPhasorOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new HtPhasorOutput(native[i].inphase, native[i].quadrature);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -22573,7 +23134,8 @@ public sealed class HtTrendMode : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ht_trend_mode_update(_handle, @value);
+        var result = NativeMethods.wickra_ht_trend_mode_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -22702,9 +23264,10 @@ public sealed class HurstChannel : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_hurst_channel_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_hurst_channel_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new HurstChannelOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -22714,6 +23277,20 @@ public sealed class HurstChannel : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public HurstChannelOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<HurstChannelOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<HurstChannelOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -22736,8 +23313,11 @@ public sealed class HurstChannel : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraHurstChannelOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -22746,19 +23326,11 @@ public sealed class HurstChannel : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraHurstChannelOutput* nativePtr = native)
+            fixed (HurstChannelOutput* outputPtr = output)
             {
-                NativeMethods.wickra_hurst_channel_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_hurst_channel_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraHurstChannelOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<HurstChannelOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new HurstChannelOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -22809,7 +23381,8 @@ public sealed class HurstExponent : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_hurst_exponent_update(_handle, @value);
+        var result = NativeMethods.wickra_hurst_exponent_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -22941,9 +23514,10 @@ public sealed class Ichimoku : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_ichimoku_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_ichimoku_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new IchimokuOutput(native.tenkan, native.kijun, native.senkou_a, native.senkou_b, native.chikou) : null;
     }
 
@@ -22953,6 +23527,20 @@ public sealed class Ichimoku : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public IchimokuOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<IchimokuOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<IchimokuOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -22975,8 +23563,11 @@ public sealed class Ichimoku : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraIchimokuOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -22985,19 +23576,11 @@ public sealed class Ichimoku : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraIchimokuOutput* nativePtr = native)
+            fixed (IchimokuOutput* outputPtr = output)
             {
-                NativeMethods.wickra_ichimoku_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_ichimoku_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraIchimokuOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<IchimokuOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new IchimokuOutput(native[i].tenkan, native[i].kijun, native[i].senkou_a, native[i].senkou_b, native[i].chikou);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -23046,7 +23629,8 @@ public sealed class IdenticalThreeCrows : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_identical_three_crows_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_identical_three_crows_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -23163,10 +23747,11 @@ public sealed class ImbalanceBars : IDisposable
         {
             fixed (WickraImbalanceBar* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_imbalance_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_imbalance_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<ImbalanceBar>();
@@ -23305,7 +23890,8 @@ public sealed class InNeck : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_in_neck_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_in_neck_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -23417,7 +24003,8 @@ public sealed class Inertia : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_inertia_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_inertia_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -23528,7 +24115,8 @@ public sealed class InformationRatio : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_information_ratio_update(_handle, x, y);
+        var result = NativeMethods.wickra_information_ratio_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -23623,9 +24211,10 @@ public sealed class InitialBalance : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_initial_balance_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_initial_balance_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new InitialBalanceOutput(native.high, native.low) : null;
     }
 
@@ -23635,6 +24224,20 @@ public sealed class InitialBalance : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public InitialBalanceOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<InitialBalanceOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<InitialBalanceOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -23657,8 +24260,11 @@ public sealed class InitialBalance : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraInitialBalanceOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -23667,19 +24273,11 @@ public sealed class InitialBalance : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraInitialBalanceOutput* nativePtr = native)
+            fixed (InitialBalanceOutput* outputPtr = output)
             {
-                NativeMethods.wickra_initial_balance_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_initial_balance_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraInitialBalanceOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<InitialBalanceOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new InitialBalanceOutput(native[i].high, native[i].low);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -23729,7 +24327,8 @@ public sealed class InstantaneousTrendline : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_instantaneous_trendline_update(_handle, @value);
+        var result = NativeMethods.wickra_instantaneous_trendline_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -23853,7 +24452,8 @@ public sealed class IntradayIntensity : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_intraday_intensity_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_intraday_intensity_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -23964,7 +24564,8 @@ public sealed class IntradayMomentumIndex : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_intraday_momentum_index_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_intraday_momentum_index_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -24083,10 +24684,11 @@ public sealed class IntradayVolatilityProfile : IDisposable
         {
             fixed (double* valuesPtr = values)
             {
-                length = (long)NativeMethods.wickra_intraday_volatility_profile_update(_handle, open, high, low, close, volume, timestamp, valuesPtr, (nuint)_valuesCapacity);
+                length = (long)NativeMethods.wickra_intraday_volatility_profile_update(_handle.Live, open, high, low, close, volume, timestamp, valuesPtr, (nuint)_valuesCapacity);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (length < 0)
         {
             return null;
@@ -24206,7 +24808,8 @@ public sealed class InverseFisherTransform : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_inverse_fisher_transform_update(_handle, @value);
+        var result = NativeMethods.wickra_inverse_fisher_transform_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -24330,7 +24933,8 @@ public sealed class InvertedHammer : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_inverted_hammer_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_inverted_hammer_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -24441,7 +25045,8 @@ public sealed class JarqueBera : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_jarque_bera_update(_handle, @value);
+        var result = NativeMethods.wickra_jarque_bera_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -24566,7 +25171,8 @@ public sealed class Jma : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_jma_update(_handle, @value);
+        var result = NativeMethods.wickra_jma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -24691,7 +25297,8 @@ public sealed class JumpIndicator : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_jump_indicator_update(_handle, @value);
+        var result = NativeMethods.wickra_jump_indicator_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -24816,7 +25423,8 @@ public sealed class KRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_k_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_k_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -24947,10 +25555,11 @@ public sealed class KagiBars : IDisposable
         {
             fixed (WickraKagiBar* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_kagi_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_kagi_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<KagiBar>();
@@ -25093,9 +25702,10 @@ public sealed class KalmanHedgeRatio : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_kalman_hedge_ratio_update(_handle, x, y, &native);
+            ok = NativeMethods.wickra_kalman_hedge_ratio_update(_handle.Live, x, y, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new KalmanHedgeRatioOutput(native.hedge_ratio, native.intercept, native.spread) : null;
     }
 
@@ -25106,30 +25716,39 @@ public sealed class KalmanHedgeRatio : IDisposable
     /// </summary>
     public KalmanHedgeRatioOutput[] Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y)
     {
+        var output = GC.AllocateUninitializedArray<KalmanHedgeRatioOutput>(x.Length);
+        Batch(x, y, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Span<KalmanHedgeRatioOutput> output)
+    {
         var n = x.Length;
         if (y.Length != n)
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraKalmanHedgeRatioOutput[n];
         unsafe
         {
             fixed (double* xPtr = x)
             fixed (double* yPtr = y)
-            fixed (WickraKalmanHedgeRatioOutput* nativePtr = native)
+            fixed (KalmanHedgeRatioOutput* outputPtr = output)
             {
-                NativeMethods.wickra_kalman_hedge_ratio_batch(_handle, xPtr, yPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_kalman_hedge_ratio_batch(_handle, xPtr, yPtr, (WickraKalmanHedgeRatioOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<KalmanHedgeRatioOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new KalmanHedgeRatioOutput(native[i].hedge_ratio, native[i].intercept, native[i].spread);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -25181,7 +25800,8 @@ public sealed class Kama : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_kama_update(_handle, @value);
+        var result = NativeMethods.wickra_kama_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -25310,9 +25930,10 @@ public sealed class KaseDevStop : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_kase_dev_stop_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_kase_dev_stop_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new KaseDevStopOutput(native.@value, native.direction) : null;
     }
 
@@ -25322,6 +25943,20 @@ public sealed class KaseDevStop : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public KaseDevStopOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<KaseDevStopOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<KaseDevStopOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -25344,8 +25979,11 @@ public sealed class KaseDevStop : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraKaseDevStopOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -25354,19 +25992,11 @@ public sealed class KaseDevStop : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraKaseDevStopOutput* nativePtr = native)
+            fixed (KaseDevStopOutput* outputPtr = output)
             {
-                NativeMethods.wickra_kase_dev_stop_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_kase_dev_stop_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraKaseDevStopOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<KaseDevStopOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new KaseDevStopOutput(native[i].@value, native[i].direction);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -25421,9 +26051,10 @@ public sealed class KasePermissionStochastic : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_kase_permission_stochastic_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_kase_permission_stochastic_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new KasePermissionStochasticOutput(native.fast, native.slow) : null;
     }
 
@@ -25433,6 +26064,20 @@ public sealed class KasePermissionStochastic : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public KasePermissionStochasticOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<KasePermissionStochasticOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<KasePermissionStochasticOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -25455,8 +26100,11 @@ public sealed class KasePermissionStochastic : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraKasePermissionStochasticOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -25465,19 +26113,11 @@ public sealed class KasePermissionStochastic : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraKasePermissionStochasticOutput* nativePtr = native)
+            fixed (KasePermissionStochasticOutput* outputPtr = output)
             {
-                NativeMethods.wickra_kase_permission_stochastic_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_kase_permission_stochastic_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraKasePermissionStochasticOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<KasePermissionStochasticOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new KasePermissionStochasticOutput(native[i].fast, native[i].slow);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -25527,7 +26167,8 @@ public sealed class KellyCriterion : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_kelly_criterion_update(_handle, @value);
+        var result = NativeMethods.wickra_kelly_criterion_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -25657,9 +26298,10 @@ public sealed class Keltner : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_keltner_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_keltner_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new KeltnerOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -25669,6 +26311,20 @@ public sealed class Keltner : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public KeltnerOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<KeltnerOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<KeltnerOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -25691,8 +26347,11 @@ public sealed class Keltner : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraKeltnerOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -25701,19 +26360,11 @@ public sealed class Keltner : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraKeltnerOutput* nativePtr = native)
+            fixed (KeltnerOutput* outputPtr = output)
             {
-                NativeMethods.wickra_keltner_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_keltner_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraKeltnerOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<KeltnerOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new KeltnerOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -25763,7 +26414,8 @@ public sealed class KendallTau : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_kendall_tau_update(_handle, x, y);
+        var result = NativeMethods.wickra_kendall_tau_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -25853,7 +26505,8 @@ public sealed class Kicking : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_kicking_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_kicking_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -25963,7 +26616,8 @@ public sealed class KickingByLength : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_kicking_by_length_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_kicking_by_length_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -26086,9 +26740,10 @@ public sealed class Kst : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_kst_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_kst_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new KstOutput(native.kst, native.signal) : null;
     }
 
@@ -26099,25 +26754,34 @@ public sealed class Kst : IDisposable
     /// </summary>
     public KstOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<KstOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraKstOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<KstOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraKstOutput* nativePtr = native)
+            fixed (KstOutput* outputPtr = output)
             {
-                NativeMethods.wickra_kst_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_kst_batch(_handle, inputPtr, (WickraKstOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<KstOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new KstOutput(native[i].kst, native[i].signal);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -26167,7 +26831,8 @@ public sealed class Kurtosis : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_kurtosis_update(_handle, @value);
+        var result = NativeMethods.wickra_kurtosis_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -26293,7 +26958,8 @@ public sealed class Kvo : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_kvo_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_kvo_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -26404,7 +27070,8 @@ public sealed class KylesLambda : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp, double mid)
     {
-        var result = NativeMethods.wickra_kyles_lambda_update(_handle, price, size, isBuy, timestamp, mid);
+        var result = NativeMethods.wickra_kyles_lambda_update(_handle.Live, price, size, isBuy, timestamp, mid);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -26509,7 +27176,8 @@ public sealed class LadderBottom : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_ladder_bottom_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_ladder_bottom_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -26619,7 +27287,8 @@ public sealed class LaguerreRsi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_laguerre_rsi_update(_handle, @value);
+        var result = NativeMethods.wickra_laguerre_rsi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -26749,9 +27418,10 @@ public sealed class LeadLagCrossCorrelation : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_lead_lag_cross_correlation_update(_handle, x, y, &native);
+            ok = NativeMethods.wickra_lead_lag_cross_correlation_update(_handle.Live, x, y, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new LeadLagCrossCorrelationOutput(native.lag, native.correlation) : null;
     }
 
@@ -26762,30 +27432,39 @@ public sealed class LeadLagCrossCorrelation : IDisposable
     /// </summary>
     public LeadLagCrossCorrelationOutput[] Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y)
     {
+        var output = GC.AllocateUninitializedArray<LeadLagCrossCorrelationOutput>(x.Length);
+        Batch(x, y, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Span<LeadLagCrossCorrelationOutput> output)
+    {
         var n = x.Length;
         if (y.Length != n)
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraLeadLagCrossCorrelationOutput[n];
         unsafe
         {
             fixed (double* xPtr = x)
             fixed (double* yPtr = y)
-            fixed (WickraLeadLagCrossCorrelationOutput* nativePtr = native)
+            fixed (LeadLagCrossCorrelationOutput* outputPtr = output)
             {
-                NativeMethods.wickra_lead_lag_cross_correlation_batch(_handle, xPtr, yPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_lead_lag_cross_correlation_batch(_handle, xPtr, yPtr, (WickraLeadLagCrossCorrelationOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<LeadLagCrossCorrelationOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new LeadLagCrossCorrelationOutput(native[i].lag, native[i].correlation);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -26835,7 +27514,8 @@ public sealed class LinRegAngle : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_lin_reg_angle_update(_handle, @value);
+        var result = NativeMethods.wickra_lin_reg_angle_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -26964,9 +27644,10 @@ public sealed class LinRegChannel : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_lin_reg_channel_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_lin_reg_channel_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new LinRegChannelOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -26977,25 +27658,34 @@ public sealed class LinRegChannel : IDisposable
     /// </summary>
     public LinRegChannelOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<LinRegChannelOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraLinRegChannelOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<LinRegChannelOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraLinRegChannelOutput* nativePtr = native)
+            fixed (LinRegChannelOutput* outputPtr = output)
             {
-                NativeMethods.wickra_lin_reg_channel_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_lin_reg_channel_batch(_handle, inputPtr, (WickraLinRegChannelOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<LinRegChannelOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new LinRegChannelOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -27045,7 +27735,8 @@ public sealed class LinRegIntercept : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_lin_reg_intercept_update(_handle, @value);
+        var result = NativeMethods.wickra_lin_reg_intercept_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -27170,7 +27861,8 @@ public sealed class LinRegSlope : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_lin_reg_slope_update(_handle, @value);
+        var result = NativeMethods.wickra_lin_reg_slope_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -27295,7 +27987,8 @@ public sealed class LinearRegression : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_linear_regression_update(_handle, @value);
+        var result = NativeMethods.wickra_linear_regression_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -27423,9 +28116,10 @@ public sealed class LiquidationFeatures : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_liquidation_features_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp, &native);
+            ok = NativeMethods.wickra_liquidation_features_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new LiquidationFeaturesOutput(native.long_, native.short_, native.net, native.total, native.imbalance) : null;
     }
 
@@ -27435,6 +28129,20 @@ public sealed class LiquidationFeatures : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public LiquidationFeaturesOutput[] Batch(ReadOnlySpan<double> fundingRate, ReadOnlySpan<double> markPrice, ReadOnlySpan<double> indexPrice, ReadOnlySpan<double> futuresPrice, ReadOnlySpan<double> openInterest, ReadOnlySpan<double> longSize, ReadOnlySpan<double> shortSize, ReadOnlySpan<double> takerBuyVolume, ReadOnlySpan<double> takerSellVolume, ReadOnlySpan<double> longLiquidation, ReadOnlySpan<double> shortLiquidation, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<LiquidationFeaturesOutput>(fundingRate.Length);
+        Batch(fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> fundingRate, ReadOnlySpan<double> markPrice, ReadOnlySpan<double> indexPrice, ReadOnlySpan<double> futuresPrice, ReadOnlySpan<double> openInterest, ReadOnlySpan<double> longSize, ReadOnlySpan<double> shortSize, ReadOnlySpan<double> takerBuyVolume, ReadOnlySpan<double> takerSellVolume, ReadOnlySpan<double> longLiquidation, ReadOnlySpan<double> shortLiquidation, ReadOnlySpan<long> timestamp, Span<LiquidationFeaturesOutput> output)
     {
         var n = fundingRate.Length;
         if (markPrice.Length != n)
@@ -27481,8 +28189,11 @@ public sealed class LiquidationFeatures : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraLiquidationFeaturesOutput[n];
         unsafe
         {
             fixed (double* fundingRatePtr = fundingRate)
@@ -27497,19 +28208,11 @@ public sealed class LiquidationFeatures : IDisposable
             fixed (double* longLiquidationPtr = longLiquidation)
             fixed (double* shortLiquidationPtr = shortLiquidation)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraLiquidationFeaturesOutput* nativePtr = native)
+            fixed (LiquidationFeaturesOutput* outputPtr = output)
             {
-                NativeMethods.wickra_liquidation_features_batch(_handle, fundingRatePtr, markPricePtr, indexPricePtr, futuresPricePtr, openInterestPtr, longSizePtr, shortSizePtr, takerBuyVolumePtr, takerSellVolumePtr, longLiquidationPtr, shortLiquidationPtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_liquidation_features_batch(_handle, fundingRatePtr, markPricePtr, indexPricePtr, futuresPricePtr, openInterestPtr, longSizePtr, shortSizePtr, takerBuyVolumePtr, takerSellVolumePtr, longLiquidationPtr, shortLiquidationPtr, timestampPtr, (WickraLiquidationFeaturesOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<LiquidationFeaturesOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new LiquidationFeaturesOutput(native[i].long_, native[i].short_, native[i].net, native[i].total, native[i].imbalance);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -27559,7 +28262,8 @@ public sealed class LogReturn : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_log_return_update(_handle, @value);
+        var result = NativeMethods.wickra_log_return_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -27683,7 +28387,8 @@ public sealed class LongLeggedDoji : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_long_legged_doji_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_long_legged_doji_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -27793,7 +28498,8 @@ public sealed class LongLine : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_long_line_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_long_line_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -27903,7 +28609,8 @@ public sealed class LongShortRatio : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_long_short_ratio_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_long_short_ratio_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -28044,7 +28751,8 @@ public sealed class M2Measure : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_m2_measure_update(_handle, @value);
+        var result = NativeMethods.wickra_m2_measure_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -28173,9 +28881,10 @@ public sealed class MaEnvelope : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_ma_envelope_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_ma_envelope_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new MaEnvelopeOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -28186,25 +28895,34 @@ public sealed class MaEnvelope : IDisposable
     /// </summary>
     public MaEnvelopeOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<MaEnvelopeOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraMaEnvelopeOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<MaEnvelopeOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraMaEnvelopeOutput* nativePtr = native)
+            fixed (MaEnvelopeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_ma_envelope_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_ma_envelope_batch(_handle, inputPtr, (WickraMaEnvelopeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<MaEnvelopeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new MaEnvelopeOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -28260,9 +28978,10 @@ public sealed class MacdExt : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_macd_ext_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_macd_ext_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new MacdOutput(native.macd, native.signal, native.histogram) : null;
     }
 
@@ -28273,25 +28992,34 @@ public sealed class MacdExt : IDisposable
     /// </summary>
     public MacdOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<MacdOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraMacdOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<MacdOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraMacdOutput* nativePtr = native)
+            fixed (MacdOutput* outputPtr = output)
             {
-                NativeMethods.wickra_macd_ext_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_macd_ext_batch(_handle, inputPtr, (WickraMacdOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<MacdOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new MacdOutput(native[i].macd, native[i].signal, native[i].histogram);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -28345,9 +29073,10 @@ public sealed class MacdFix : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_macd_fix_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_macd_fix_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new MacdOutput(native.macd, native.signal, native.histogram) : null;
     }
 
@@ -28358,25 +29087,34 @@ public sealed class MacdFix : IDisposable
     /// </summary>
     public MacdOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<MacdOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraMacdOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<MacdOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraMacdOutput* nativePtr = native)
+            fixed (MacdOutput* outputPtr = output)
             {
-                NativeMethods.wickra_macd_fix_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_macd_fix_batch(_handle, inputPtr, (WickraMacdOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<MacdOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new MacdOutput(native[i].macd, native[i].signal, native[i].histogram);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -28428,7 +29166,8 @@ public sealed class MacdHistogram : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_macd_histogram_update(_handle, @value);
+        var result = NativeMethods.wickra_macd_histogram_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -28559,9 +29298,10 @@ public sealed class MacdIndicator : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_macd_indicator_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_macd_indicator_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new MacdOutput(native.macd, native.signal, native.histogram) : null;
     }
 
@@ -28572,25 +29312,34 @@ public sealed class MacdIndicator : IDisposable
     /// </summary>
     public MacdOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<MacdOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraMacdOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<MacdOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraMacdOutput* nativePtr = native)
+            fixed (MacdOutput* outputPtr = output)
             {
-                NativeMethods.wickra_macd_indicator_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_macd_indicator_batch(_handle, inputPtr, (WickraMacdOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<MacdOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new MacdOutput(native[i].macd, native[i].signal, native[i].histogram);
-        }
-
-        return result;
     }
 
     /// <summary>
@@ -28601,25 +29350,35 @@ public sealed class MacdIndicator : IDisposable
     /// </summary>
     public MacdOutput[] BatchFast(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<MacdOutput>(input.Length);
+        BatchFast(input, output);
+        return output;
+    }
 
-        var native = new WickraMacdOutput[n];
+    /// <summary>
+    /// Opt-in fast batch: the SIMD kernel reassociates the arithmetic, so each
+    /// field agrees with Batch to within a few units in the last place rather
+    /// than bit for bit; warmup rows and length are identical, and the result
+    /// is the same on every platform.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void BatchFast(ReadOnlySpan<double> input, Span<MacdOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraMacdOutput* nativePtr = native)
+            fixed (MacdOutput* outputPtr = output)
             {
-                NativeMethods.wickra_macd_indicator_batch_fast(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_macd_indicator_batch_fast(_handle, inputPtr, (WickraMacdOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<MacdOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new MacdOutput(native[i].macd, native[i].signal, native[i].histogram);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -28672,9 +29431,10 @@ public sealed class Mama : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_mama_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_mama_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new MamaOutput(native.mama, native.fama) : null;
     }
 
@@ -28685,25 +29445,34 @@ public sealed class Mama : IDisposable
     /// </summary>
     public MamaOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<MamaOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraMamaOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<MamaOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraMamaOutput* nativePtr = native)
+            fixed (MamaOutput* outputPtr = output)
             {
-                NativeMethods.wickra_mama_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_mama_batch(_handle, inputPtr, (WickraMamaOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<MamaOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new MamaOutput(native[i].mama, native[i].fama);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -28752,7 +29521,8 @@ public sealed class MarketFacilitationIndex : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_market_facilitation_index_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_market_facilitation_index_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -28863,7 +29633,8 @@ public sealed class MartinRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_martin_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_martin_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -28987,7 +29758,8 @@ public sealed class Marubozu : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_marubozu_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_marubozu_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -29099,7 +29871,8 @@ public sealed class MassIndex : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_mass_index_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_mass_index_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -29209,7 +29982,8 @@ public sealed class MatHold : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_mat_hold_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_mat_hold_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -29319,7 +30093,8 @@ public sealed class MatchingLow : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_matching_low_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_matching_low_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -29430,7 +30205,8 @@ public sealed class MaxDrawdown : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_max_drawdown_update(_handle, @value);
+        var result = NativeMethods.wickra_max_drawdown_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -29585,10 +30361,11 @@ public sealed class McClellanOscillator : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_mc_clellan_oscillator_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_mc_clellan_oscillator_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -29735,10 +30512,11 @@ public sealed class McClellanSummationIndex : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_mc_clellan_summation_index_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_mc_clellan_summation_index_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -29855,7 +30633,8 @@ public sealed class McGinleyDynamic : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_mc_ginley_dynamic_update(_handle, @value);
+        var result = NativeMethods.wickra_mc_ginley_dynamic_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -29980,7 +30759,8 @@ public sealed class MedianAbsoluteDeviation : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_median_absolute_deviation_update(_handle, @value);
+        var result = NativeMethods.wickra_median_absolute_deviation_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -30109,9 +30889,10 @@ public sealed class MedianChannel : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_median_channel_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_median_channel_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new MedianChannelOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -30122,25 +30903,34 @@ public sealed class MedianChannel : IDisposable
     /// </summary>
     public MedianChannelOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<MedianChannelOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraMedianChannelOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<MedianChannelOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraMedianChannelOutput* nativePtr = native)
+            fixed (MedianChannelOutput* outputPtr = output)
             {
-                NativeMethods.wickra_median_channel_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_median_channel_batch(_handle, inputPtr, (WickraMedianChannelOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<MedianChannelOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new MedianChannelOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -30190,7 +30980,8 @@ public sealed class MedianMa : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_median_ma_update(_handle, @value);
+        var result = NativeMethods.wickra_median_ma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -30314,7 +31105,8 @@ public sealed class MedianPrice : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_median_price_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_median_price_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -30425,7 +31217,8 @@ public sealed class Mfi : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_mfi_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_mfi_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -30552,10 +31345,11 @@ public sealed class Microprice : IDisposable
             fixed (double* askPricePtr = askPrice)
             fixed (double* askSizePtr = askSize)
             {
-                result = NativeMethods.wickra_microprice_update(_handle, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
+                result = NativeMethods.wickra_microprice_update(_handle.Live, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -30661,7 +31455,8 @@ public sealed class MidPoint : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_mid_point_update(_handle, @value);
+        var result = NativeMethods.wickra_mid_point_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -30786,7 +31581,8 @@ public sealed class MidPrice : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_mid_price_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_mid_price_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -30897,7 +31693,8 @@ public sealed class MinusDi : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_minus_di_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_minus_di_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -31008,7 +31805,8 @@ public sealed class MinusDm : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_minus_dm_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_minus_dm_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -31123,9 +31921,10 @@ public sealed class ModifiedMaStop : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_modified_ma_stop_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_modified_ma_stop_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ModifiedMaStopOutput(native.@value, native.direction) : null;
     }
 
@@ -31135,6 +31934,20 @@ public sealed class ModifiedMaStop : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ModifiedMaStopOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ModifiedMaStopOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ModifiedMaStopOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -31157,8 +31970,11 @@ public sealed class ModifiedMaStop : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraModifiedMaStopOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -31167,19 +31983,11 @@ public sealed class ModifiedMaStop : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraModifiedMaStopOutput* nativePtr = native)
+            fixed (ModifiedMaStopOutput* outputPtr = output)
             {
-                NativeMethods.wickra_modified_ma_stop_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_modified_ma_stop_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraModifiedMaStopOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ModifiedMaStopOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ModifiedMaStopOutput(native[i].@value, native[i].direction);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -31229,7 +32037,8 @@ public sealed class Mom : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_mom_update(_handle, @value);
+        var result = NativeMethods.wickra_mom_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -31353,7 +32162,8 @@ public sealed class MorningDojiStar : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_morning_doji_star_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_morning_doji_star_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -31463,7 +32273,8 @@ public sealed class MorningEveningStar : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_morning_evening_star_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_morning_evening_star_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -31578,9 +32389,10 @@ public sealed class MurreyMathLines : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_murrey_math_lines_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_murrey_math_lines_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new MurreyMathLinesOutput(native.mm8_8, native.mm7_8, native.mm6_8, native.mm5_8, native.mm4_8, native.mm3_8, native.mm2_8, native.mm1_8, native.mm0_8) : null;
     }
 
@@ -31590,6 +32402,20 @@ public sealed class MurreyMathLines : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public MurreyMathLinesOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<MurreyMathLinesOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<MurreyMathLinesOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -31612,8 +32438,11 @@ public sealed class MurreyMathLines : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraMurreyMathLinesOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -31622,19 +32451,11 @@ public sealed class MurreyMathLines : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraMurreyMathLinesOutput* nativePtr = native)
+            fixed (MurreyMathLinesOutput* outputPtr = output)
             {
-                NativeMethods.wickra_murrey_math_lines_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_murrey_math_lines_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraMurreyMathLinesOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<MurreyMathLinesOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new MurreyMathLinesOutput(native[i].mm8_8, native[i].mm7_8, native[i].mm6_8, native[i].mm5_8, native[i].mm4_8, native[i].mm3_8, native[i].mm2_8, native[i].mm1_8, native[i].mm0_8);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -31685,7 +32506,8 @@ public sealed class NakedPoc : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_naked_poc_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_naked_poc_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -31796,7 +32618,8 @@ public sealed class Natr : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_natr_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_natr_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -31937,10 +32760,11 @@ public sealed class NewHighsNewLows : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_new_highs_new_lows_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_new_highs_new_lows_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -32057,7 +32881,8 @@ public sealed class NewPriceLines : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_new_price_lines_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_new_price_lines_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -32171,9 +32996,10 @@ public sealed class Nrtr : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_nrtr_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_nrtr_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new NrtrOutput(native.@value, native.direction) : null;
     }
 
@@ -32183,6 +33009,20 @@ public sealed class Nrtr : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public NrtrOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<NrtrOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<NrtrOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -32205,8 +33045,11 @@ public sealed class Nrtr : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraNrtrOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -32215,19 +33058,11 @@ public sealed class Nrtr : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraNrtrOutput* nativePtr = native)
+            fixed (NrtrOutput* outputPtr = output)
             {
-                NativeMethods.wickra_nrtr_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_nrtr_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraNrtrOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<NrtrOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new NrtrOutput(native[i].@value, native[i].direction);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -32276,7 +33111,8 @@ public sealed class Nvi : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_nvi_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_nvi_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -32386,7 +33222,8 @@ public sealed class Obv : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_obv_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_obv_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -32497,7 +33334,8 @@ public sealed class OIPriceDivergence : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_oi_price_divergence_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_oi_price_divergence_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -32637,7 +33475,8 @@ public sealed class OiToVolumeRatio : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_oi_to_volume_ratio_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_oi_to_volume_ratio_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -32777,7 +33616,8 @@ public sealed class OIWeighted : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_oi_weighted_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_oi_weighted_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -32918,7 +33758,8 @@ public sealed class OmegaRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_omega_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_omega_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -33042,7 +33883,8 @@ public sealed class OnNeck : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_on_neck_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_on_neck_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -33152,7 +33994,8 @@ public sealed class OpenInterestDelta : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_open_interest_delta_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_open_interest_delta_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -33293,7 +34136,8 @@ public sealed class OpenInterestMomentum : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_open_interest_momentum_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_open_interest_momentum_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -33433,7 +34277,8 @@ public sealed class OpeningMarubozu : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_opening_marubozu_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_opening_marubozu_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -33548,9 +34393,10 @@ public sealed class OpeningRange : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_opening_range_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_opening_range_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new OpeningRangeOutput(native.high, native.low, native.breakout_distance) : null;
     }
 
@@ -33560,6 +34406,20 @@ public sealed class OpeningRange : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public OpeningRangeOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<OpeningRangeOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<OpeningRangeOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -33582,8 +34442,11 @@ public sealed class OpeningRange : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraOpeningRangeOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -33592,19 +34455,11 @@ public sealed class OpeningRange : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraOpeningRangeOutput* nativePtr = native)
+            fixed (OpeningRangeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_opening_range_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_opening_range_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraOpeningRangeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<OpeningRangeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new OpeningRangeOutput(native[i].high, native[i].low, native[i].breakout_distance);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -33670,10 +34525,11 @@ public sealed class OrderBookImbalanceFull : IDisposable
             fixed (double* askPricePtr = askPrice)
             fixed (double* askSizePtr = askSize)
             {
-                result = NativeMethods.wickra_order_book_imbalance_full_update(_handle, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
+                result = NativeMethods.wickra_order_book_imbalance_full_update(_handle.Live, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -33795,10 +34651,11 @@ public sealed class OrderBookImbalanceTop1 : IDisposable
             fixed (double* askPricePtr = askPrice)
             fixed (double* askSizePtr = askSize)
             {
-                result = NativeMethods.wickra_order_book_imbalance_top1_update(_handle, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
+                result = NativeMethods.wickra_order_book_imbalance_top1_update(_handle.Live, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -33921,10 +34778,11 @@ public sealed class OrderBookImbalanceTopN : IDisposable
             fixed (double* askPricePtr = askPrice)
             fixed (double* askSizePtr = askSize)
             {
-                result = NativeMethods.wickra_order_book_imbalance_top_n_update(_handle, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
+                result = NativeMethods.wickra_order_book_imbalance_top_n_update(_handle.Live, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -34047,10 +34905,11 @@ public sealed class OrderFlowImbalance : IDisposable
             fixed (double* askPricePtr = askPrice)
             fixed (double* askSizePtr = askSize)
             {
-                result = NativeMethods.wickra_order_flow_imbalance_update(_handle, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
+                result = NativeMethods.wickra_order_flow_imbalance_update(_handle.Live, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -34156,7 +35015,8 @@ public sealed class OuHalfLife : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_ou_half_life_update(_handle, x, y);
+        var result = NativeMethods.wickra_ou_half_life_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -34246,7 +35106,8 @@ public sealed class OvernightGap : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_overnight_gap_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_overnight_gap_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -34360,9 +35221,10 @@ public sealed class OvernightIntradayReturn : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_overnight_intraday_return_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_overnight_intraday_return_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new OvernightIntradayReturnOutput(native.overnight, native.intraday) : null;
     }
 
@@ -34372,6 +35234,20 @@ public sealed class OvernightIntradayReturn : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public OvernightIntradayReturnOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<OvernightIntradayReturnOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<OvernightIntradayReturnOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -34394,8 +35270,11 @@ public sealed class OvernightIntradayReturn : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraOvernightIntradayReturnOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -34404,19 +35283,11 @@ public sealed class OvernightIntradayReturn : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraOvernightIntradayReturnOutput* nativePtr = native)
+            fixed (OvernightIntradayReturnOutput* outputPtr = output)
             {
-                NativeMethods.wickra_overnight_intraday_return_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_overnight_intraday_return_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraOvernightIntradayReturnOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<OvernightIntradayReturnOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new OvernightIntradayReturnOutput(native[i].overnight, native[i].intraday);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -34466,7 +35337,8 @@ public sealed class PainIndex : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_pain_index_update(_handle, @value);
+        var result = NativeMethods.wickra_pain_index_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -34592,7 +35464,8 @@ public sealed class PairSpreadZScore : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_pair_spread_z_score_update(_handle, x, y);
+        var result = NativeMethods.wickra_pair_spread_z_score_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -34683,7 +35556,8 @@ public sealed class PairwiseBeta : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_pairwise_beta_update(_handle, x, y);
+        var result = NativeMethods.wickra_pairwise_beta_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -34775,7 +35649,8 @@ public sealed class ParkinsonVolatility : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_parkinson_volatility_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_parkinson_volatility_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -34886,7 +35761,8 @@ public sealed class PearsonCorrelation : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_pearson_correlation_update(_handle, x, y);
+        var result = NativeMethods.wickra_pearson_correlation_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35051,10 +35927,11 @@ public sealed class PercentAboveMa : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_percent_above_ma_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_percent_above_ma_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35171,7 +36048,8 @@ public sealed class PercentB : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_percent_b_update(_handle, @value);
+        var result = NativeMethods.wickra_percent_b_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35295,7 +36173,8 @@ public sealed class PercentageTrailingStop : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_percentage_trailing_stop_update(_handle, @value);
+        var result = NativeMethods.wickra_percentage_trailing_stop_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35419,7 +36298,8 @@ public sealed class PerpetualPremiumIndex : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_perpetual_premium_index_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_perpetual_premium_index_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35560,7 +36440,8 @@ public sealed class Pgo : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_pgo_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_pgo_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35670,7 +36551,8 @@ public sealed class PiercingDarkCloud : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_piercing_dark_cloud_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_piercing_dark_cloud_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35781,7 +36663,8 @@ public sealed class Pin : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp)
     {
-        var result = NativeMethods.wickra_pin_update(_handle, price, size, isBuy, timestamp);
+        var result = NativeMethods.wickra_pin_update(_handle.Live, price, size, isBuy, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35883,7 +36766,8 @@ public sealed class PivotReversal : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_pivot_reversal_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_pivot_reversal_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -35994,7 +36878,8 @@ public sealed class PlusDi : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_plus_di_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_plus_di_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -36105,7 +36990,8 @@ public sealed class PlusDm : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_plus_dm_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_plus_dm_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -36217,7 +37103,8 @@ public sealed class Pmo : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_pmo_update(_handle, @value);
+        var result = NativeMethods.wickra_pmo_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -36349,10 +37236,11 @@ public sealed class PointAndFigureBars : IDisposable
         {
             fixed (WickraPnfColumn* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_point_and_figure_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_point_and_figure_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<PnfColumn>();
@@ -36493,7 +37381,8 @@ public sealed class PolarizedFractalEfficiency : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_polarized_fractal_efficiency_update(_handle, @value);
+        var result = NativeMethods.wickra_polarized_fractal_efficiency_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -36619,7 +37508,8 @@ public sealed class Ppo : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ppo_update(_handle, @value);
+        var result = NativeMethods.wickra_ppo_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -36746,7 +37636,8 @@ public sealed class PpoHistogram : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ppo_histogram_update(_handle, @value);
+        var result = NativeMethods.wickra_ppo_histogram_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -36872,7 +37763,8 @@ public sealed class ProfileShape : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_profile_shape_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_profile_shape_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -36983,7 +37875,8 @@ public sealed class ProfitFactor : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_profit_factor_update(_handle, @value);
+        var result = NativeMethods.wickra_profit_factor_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -37112,9 +38005,10 @@ public sealed class ProjectionBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_projection_bands_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_projection_bands_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ProjectionBandsOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -37124,6 +38018,20 @@ public sealed class ProjectionBands : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ProjectionBandsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ProjectionBandsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ProjectionBandsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -37146,8 +38054,11 @@ public sealed class ProjectionBands : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraProjectionBandsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -37156,19 +38067,11 @@ public sealed class ProjectionBands : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraProjectionBandsOutput* nativePtr = native)
+            fixed (ProjectionBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_projection_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_projection_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraProjectionBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ProjectionBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ProjectionBandsOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -37218,7 +38121,8 @@ public sealed class ProjectionOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_projection_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_projection_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -37328,7 +38232,8 @@ public sealed class Psar : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_psar_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_psar_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -37438,7 +38343,8 @@ public sealed class Pvi : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_pvi_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_pvi_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -37554,9 +38460,10 @@ public sealed class Qqe : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_qqe_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_qqe_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new QqeOutput(native.rsi_ma, native.trailing_line) : null;
     }
 
@@ -37567,25 +38474,34 @@ public sealed class Qqe : IDisposable
     /// </summary>
     public QqeOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<QqeOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraQqeOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<QqeOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraQqeOutput* nativePtr = native)
+            fixed (QqeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_qqe_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_qqe_batch(_handle, inputPtr, (WickraQqeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<QqeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new QqeOutput(native[i].rsi_ma, native[i].trailing_line);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -37635,7 +38551,8 @@ public sealed class Qstick : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_qstick_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_qstick_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -37750,9 +38667,10 @@ public sealed class QuartileBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_quartile_bands_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_quartile_bands_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new QuartileBandsOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -37763,25 +38681,34 @@ public sealed class QuartileBands : IDisposable
     /// </summary>
     public QuartileBandsOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<QuartileBandsOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraQuartileBandsOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<QuartileBandsOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraQuartileBandsOutput* nativePtr = native)
+            fixed (QuartileBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_quartile_bands_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_quartile_bands_batch(_handle, inputPtr, (WickraQuartileBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<QuartileBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new QuartileBandsOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -37847,10 +38774,11 @@ public sealed class QuotedSpread : IDisposable
             fixed (double* askPricePtr = askPrice)
             fixed (double* askSizePtr = askSize)
             {
-                result = NativeMethods.wickra_quoted_spread_update(_handle, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
+                result = NativeMethods.wickra_quoted_spread_update(_handle.Live, bidPricePtr, bidSizePtr, (nuint)bidPrice.Length, askPricePtr, askSizePtr, (nuint)askPrice.Length);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -37956,7 +38884,8 @@ public sealed class RSquared : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_r_squared_update(_handle, @value);
+        var result = NativeMethods.wickra_r_squared_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -38087,10 +39016,11 @@ public sealed class RangeBars : IDisposable
         {
             fixed (WickraRangeBar* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_range_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_range_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<RangeBar>();
@@ -38230,7 +39160,8 @@ public sealed class RealizedSpread : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp, double mid)
     {
-        var result = NativeMethods.wickra_realized_spread_update(_handle, price, size, isBuy, timestamp, mid);
+        var result = NativeMethods.wickra_realized_spread_update(_handle.Live, price, size, isBuy, timestamp, mid);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -38336,7 +39267,8 @@ public sealed class RealizedVolatility : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_realized_volatility_update(_handle, @value);
+        var result = NativeMethods.wickra_realized_volatility_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -38460,7 +39392,8 @@ public sealed class RecoveryFactor : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_recovery_factor_update(_handle, @value);
+        var result = NativeMethods.wickra_recovery_factor_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -38584,7 +39517,8 @@ public sealed class RectangleRange : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_rectangle_range_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_rectangle_range_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -38695,7 +39629,8 @@ public sealed class Reflex : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_reflex_update(_handle, @value);
+        var result = NativeMethods.wickra_reflex_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -38821,7 +39756,8 @@ public sealed class RegimeLabel : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_regime_label_update(_handle, @value);
+        var result = NativeMethods.wickra_regime_label_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -38951,9 +39887,10 @@ public sealed class RelativeStrengthAB : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_relative_strength_ab_update(_handle, x, y, &native);
+            ok = NativeMethods.wickra_relative_strength_ab_update(_handle.Live, x, y, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new RelativeStrengthOutput(native.ratio, native.ratio_ma, native.ratio_rsi) : null;
     }
 
@@ -38964,30 +39901,39 @@ public sealed class RelativeStrengthAB : IDisposable
     /// </summary>
     public RelativeStrengthOutput[] Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y)
     {
+        var output = GC.AllocateUninitializedArray<RelativeStrengthOutput>(x.Length);
+        Batch(x, y, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Span<RelativeStrengthOutput> output)
+    {
         var n = x.Length;
         if (y.Length != n)
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraRelativeStrengthOutput[n];
         unsafe
         {
             fixed (double* xPtr = x)
             fixed (double* yPtr = y)
-            fixed (WickraRelativeStrengthOutput* nativePtr = native)
+            fixed (RelativeStrengthOutput* outputPtr = output)
             {
-                NativeMethods.wickra_relative_strength_ab_batch(_handle, xPtr, yPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_relative_strength_ab_batch(_handle, xPtr, yPtr, (WickraRelativeStrengthOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<RelativeStrengthOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new RelativeStrengthOutput(native[i].ratio, native[i].ratio_ma, native[i].ratio_rsi);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -39043,10 +39989,11 @@ public sealed class RenkoBars : IDisposable
         {
             fixed (WickraRenkoBrick* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_renko_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_renko_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<RenkoBrick>();
@@ -39185,7 +40132,8 @@ public sealed class RenkoTrailingStop : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_renko_trailing_stop_update(_handle, @value);
+        var result = NativeMethods.wickra_renko_trailing_stop_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -39364,7 +40312,8 @@ public sealed class RickshawMan : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_rickshaw_man_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_rickshaw_man_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -39474,7 +40423,8 @@ public sealed class RisingThreeMethods : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_rising_three_methods_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_rising_three_methods_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -39586,7 +40536,8 @@ public sealed class Rmi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rmi_update(_handle, @value);
+        var result = NativeMethods.wickra_rmi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -39711,7 +40662,8 @@ public sealed class Roc : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_roc_update(_handle, @value);
+        var result = NativeMethods.wickra_roc_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -39836,7 +40788,8 @@ public sealed class Rocp : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rocp_update(_handle, @value);
+        var result = NativeMethods.wickra_rocp_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -39961,7 +40914,8 @@ public sealed class Rocr : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rocr_update(_handle, @value);
+        var result = NativeMethods.wickra_rocr_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40086,7 +41040,8 @@ public sealed class Rocr100 : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rocr100_update(_handle, @value);
+        var result = NativeMethods.wickra_rocr100_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40212,7 +41167,8 @@ public sealed class RogersSatchellVolatility : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_rogers_satchell_volatility_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_rogers_satchell_volatility_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40323,7 +41279,8 @@ public sealed class RollMeasure : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp)
     {
-        var result = NativeMethods.wickra_roll_measure_update(_handle, price, size, isBuy, timestamp);
+        var result = NativeMethods.wickra_roll_measure_update(_handle.Live, price, size, isBuy, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40424,7 +41381,8 @@ public sealed class RollingCorrelation : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_rolling_correlation_update(_handle, x, y);
+        var result = NativeMethods.wickra_rolling_correlation_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40515,7 +41473,8 @@ public sealed class RollingCovariance : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_rolling_covariance_update(_handle, x, y);
+        var result = NativeMethods.wickra_rolling_covariance_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40606,7 +41565,8 @@ public sealed class RollingIqr : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rolling_iqr_update(_handle, @value);
+        var result = NativeMethods.wickra_rolling_iqr_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40731,7 +41691,8 @@ public sealed class RollingMinMaxScaler : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rolling_min_max_scaler_update(_handle, @value);
+        var result = NativeMethods.wickra_rolling_min_max_scaler_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40856,7 +41817,8 @@ public sealed class RollingPercentileRank : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rolling_percentile_rank_update(_handle, @value);
+        var result = NativeMethods.wickra_rolling_percentile_rank_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -40981,7 +41943,8 @@ public sealed class RollingQuantile : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rolling_quantile_update(_handle, @value);
+        var result = NativeMethods.wickra_rolling_quantile_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -41106,7 +42069,8 @@ public sealed class RollingVwap : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_rolling_vwap_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_rolling_vwap_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -41218,7 +42182,8 @@ public sealed class RoofingFilter : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_roofing_filter_update(_handle, @value);
+        var result = NativeMethods.wickra_roofing_filter_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -41343,7 +42308,8 @@ public sealed class Rsi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rsi_update(_handle, @value);
+        var result = NativeMethods.wickra_rsi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -41468,7 +42434,8 @@ public sealed class Rsx : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rsx_update(_handle, @value);
+        var result = NativeMethods.wickra_rsx_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -41600,10 +42567,11 @@ public sealed class RunBars : IDisposable
         {
             fixed (WickraRunBar* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_run_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_run_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<RunBar>();
@@ -41743,7 +42711,8 @@ public sealed class Rvi : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_rvi_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_rvi_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -41854,7 +42823,8 @@ public sealed class RviVolatility : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_rvi_volatility_update(_handle, @value);
+        var result = NativeMethods.wickra_rvi_volatility_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -41983,9 +42953,10 @@ public sealed class Rwi : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_rwi_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_rwi_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new RwiOutput(native.high, native.low) : null;
     }
 
@@ -41995,6 +42966,20 @@ public sealed class Rwi : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public RwiOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<RwiOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<RwiOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -42017,8 +43002,11 @@ public sealed class Rwi : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraRwiOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -42027,19 +43015,11 @@ public sealed class Rwi : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraRwiOutput* nativePtr = native)
+            fixed (RwiOutput* outputPtr = output)
             {
-                NativeMethods.wickra_rwi_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_rwi_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraRwiOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<RwiOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new RwiOutput(native[i].high, native[i].low);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -42090,7 +43070,8 @@ public sealed class SampleEntropy : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_sample_entropy_update(_handle, @value);
+        var result = NativeMethods.wickra_sample_entropy_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -42214,7 +43195,8 @@ public sealed class SarExt : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_sar_ext_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_sar_ext_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -42324,7 +43306,8 @@ public sealed class SeasonalZScore : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_seasonal_z_score_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_seasonal_z_score_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -42434,7 +43417,8 @@ public sealed class SeparatingLines : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_separating_lines_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_separating_lines_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -42548,9 +43532,10 @@ public sealed class SessionHighLow : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_session_high_low_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_session_high_low_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new SessionHighLowOutput(native.high, native.low) : null;
     }
 
@@ -42560,6 +43545,20 @@ public sealed class SessionHighLow : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public SessionHighLowOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<SessionHighLowOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<SessionHighLowOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -42582,8 +43581,11 @@ public sealed class SessionHighLow : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraSessionHighLowOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -42592,19 +43594,11 @@ public sealed class SessionHighLow : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraSessionHighLowOutput* nativePtr = native)
+            fixed (SessionHighLowOutput* outputPtr = output)
             {
-                NativeMethods.wickra_session_high_low_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_session_high_low_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraSessionHighLowOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<SessionHighLowOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new SessionHighLowOutput(native[i].high, native[i].low);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -42657,9 +43651,10 @@ public sealed class SessionRange : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_session_range_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_session_range_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new SessionRangeOutput(native.asia, native.eu, native.us) : null;
     }
 
@@ -42669,6 +43664,20 @@ public sealed class SessionRange : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public SessionRangeOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<SessionRangeOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<SessionRangeOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -42691,8 +43700,11 @@ public sealed class SessionRange : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraSessionRangeOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -42701,19 +43713,11 @@ public sealed class SessionRange : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraSessionRangeOutput* nativePtr = native)
+            fixed (SessionRangeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_session_range_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_session_range_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraSessionRangeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<SessionRangeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new SessionRangeOutput(native[i].asia, native[i].eu, native[i].us);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -42762,7 +43766,8 @@ public sealed class SessionVwap : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_session_vwap_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_session_vwap_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -42874,7 +43879,8 @@ public sealed class ShannonEntropy : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_shannon_entropy_update(_handle, @value);
+        var result = NativeMethods.wickra_shannon_entropy_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -42998,7 +44004,8 @@ public sealed class Shark : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_shark_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_shark_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -43109,7 +44116,8 @@ public sealed class SharpeRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_sharpe_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_sharpe_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -43233,7 +44241,8 @@ public sealed class ShootingStar : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_shooting_star_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_shooting_star_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -43343,7 +44352,8 @@ public sealed class ShortLine : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_short_line_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_short_line_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -43453,7 +44463,8 @@ public sealed class SignedVolume : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp)
     {
-        var result = NativeMethods.wickra_signed_volume_update(_handle, price, size, isBuy, timestamp);
+        var result = NativeMethods.wickra_signed_volume_update(_handle.Live, price, size, isBuy, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -43553,7 +44564,8 @@ public sealed class SineWave : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_sine_wave_update(_handle, @value);
+        var result = NativeMethods.wickra_sine_wave_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -43678,7 +44690,8 @@ public sealed class SineWeightedMa : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_sine_weighted_ma_update(_handle, @value);
+        var result = NativeMethods.wickra_sine_weighted_ma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -43804,7 +44817,8 @@ public sealed class SinglePrints : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_single_prints_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_single_prints_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -43915,7 +44929,8 @@ public sealed class Skewness : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_skewness_update(_handle, @value);
+        var result = NativeMethods.wickra_skewness_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -44040,7 +45055,8 @@ public sealed class Sma : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_sma_update(_handle, @value);
+        var result = NativeMethods.wickra_sma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -44167,7 +45183,8 @@ public sealed class Smi : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_smi_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_smi_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -44278,7 +45295,8 @@ public sealed class Smma : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_smma_update(_handle, @value);
+        var result = NativeMethods.wickra_smma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -44407,9 +45425,10 @@ public sealed class SmoothedHeikinAshi : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_smoothed_heikin_ashi_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_smoothed_heikin_ashi_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new SmoothedHeikinAshiOutput(native.open, native.high, native.low, native.close) : null;
     }
 
@@ -44419,6 +45438,20 @@ public sealed class SmoothedHeikinAshi : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public SmoothedHeikinAshiOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<SmoothedHeikinAshiOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<SmoothedHeikinAshiOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -44441,8 +45474,11 @@ public sealed class SmoothedHeikinAshi : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraSmoothedHeikinAshiOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -44451,19 +45487,11 @@ public sealed class SmoothedHeikinAshi : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraSmoothedHeikinAshiOutput* nativePtr = native)
+            fixed (SmoothedHeikinAshiOutput* outputPtr = output)
             {
-                NativeMethods.wickra_smoothed_heikin_ashi_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_smoothed_heikin_ashi_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraSmoothedHeikinAshiOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<SmoothedHeikinAshiOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new SmoothedHeikinAshiOutput(native[i].open, native[i].high, native[i].low, native[i].close);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -44513,7 +45541,8 @@ public sealed class SortinoRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_sortino_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_sortino_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -44638,7 +45667,8 @@ public sealed class SpearmanCorrelation : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_spearman_correlation_update(_handle, x, y);
+        var result = NativeMethods.wickra_spearman_correlation_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -44728,7 +45758,8 @@ public sealed class SpinningTop : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_spinning_top_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_spinning_top_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -44839,7 +45870,8 @@ public sealed class SpreadAr1Coefficient : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_spread_ar1_coefficient_update(_handle, x, y);
+        var result = NativeMethods.wickra_spread_ar1_coefficient_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -44934,9 +45966,10 @@ public sealed class SpreadBollingerBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_spread_bollinger_bands_update(_handle, x, y, &native);
+            ok = NativeMethods.wickra_spread_bollinger_bands_update(_handle.Live, x, y, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new SpreadBollingerBandsOutput(native.middle, native.upper, native.lower, native.percent_b) : null;
     }
 
@@ -44947,30 +45980,39 @@ public sealed class SpreadBollingerBands : IDisposable
     /// </summary>
     public SpreadBollingerBandsOutput[] Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y)
     {
+        var output = GC.AllocateUninitializedArray<SpreadBollingerBandsOutput>(x.Length);
+        Batch(x, y, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Span<SpreadBollingerBandsOutput> output)
+    {
         var n = x.Length;
         if (y.Length != n)
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraSpreadBollingerBandsOutput[n];
         unsafe
         {
             fixed (double* xPtr = x)
             fixed (double* yPtr = y)
-            fixed (WickraSpreadBollingerBandsOutput* nativePtr = native)
+            fixed (SpreadBollingerBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_spread_bollinger_bands_batch(_handle, xPtr, yPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_spread_bollinger_bands_batch(_handle, xPtr, yPtr, (WickraSpreadBollingerBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<SpreadBollingerBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new SpreadBollingerBandsOutput(native[i].middle, native[i].upper, native[i].lower, native[i].percent_b);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -45020,7 +46062,8 @@ public sealed class SpreadHurst : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_spread_hurst_update(_handle, x, y);
+        var result = NativeMethods.wickra_spread_hurst_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -45110,7 +46153,8 @@ public sealed class StalledPattern : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_stalled_pattern_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_stalled_pattern_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -45221,7 +46265,8 @@ public sealed class StandardError : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_standard_error_update(_handle, @value);
+        var result = NativeMethods.wickra_standard_error_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -45350,9 +46395,10 @@ public sealed class StandardErrorBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_standard_error_bands_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_standard_error_bands_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new StandardErrorBandsOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -45363,25 +46409,34 @@ public sealed class StandardErrorBands : IDisposable
     /// </summary>
     public StandardErrorBandsOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<StandardErrorBandsOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraStandardErrorBandsOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<StandardErrorBandsOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraStandardErrorBandsOutput* nativePtr = native)
+            fixed (StandardErrorBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_standard_error_bands_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_standard_error_bands_batch(_handle, inputPtr, (WickraStandardErrorBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<StandardErrorBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new StandardErrorBandsOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -45436,9 +46491,10 @@ public sealed class StarcBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_starc_bands_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_starc_bands_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new StarcBandsOutput(native.upper, native.middle, native.lower) : null;
     }
 
@@ -45448,6 +46504,20 @@ public sealed class StarcBands : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public StarcBandsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<StarcBandsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<StarcBandsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -45470,8 +46540,11 @@ public sealed class StarcBands : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraStarcBandsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -45480,19 +46553,11 @@ public sealed class StarcBands : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraStarcBandsOutput* nativePtr = native)
+            fixed (StarcBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_starc_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_starc_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraStarcBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<StarcBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new StarcBandsOutput(native[i].upper, native[i].middle, native[i].lower);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -45544,7 +46609,8 @@ public sealed class Stc : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_stc_update(_handle, @value);
+        var result = NativeMethods.wickra_stc_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -45669,7 +46735,8 @@ public sealed class StdDev : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_std_dev_update(_handle, @value);
+        var result = NativeMethods.wickra_std_dev_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -45793,7 +46860,8 @@ public sealed class StepTrailingStop : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_step_trailing_stop_update(_handle, @value);
+        var result = NativeMethods.wickra_step_trailing_stop_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -45918,7 +46986,8 @@ public sealed class SterlingRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_sterling_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_sterling_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -46042,7 +47111,8 @@ public sealed class StickSandwich : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_stick_sandwich_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_stick_sandwich_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -46154,7 +47224,8 @@ public sealed class StochRsi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_stoch_rsi_update(_handle, @value);
+        var result = NativeMethods.wickra_stoch_rsi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -46284,9 +47355,10 @@ public sealed class Stochastic : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_stochastic_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_stochastic_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new StochasticOutput(native.k, native.d) : null;
     }
 
@@ -46296,6 +47368,20 @@ public sealed class Stochastic : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public StochasticOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<StochasticOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<StochasticOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -46318,8 +47404,11 @@ public sealed class Stochastic : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraStochasticOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -46328,19 +47417,11 @@ public sealed class Stochastic : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraStochasticOutput* nativePtr = native)
+            fixed (StochasticOutput* outputPtr = output)
             {
-                NativeMethods.wickra_stochastic_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_stochastic_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraStochasticOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<StochasticOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new StochasticOutput(native[i].k, native[i].d);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -46390,7 +47471,8 @@ public sealed class StochasticCci : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_stochastic_cci_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_stochastic_cci_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -46501,7 +47583,8 @@ public sealed class SuperSmoother : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_super_smoother_update(_handle, @value);
+        var result = NativeMethods.wickra_super_smoother_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -46630,9 +47713,10 @@ public sealed class SuperTrend : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_super_trend_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_super_trend_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new SuperTrendOutput(native.@value, native.direction) : null;
     }
 
@@ -46642,6 +47726,20 @@ public sealed class SuperTrend : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public SuperTrendOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<SuperTrendOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<SuperTrendOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -46664,8 +47762,11 @@ public sealed class SuperTrend : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraSuperTrendOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -46674,19 +47775,11 @@ public sealed class SuperTrend : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraSuperTrendOutput* nativePtr = native)
+            fixed (SuperTrendOutput* outputPtr = output)
             {
-                NativeMethods.wickra_super_trend_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_super_trend_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraSuperTrendOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<SuperTrendOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new SuperTrendOutput(native[i].@value, native[i].direction);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -46736,7 +47829,8 @@ public sealed class T3 : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_t3_update(_handle, @value);
+        var result = NativeMethods.wickra_t3_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -46861,7 +47955,8 @@ public sealed class TailRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_tail_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_tail_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -46985,7 +48080,8 @@ public sealed class TakerBuySellRatio : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_taker_buy_sell_ratio_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_taker_buy_sell_ratio_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -47125,7 +48221,8 @@ public sealed class Takuri : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_takuri_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_takuri_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -47235,7 +48332,8 @@ public sealed class TasukiGap : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_tasuki_gap_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_tasuki_gap_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -47345,7 +48443,8 @@ public sealed class TdCamouflage : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_camouflage_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_camouflage_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -47455,7 +48554,8 @@ public sealed class TdClop : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_clop_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_clop_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -47565,7 +48665,8 @@ public sealed class TdClopwin : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_clopwin_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_clopwin_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -47679,7 +48780,8 @@ public sealed class TdCombo : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_combo_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_combo_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -47793,7 +48895,8 @@ public sealed class TdCountdown : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_countdown_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_countdown_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -47904,7 +49007,8 @@ public sealed class TdDWave : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_d_wave_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_d_wave_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -48015,7 +49119,8 @@ public sealed class TdDeMarker : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_de_marker_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_de_marker_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -48125,7 +49230,8 @@ public sealed class TdDifferential : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_differential_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_differential_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -48241,9 +49347,10 @@ public sealed class TdLines : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_td_lines_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_td_lines_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new TdLinesOutput(native.resistance, native.support) : null;
     }
 
@@ -48253,6 +49360,20 @@ public sealed class TdLines : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public TdLinesOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<TdLinesOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<TdLinesOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -48275,8 +49396,11 @@ public sealed class TdLines : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraTdLinesOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -48285,19 +49409,11 @@ public sealed class TdLines : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraTdLinesOutput* nativePtr = native)
+            fixed (TdLinesOutput* outputPtr = output)
             {
-                NativeMethods.wickra_td_lines_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_td_lines_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraTdLinesOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<TdLinesOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new TdLinesOutput(native[i].resistance, native[i].support);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -48352,9 +49468,10 @@ public sealed class TdMovingAverage : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_td_moving_average_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_td_moving_average_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new TdMovingAverageOutput(native.st1, native.st2) : null;
     }
 
@@ -48364,6 +49481,20 @@ public sealed class TdMovingAverage : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public TdMovingAverageOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<TdMovingAverageOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<TdMovingAverageOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -48386,8 +49517,11 @@ public sealed class TdMovingAverage : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraTdMovingAverageOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -48396,19 +49530,11 @@ public sealed class TdMovingAverage : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraTdMovingAverageOutput* nativePtr = native)
+            fixed (TdMovingAverageOutput* outputPtr = output)
             {
-                NativeMethods.wickra_td_moving_average_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_td_moving_average_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraTdMovingAverageOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<TdMovingAverageOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new TdMovingAverageOutput(native[i].st1, native[i].st2);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -48457,7 +49583,8 @@ public sealed class TdOpen : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_open_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_open_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -48568,7 +49695,8 @@ public sealed class TdPressure : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_pressure_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_pressure_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -48678,7 +49806,8 @@ public sealed class TdPropulsion : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_propulsion_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_propulsion_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -48792,9 +49921,10 @@ public sealed class TdRangeProjection : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_td_range_projection_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_td_range_projection_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new TdRangeProjectionOutput(native.high, native.low) : null;
     }
 
@@ -48804,6 +49934,20 @@ public sealed class TdRangeProjection : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public TdRangeProjectionOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<TdRangeProjectionOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<TdRangeProjectionOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -48826,8 +49970,11 @@ public sealed class TdRangeProjection : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraTdRangeProjectionOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -48836,19 +49983,11 @@ public sealed class TdRangeProjection : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraTdRangeProjectionOutput* nativePtr = native)
+            fixed (TdRangeProjectionOutput* outputPtr = output)
             {
-                NativeMethods.wickra_td_range_projection_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_td_range_projection_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraTdRangeProjectionOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<TdRangeProjectionOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new TdRangeProjectionOutput(native[i].high, native[i].low);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -48898,7 +50037,8 @@ public sealed class TdRei : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_rei_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_rei_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -49014,9 +50154,10 @@ public sealed class TdRiskLevel : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_td_risk_level_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_td_risk_level_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new TdRiskLevelOutput(native.buy_risk, native.sell_risk) : null;
     }
 
@@ -49026,6 +50167,20 @@ public sealed class TdRiskLevel : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public TdRiskLevelOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<TdRiskLevelOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<TdRiskLevelOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -49048,8 +50203,11 @@ public sealed class TdRiskLevel : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraTdRiskLevelOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -49058,19 +50216,11 @@ public sealed class TdRiskLevel : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraTdRiskLevelOutput* nativePtr = native)
+            fixed (TdRiskLevelOutput* outputPtr = output)
             {
-                NativeMethods.wickra_td_risk_level_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_td_risk_level_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraTdRiskLevelOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<TdRiskLevelOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new TdRiskLevelOutput(native[i].buy_risk, native[i].sell_risk);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -49127,9 +50277,10 @@ public sealed class TdSequential : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_td_sequential_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_td_sequential_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new TdSequentialOutput(native.setup, native.countdown, native.direction) : null;
     }
 
@@ -49139,6 +50290,20 @@ public sealed class TdSequential : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public TdSequentialOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<TdSequentialOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<TdSequentialOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -49161,8 +50326,11 @@ public sealed class TdSequential : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraTdSequentialOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -49171,19 +50339,11 @@ public sealed class TdSequential : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraTdSequentialOutput* nativePtr = native)
+            fixed (TdSequentialOutput* outputPtr = output)
             {
-                NativeMethods.wickra_td_sequential_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_td_sequential_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraTdSequentialOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<TdSequentialOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new TdSequentialOutput(native[i].setup, native[i].countdown, native[i].direction);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -49234,7 +50394,8 @@ public sealed class TdSetup : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_setup_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_setup_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -49344,7 +50505,8 @@ public sealed class TdTrap : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_td_trap_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_td_trap_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -49455,7 +50617,8 @@ public sealed class Tema : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_tema_update(_handle, @value);
+        var result = NativeMethods.wickra_tema_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -49579,7 +50742,8 @@ public sealed class TermStructureBasis : IDisposable
 
     public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
     {
-        var result = NativeMethods.wickra_term_structure_basis_update(_handle, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_term_structure_basis_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -49719,7 +50883,8 @@ public sealed class ThreeDrives : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_three_drives_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_three_drives_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -49829,7 +50994,8 @@ public sealed class ThreeInside : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_three_inside_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_three_inside_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -49940,7 +51106,8 @@ public sealed class ThreeLineBreak : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_three_line_break_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_three_line_break_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -50058,10 +51225,11 @@ public sealed class ThreeLineBreakBars : IDisposable
         {
             fixed (WickraLineBreakBar* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_three_line_break_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_three_line_break_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<LineBreakBar>();
@@ -50200,7 +51368,8 @@ public sealed class ThreeLineStrike : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_three_line_strike_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_three_line_strike_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -50310,7 +51479,8 @@ public sealed class ThreeOutside : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_three_outside_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_three_outside_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -50420,7 +51590,8 @@ public sealed class ThreeSoldiersOrCrows : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_three_soldiers_or_crows_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_three_soldiers_or_crows_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -50530,7 +51701,8 @@ public sealed class ThreeStarsInSouth : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_three_stars_in_south_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_three_stars_in_south_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -50640,7 +51812,8 @@ public sealed class Thrusting : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_thrusting_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_thrusting_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -50801,10 +51974,11 @@ public sealed class TickBars : IDisposable
         {
             fixed (WickraTickBar* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_tick_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_tick_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<TickBar>();
@@ -50974,10 +52148,11 @@ public sealed class TickIndex : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_tick_index_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_tick_index_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -51095,7 +52270,8 @@ public sealed class Tii : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_tii_update(_handle, @value);
+        var result = NativeMethods.wickra_tii_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -51220,7 +52396,8 @@ public sealed class TimeBasedStop : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_time_based_stop_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_time_based_stop_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -51339,10 +52516,11 @@ public sealed class TimeOfDayReturnProfile : IDisposable
         {
             fixed (double* valuesPtr = values)
             {
-                length = (long)NativeMethods.wickra_time_of_day_return_profile_update(_handle, open, high, low, close, volume, timestamp, valuesPtr, (nuint)_valuesCapacity);
+                length = (long)NativeMethods.wickra_time_of_day_return_profile_update(_handle.Live, open, high, low, close, volume, timestamp, valuesPtr, (nuint)_valuesCapacity);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (length < 0)
         {
             return null;
@@ -51462,7 +52640,8 @@ public sealed class TowerTopBottom : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_tower_top_bottom_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_tower_top_bottom_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -51583,10 +52762,11 @@ public sealed class TpoProfile : IDisposable
         {
             fixed (double* valuesPtr = values)
             {
-                length = (long)NativeMethods.wickra_tpo_profile_update(_handle, open, high, low, close, volume, timestamp, &scalars, valuesPtr, (nuint)_valuesCapacity);
+                length = (long)NativeMethods.wickra_tpo_profile_update(_handle.Live, open, high, low, close, volume, timestamp, &scalars, valuesPtr, (nuint)_valuesCapacity);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (length < 0)
         {
             return null;
@@ -51709,7 +52889,8 @@ public sealed class TradeImbalance : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp)
     {
-        var result = NativeMethods.wickra_trade_imbalance_update(_handle, price, size, isBuy, timestamp);
+        var result = NativeMethods.wickra_trade_imbalance_update(_handle.Live, price, size, isBuy, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -51810,7 +52991,8 @@ public sealed class TradeSignAutocorrelation : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp)
     {
-        var result = NativeMethods.wickra_trade_sign_autocorrelation_update(_handle, price, size, isBuy, timestamp);
+        var result = NativeMethods.wickra_trade_sign_autocorrelation_update(_handle.Live, price, size, isBuy, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -51910,7 +53092,8 @@ public sealed class TradeVolumeIndex : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_trade_volume_index_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_trade_volume_index_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52021,7 +53204,8 @@ public sealed class TrendLabel : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_trend_label_update(_handle, @value);
+        var result = NativeMethods.wickra_trend_label_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52146,7 +53330,8 @@ public sealed class TrendStrengthIndex : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_trend_strength_index_update(_handle, @value);
+        var result = NativeMethods.wickra_trend_strength_index_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52271,7 +53456,8 @@ public sealed class Trendflex : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_trendflex_update(_handle, @value);
+        var result = NativeMethods.wickra_trendflex_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52396,7 +53582,8 @@ public sealed class TreynorRatio : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_treynor_ratio_update(_handle, x, y);
+        var result = NativeMethods.wickra_treynor_ratio_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52486,7 +53673,8 @@ public sealed class Triangle : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_triangle_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_triangle_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52597,7 +53785,8 @@ public sealed class Trima : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_trima_update(_handle, @value);
+        var result = NativeMethods.wickra_trima_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52752,10 +53941,11 @@ public sealed class Trin : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_trin_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_trin_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52871,7 +54061,8 @@ public sealed class TripleTopBottom : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_triple_top_bottom_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_triple_top_bottom_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -52981,7 +54172,8 @@ public sealed class Tristar : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_tristar_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_tristar_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -53092,7 +54284,8 @@ public sealed class Trix : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_trix_update(_handle, @value);
+        var result = NativeMethods.wickra_trix_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -53216,7 +54409,8 @@ public sealed class TrueRange : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_true_range_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_true_range_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -53327,7 +54521,8 @@ public sealed class Tsf : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_tsf_update(_handle, @value);
+        var result = NativeMethods.wickra_tsf_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -53452,7 +54647,8 @@ public sealed class TsfOscillator : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_tsf_oscillator_update(_handle, @value);
+        var result = NativeMethods.wickra_tsf_oscillator_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -53578,7 +54774,8 @@ public sealed class Tsi : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_tsi_update(_handle, @value);
+        var result = NativeMethods.wickra_tsi_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -53703,7 +54900,8 @@ public sealed class Tsv : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_tsv_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_tsv_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -53818,9 +55016,10 @@ public sealed class TtmSqueeze : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_ttm_squeeze_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_ttm_squeeze_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new TtmSqueezeOutput(native.squeeze, native.momentum) : null;
     }
 
@@ -53830,6 +55029,20 @@ public sealed class TtmSqueeze : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public TtmSqueezeOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<TtmSqueezeOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<TtmSqueezeOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -53852,8 +55065,11 @@ public sealed class TtmSqueeze : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraTtmSqueezeOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -53862,19 +55078,11 @@ public sealed class TtmSqueeze : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraTtmSqueezeOutput* nativePtr = native)
+            fixed (TtmSqueezeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_ttm_squeeze_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_ttm_squeeze_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraTtmSqueezeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<TtmSqueezeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new TtmSqueezeOutput(native[i].squeeze, native[i].momentum);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -53924,7 +55132,8 @@ public sealed class TtmTrend : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_ttm_trend_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_ttm_trend_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54034,7 +55243,8 @@ public sealed class TurnOfMonth : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_turn_of_month_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_turn_of_month_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54144,7 +55354,8 @@ public sealed class Tweezer : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_tweezer_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_tweezer_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54255,7 +55466,8 @@ public sealed class TwiggsMoneyFlow : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_twiggs_money_flow_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_twiggs_money_flow_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54365,7 +55577,8 @@ public sealed class TwoCrows : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_two_crows_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_two_crows_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54475,7 +55688,8 @@ public sealed class TypicalPrice : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_typical_price_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_typical_price_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54586,7 +55800,8 @@ public sealed class UlcerIndex : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_ulcer_index_update(_handle, @value);
+        var result = NativeMethods.wickra_ulcer_index_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54713,7 +55928,8 @@ public sealed class UltimateOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_ultimate_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_ultimate_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54823,7 +56039,8 @@ public sealed class UniqueThreeRiver : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_unique_three_river_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_unique_three_river_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -54934,7 +56151,8 @@ public sealed class UniversalOscillator : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_universal_oscillator_update(_handle, @value);
+        var result = NativeMethods.wickra_universal_oscillator_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -55089,10 +56307,11 @@ public sealed class UpDownVolumeRatio : IDisposable
             fixed (bool* aboveMaPtr = aboveMa)
             fixed (bool* onBuySignalPtr = onBuySignal)
             {
-                result = NativeMethods.wickra_up_down_volume_ratio_update(_handle, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
+                result = NativeMethods.wickra_up_down_volume_ratio_update(_handle.Live, changePtr, volumePtr, newHighPtr, newLowPtr, aboveMaPtr, onBuySignalPtr, (nuint)change.Length, timestamp);
             }
         }
 
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -55208,7 +56427,8 @@ public sealed class UpsideGapThreeMethods : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_upside_gap_three_methods_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_upside_gap_three_methods_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -55318,7 +56538,8 @@ public sealed class UpsideGapTwoCrows : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_upside_gap_two_crows_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_upside_gap_two_crows_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -55429,7 +56650,8 @@ public sealed class UpsidePotentialRatio : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_upside_potential_ratio_update(_handle, @value);
+        var result = NativeMethods.wickra_upside_potential_ratio_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -55559,9 +56781,10 @@ public sealed class ValueArea : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_value_area_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_value_area_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ValueAreaOutput(native.poc, native.vah, native.val) : null;
     }
 
@@ -55571,6 +56794,20 @@ public sealed class ValueArea : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ValueAreaOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ValueAreaOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ValueAreaOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -55593,8 +56830,11 @@ public sealed class ValueArea : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraValueAreaOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -55603,19 +56843,11 @@ public sealed class ValueArea : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraValueAreaOutput* nativePtr = native)
+            fixed (ValueAreaOutput* outputPtr = output)
             {
-                NativeMethods.wickra_value_area_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_value_area_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraValueAreaOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ValueAreaOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ValueAreaOutput(native[i].poc, native[i].vah, native[i].val);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -55665,7 +56897,8 @@ public sealed class ValueAtRisk : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_value_at_risk_update(_handle, @value);
+        var result = NativeMethods.wickra_value_at_risk_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -55790,7 +57023,8 @@ public sealed class Variance : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_variance_update(_handle, @value);
+        var result = NativeMethods.wickra_variance_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -55916,7 +57150,8 @@ public sealed class VarianceRatio : IDisposable
 
     public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_variance_ratio_update(_handle, x, y);
+        var result = NativeMethods.wickra_variance_ratio_update(_handle.Live, x, y);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -56007,7 +57242,8 @@ public sealed class VerticalHorizontalFilter : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_vertical_horizontal_filter_update(_handle, @value);
+        var result = NativeMethods.wickra_vertical_horizontal_filter_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -56133,7 +57369,8 @@ public sealed class Vidya : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_vidya_update(_handle, @value);
+        var result = NativeMethods.wickra_vidya_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -56263,9 +57500,10 @@ public sealed class VolatilityCone : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_volatility_cone_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_volatility_cone_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new VolatilityConeOutput(native.current, native.min, native.median, native.max, native.percentile) : null;
     }
 
@@ -56275,6 +57513,20 @@ public sealed class VolatilityCone : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public VolatilityConeOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<VolatilityConeOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<VolatilityConeOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -56297,8 +57549,11 @@ public sealed class VolatilityCone : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraVolatilityConeOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -56307,19 +57562,11 @@ public sealed class VolatilityCone : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraVolatilityConeOutput* nativePtr = native)
+            fixed (VolatilityConeOutput* outputPtr = output)
             {
-                NativeMethods.wickra_volatility_cone_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_volatility_cone_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraVolatilityConeOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<VolatilityConeOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new VolatilityConeOutput(native[i].current, native[i].min, native[i].median, native[i].max, native[i].percentile);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -56370,7 +57617,8 @@ public sealed class VolatilityOfVolatility : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_volatility_of_volatility_update(_handle, @value);
+        var result = NativeMethods.wickra_volatility_of_volatility_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -56495,7 +57743,8 @@ public sealed class VolatilityRatio : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_volatility_ratio_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_volatility_ratio_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -56606,7 +57855,8 @@ public sealed class VoltyStop : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_volty_stop_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_volty_stop_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -56723,10 +57973,11 @@ public sealed class VolumeBars : IDisposable
         {
             fixed (WickraVolumeBar* ptr = buffer)
             {
-                count = (long)NativeMethods.wickra_volume_bars_update(_handle, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
+                count = (long)NativeMethods.wickra_volume_bars_update(_handle.Live, open, high, low, close, volume, timestamp, ptr, (nuint)cap);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (count <= 0)
         {
             return Array.Empty<VolumeBar>();
@@ -56874,10 +58125,11 @@ public sealed class VolumeByTimeProfile : IDisposable
         {
             fixed (double* valuesPtr = values)
             {
-                length = (long)NativeMethods.wickra_volume_by_time_profile_update(_handle, open, high, low, close, volume, timestamp, valuesPtr, (nuint)_valuesCapacity);
+                length = (long)NativeMethods.wickra_volume_by_time_profile_update(_handle.Live, open, high, low, close, volume, timestamp, valuesPtr, (nuint)_valuesCapacity);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (length < 0)
         {
             return null;
@@ -56999,7 +58251,8 @@ public sealed class VolumeOscillator : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_volume_oscillator_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_volume_oscillator_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -57109,7 +58362,8 @@ public sealed class VolumePriceTrend : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_volume_price_trend_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_volume_price_trend_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -57230,10 +58484,11 @@ public sealed class VolumeProfile : IDisposable
         {
             fixed (double* valuesPtr = values)
             {
-                length = (long)NativeMethods.wickra_volume_profile_update(_handle, open, high, low, close, volume, timestamp, &scalars, valuesPtr, (nuint)_valuesCapacity);
+                length = (long)NativeMethods.wickra_volume_profile_update(_handle.Live, open, high, low, close, volume, timestamp, &scalars, valuesPtr, (nuint)_valuesCapacity);
             }
         }
 
+        GC.KeepAlive(_handle);
         if (length < 0)
         {
             return null;
@@ -57356,7 +58611,8 @@ public sealed class VolumeRsi : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_volume_rsi_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_volume_rsi_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -57473,9 +58729,10 @@ public sealed class VolumeWeightedMacd : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_volume_weighted_macd_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_volume_weighted_macd_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new VolumeWeightedMacdOutput(native.macd, native.signal, native.histogram) : null;
     }
 
@@ -57485,6 +58742,20 @@ public sealed class VolumeWeightedMacd : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public VolumeWeightedMacdOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<VolumeWeightedMacdOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<VolumeWeightedMacdOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -57507,8 +58778,11 @@ public sealed class VolumeWeightedMacd : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraVolumeWeightedMacdOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -57517,19 +58791,11 @@ public sealed class VolumeWeightedMacd : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraVolumeWeightedMacdOutput* nativePtr = native)
+            fixed (VolumeWeightedMacdOutput* outputPtr = output)
             {
-                NativeMethods.wickra_volume_weighted_macd_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_volume_weighted_macd_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraVolumeWeightedMacdOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<VolumeWeightedMacdOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new VolumeWeightedMacdOutput(native[i].macd, native[i].signal, native[i].histogram);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -57583,9 +58849,10 @@ public sealed class VolumeWeightedSr : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_volume_weighted_sr_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_volume_weighted_sr_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new VolumeWeightedSrOutput(native.support, native.resistance) : null;
     }
 
@@ -57595,6 +58862,20 @@ public sealed class VolumeWeightedSr : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public VolumeWeightedSrOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<VolumeWeightedSrOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<VolumeWeightedSrOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -57617,8 +58898,11 @@ public sealed class VolumeWeightedSr : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraVolumeWeightedSrOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -57627,19 +58911,11 @@ public sealed class VolumeWeightedSr : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraVolumeWeightedSrOutput* nativePtr = native)
+            fixed (VolumeWeightedSrOutput* outputPtr = output)
             {
-                NativeMethods.wickra_volume_weighted_sr_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_volume_weighted_sr_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraVolumeWeightedSrOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<VolumeWeightedSrOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new VolumeWeightedSrOutput(native[i].support, native[i].resistance);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -57693,9 +58969,10 @@ public sealed class Vortex : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_vortex_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_vortex_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new VortexOutput(native.plus, native.minus) : null;
     }
 
@@ -57705,6 +58982,20 @@ public sealed class Vortex : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public VortexOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<VortexOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<VortexOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -57727,8 +59018,11 @@ public sealed class Vortex : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraVortexOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -57737,19 +59031,11 @@ public sealed class Vortex : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraVortexOutput* nativePtr = native)
+            fixed (VortexOutput* outputPtr = output)
             {
-                NativeMethods.wickra_vortex_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_vortex_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraVortexOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<VortexOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new VortexOutput(native[i].plus, native[i].minus);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -57799,7 +59085,8 @@ public sealed class Vpin : IDisposable
 
     public double Update(double price, double size, bool isBuy, long timestamp)
     {
-        var result = NativeMethods.wickra_vpin_update(_handle, price, size, isBuy, timestamp);
+        var result = NativeMethods.wickra_vpin_update(_handle.Live, price, size, isBuy, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -57899,7 +59186,8 @@ public sealed class Vwap : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_vwap_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_vwap_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -58013,9 +59301,10 @@ public sealed class VwapStdDevBands : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_vwap_std_dev_bands_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_vwap_std_dev_bands_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new VwapStdDevBandsOutput(native.upper, native.middle, native.lower, native.stddev) : null;
     }
 
@@ -58025,6 +59314,20 @@ public sealed class VwapStdDevBands : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public VwapStdDevBandsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<VwapStdDevBandsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<VwapStdDevBandsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -58047,8 +59350,11 @@ public sealed class VwapStdDevBands : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraVwapStdDevBandsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -58057,19 +59363,11 @@ public sealed class VwapStdDevBands : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraVwapStdDevBandsOutput* nativePtr = native)
+            fixed (VwapStdDevBandsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_vwap_std_dev_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_vwap_std_dev_bands_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraVwapStdDevBandsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<VwapStdDevBandsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new VwapStdDevBandsOutput(native[i].upper, native[i].middle, native[i].lower, native[i].stddev);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -58119,7 +59417,8 @@ public sealed class Vwma : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_vwma_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_vwma_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -58230,7 +59529,8 @@ public sealed class Vzo : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_vzo_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_vzo_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -58340,7 +59640,8 @@ public sealed class Wad : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_wad_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_wad_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -58452,7 +59753,8 @@ public sealed class WavePm : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_wave_pm_update(_handle, @value);
+        var result = NativeMethods.wickra_wave_pm_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -58583,9 +59885,10 @@ public sealed class WaveTrend : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_wave_trend_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_wave_trend_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new WaveTrendOutput(native.wt1, native.wt2) : null;
     }
 
@@ -58595,6 +59898,20 @@ public sealed class WaveTrend : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public WaveTrendOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<WaveTrendOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<WaveTrendOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -58617,8 +59934,11 @@ public sealed class WaveTrend : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraWaveTrendOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -58627,19 +59947,11 @@ public sealed class WaveTrend : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraWaveTrendOutput* nativePtr = native)
+            fixed (WaveTrendOutput* outputPtr = output)
             {
-                NativeMethods.wickra_wave_trend_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_wave_trend_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraWaveTrendOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<WaveTrendOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new WaveTrendOutput(native[i].wt1, native[i].wt2);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -58688,7 +60000,8 @@ public sealed class Wedge : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_wedge_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_wedge_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -58798,7 +60111,8 @@ public sealed class WeightedClose : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_weighted_close_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_weighted_close_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -58908,7 +60222,8 @@ public sealed class WickRatio : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_wick_ratio_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_wick_ratio_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -59022,9 +60337,10 @@ public sealed class WilliamsFractals : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_williams_fractals_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_williams_fractals_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new WilliamsFractalsOutput(native.up, native.down) : null;
     }
 
@@ -59034,6 +60350,20 @@ public sealed class WilliamsFractals : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public WilliamsFractalsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<WilliamsFractalsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<WilliamsFractalsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -59056,8 +60386,11 @@ public sealed class WilliamsFractals : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraWilliamsFractalsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -59066,19 +60399,11 @@ public sealed class WilliamsFractals : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraWilliamsFractalsOutput* nativePtr = native)
+            fixed (WilliamsFractalsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_williams_fractals_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_williams_fractals_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraWilliamsFractalsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<WilliamsFractalsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new WilliamsFractalsOutput(native[i].up, native[i].down);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -59128,7 +60453,8 @@ public sealed class WilliamsR : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_williams_r_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_williams_r_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -59239,7 +60565,8 @@ public sealed class WinRate : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_win_rate_update(_handle, @value);
+        var result = NativeMethods.wickra_win_rate_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -59364,7 +60691,8 @@ public sealed class Wma : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_wma_update(_handle, @value);
+        var result = NativeMethods.wickra_wma_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -59492,9 +60820,10 @@ public sealed class WoodiePivots : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_woodie_pivots_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_woodie_pivots_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new WoodiePivotsOutput(native.pp, native.r1, native.r2, native.s1, native.s2) : null;
     }
 
@@ -59504,6 +60833,20 @@ public sealed class WoodiePivots : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public WoodiePivotsOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<WoodiePivotsOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<WoodiePivotsOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -59526,8 +60869,11 @@ public sealed class WoodiePivots : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraWoodiePivotsOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -59536,19 +60882,11 @@ public sealed class WoodiePivots : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraWoodiePivotsOutput* nativePtr = native)
+            fixed (WoodiePivotsOutput* outputPtr = output)
             {
-                NativeMethods.wickra_woodie_pivots_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_woodie_pivots_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraWoodiePivotsOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<WoodiePivotsOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new WoodiePivotsOutput(native[i].pp, native[i].r1, native[i].r2, native[i].s1, native[i].s2);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -59599,7 +60937,8 @@ public sealed class YangZhangVolatility : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_yang_zhang_volatility_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_yang_zhang_volatility_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -59710,7 +61049,8 @@ public sealed class YoyoExit : IDisposable
 
     public double Update(double open, double high, double low, double close, double volume, long timestamp)
     {
-        var result = NativeMethods.wickra_yoyo_exit_update(_handle, open, high, low, close, volume, timestamp);
+        var result = NativeMethods.wickra_yoyo_exit_update(_handle.Live, open, high, low, close, volume, timestamp);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -59821,7 +61161,8 @@ public sealed class ZScore : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_z_score_update(_handle, @value);
+        var result = NativeMethods.wickra_z_score_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 
@@ -59952,9 +61293,10 @@ public sealed class ZeroLagMacd : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_zero_lag_macd_update(_handle, @value, &native);
+            ok = NativeMethods.wickra_zero_lag_macd_update(_handle.Live, @value, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ZeroLagMacdOutput(native.macd, native.signal, native.histogram) : null;
     }
 
@@ -59965,25 +61307,34 @@ public sealed class ZeroLagMacd : IDisposable
     /// </summary>
     public ZeroLagMacdOutput[] Batch(ReadOnlySpan<double> input)
     {
-        var n = input.Length;
+        var output = GC.AllocateUninitializedArray<ZeroLagMacdOutput>(input.Length);
+        Batch(input, output);
+        return output;
+    }
 
-        var native = new WickraZeroLagMacdOutput[n];
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<ZeroLagMacdOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
         unsafe
         {
             fixed (double* inputPtr = input)
-            fixed (WickraZeroLagMacdOutput* nativePtr = native)
+            fixed (ZeroLagMacdOutput* outputPtr = output)
             {
-                NativeMethods.wickra_zero_lag_macd_batch(_handle, inputPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_zero_lag_macd_batch(_handle, inputPtr, (WickraZeroLagMacdOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ZeroLagMacdOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ZeroLagMacdOutput(native[i].macd, native[i].signal, native[i].histogram);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -60036,9 +61387,10 @@ public sealed class ZigZag : IDisposable
         bool ok;
         unsafe
         {
-            ok = NativeMethods.wickra_zig_zag_update(_handle, open, high, low, close, volume, timestamp, &native);
+            ok = NativeMethods.wickra_zig_zag_update(_handle.Live, open, high, low, close, volume, timestamp, &native);
         }
 
+        GC.KeepAlive(_handle);
         return ok ? new ZigZagOutput(native.swing, native.direction) : null;
     }
 
@@ -60048,6 +61400,20 @@ public sealed class ZigZag : IDisposable
     /// input it rejected -- carries NaN in every floating-point field.
     /// </summary>
     public ZigZagOutput[] Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp)
+    {
+        var output = GC.AllocateUninitializedArray<ZigZagOutput>(open.Length);
+        Batch(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, returning one
+    /// output per input. A row the indicator did not produce -- warmup, or an
+    /// input it rejected -- carries NaN in every floating-point field.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> open, ReadOnlySpan<double> high, ReadOnlySpan<double> low, ReadOnlySpan<double> close, ReadOnlySpan<double> volume, ReadOnlySpan<long> timestamp, Span<ZigZagOutput> output)
     {
         var n = open.Length;
         if (high.Length != n)
@@ -60070,8 +61436,11 @@ public sealed class ZigZag : IDisposable
         {
             throw new ArgumentException("all input spans must have the same length");
         }
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
 
-        var native = new WickraZigZagOutput[n];
         unsafe
         {
             fixed (double* openPtr = open)
@@ -60080,19 +61449,11 @@ public sealed class ZigZag : IDisposable
             fixed (double* closePtr = close)
             fixed (double* volumePtr = volume)
             fixed (long* timestampPtr = timestamp)
-            fixed (WickraZigZagOutput* nativePtr = native)
+            fixed (ZigZagOutput* outputPtr = output)
             {
-                NativeMethods.wickra_zig_zag_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, nativePtr, (nuint)n);
+                NativeMethods.wickra_zig_zag_batch(_handle, openPtr, highPtr, lowPtr, closePtr, volumePtr, timestampPtr, (WickraZigZagOutput*)outputPtr, (nuint)n);
             }
         }
-
-        var result = GC.AllocateUninitializedArray<ZigZagOutput>(n);
-        for (var i = 0; i < n; i++)
-        {
-            result[i] = new ZigZagOutput(native[i].swing, native[i].direction);
-        }
-
-        return result;
     }
 
     /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
@@ -60142,7 +61503,8 @@ public sealed class Zlema : IDisposable
 
     public double Update(double @value)
     {
-        var result = NativeMethods.wickra_zlema_update(_handle, @value);
+        var result = NativeMethods.wickra_zlema_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
         return result;
     }
 

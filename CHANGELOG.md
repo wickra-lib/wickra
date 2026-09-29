@@ -39,8 +39,9 @@ definition (see Fixed).
   `batch_fast_into` in Rust (provided methods of `Indicator` for every
   indicator whose output converts to `f64`, bounded by the associated types
   only, so a generic caller and a `dyn Indicator` alike reach an indicator's
-  fast path and the trait stays object safe), `Span<double>` overloads of `Batch`
-  and `BatchFast` in C#, `BatchInto(dst, ...)` / `BatchFastInto` in Go,
+  fast path and the trait stays object safe), `Span` overloads of `Batch`
+  and `BatchFast` in C# (`Span<double>`, and a span of the output records for
+  MACD, Bollinger and every other multi-output indicator), `BatchInto(dst, ...)` / `BatchFastInto` in Go,
   `batchInto` / `batchFastInto` in Java over arrays and over native
   `MemorySegment`s (handed to the C ABI without a copy, after checking they are
   off-heap, equally long and aligned), and `batchInto` / `batchFastInto` into a
@@ -101,6 +102,19 @@ definition (see Fixed).
     235 -> 92 ns), and the Hilbert-transform phase (HtDcPhase, HtTrendMode)
     integrates against a shared table (354 -> 78 and 389 -> 114 ns).
   - Pearson correlation and WMA keep their windows in ring buffers.
+- **C#: `Update` no longer reference-counts the native handle.** The
+  marshaller's AddRef/Release around every call were two interlocked
+  operations, 13 of the 16 ns an SMA update took; `Update` now passes the
+  pointer after a disposed check and keeps the handle alive with
+  `GC.KeepAlive`, so it still throws `ObjectDisposedException` after `Dispose`
+  and the finalizer cannot run mid-call (SMA streaming 63 -> 343 million
+  updates per second). Every other member keeps the reference-counted handle.
+  An indicator was never thread-safe; the README now says not to dispose one
+  while another thread calls it.
+- **C#: multi-output batches write their records in place.** The record is laid
+  out like the native struct, so the native side fills the result directly
+  instead of an intermediate array copied row by row (MACD batch 170 -> 400
+  million updates per second, 638 into a reused span).
 - **Node ATR and Chaikin batches validate every bar before consuming any,**
   where they used to fail part-way with the state advanced; the same holds for
   WASM, and for the Python Chaikin batch.

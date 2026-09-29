@@ -11,7 +11,7 @@
 //
 // Three indicators are timed, chosen by FFI call-signature archetype rather
 // than algorithm: SMA (1-in -> 1-out), ATR (multi-in -> 1-out), and MACD
-// (1-in -> multi-out, whose batches return records and have no Span form).
+// (1-in -> multi-out, whose batches write MacdOutput records).
 //
 //   cargo build -p wickra-c --release
 //   dotnet run -c Release --project bindings/csharp/benchmarks            # 200k bars
@@ -51,8 +51,9 @@ for (int i = 0; i < bars; i++)
     volume[i] = 1000 + (i % 97) * 13;
     timestamp[i] = i;
 }
-// The reused output of the Span forms.
+// The reused outputs of the Span forms.
 var output = new double[bars];
+var macdOutput = new MacdOutput[bars];
 
 double Mups(double ns) => bars / (ns / 1e9) / 1e6;
 
@@ -90,8 +91,8 @@ var indicators = new (string Name, Action Stream, Action Batch, Action Fast, Act
         () => { using var ind = new MacdIndicator(12, 26, 9); for (int i = 0; i < bars; i++) ind.Update(close[i]); },
         () => { using var ind = new MacdIndicator(12, 26, 9); ind.Batch(close); },
         () => { using var ind = new MacdIndicator(12, 26, 9); ind.BatchFast(close); },
-        null,
-        null),
+        () => { using var ind = new MacdIndicator(12, 26, 9); ind.Batch(close, macdOutput); },
+        () => { using var ind = new MacdIndicator(12, 26, 9); ind.BatchFast(close, macdOutput); }),
 };
 
 string Cell(Action? run) => run is null ? "-" : Mups(TimeNs(run)).ToString("F1");
