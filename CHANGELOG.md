@@ -7,6 +7,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Throughput. Every batch the library had gets faster without a bit of its output
+changing, an opt-in `batch_fast` runs SIMD kernels where the last place may, and
+every binding can write a batch into a buffer the caller keeps. Streaming gets
+faster on the indicators that did more work per tick than their window needed.
+The one output that moves is WMA's past its first sixteen windows, towards its
+definition (see Fixed).
+
+### Added
+
+- **`batch_fast`: an opt-in fast batch, in every language.** Where an indicator
+  has a SIMD kernel -- SMA, EMA, WMA, HMA, TRIMA, SMMA, DEMA, TEMA, RSI, MACD,
+  Bollinger Bands, ATR, the Chaikin oscillator, skewness and Pearson
+  correlation -- the kernel reorders the arithmetic, so each value agrees with
+  the exact batch to within a few units in the last place rather than bit for
+  bit (the tests hold the moving averages to 1e-11 relative and the
+  worse-conditioned statistics, skewness, correlation and Chaikin, to 1e-9).
+  `NaN` placement and length are identical, the result is the same on every
+  platform and CPU, and afterwards the indicator streams on from the same
+  state. Where an indicator has no kernel, the fast batch *is* the exact batch. It is `batch_fast` (Rust, Python,
+  R), `batchFast` (Node, WASM, Java), `BatchFast` (C#, Go) and
+  `wickra_<name>_batch_fast` in the C ABI: 155 entry points, one per f64-series
+  indicator plus MACD, Bollinger Bands, ATR, the Chaikin oscillator and Pearson.
+  In Python it runs SMA(20) over 20,000 bars in 10.4 us (TA-Lib 15.2,
+  tulipy 15.8) and leads TA-Lib on every indicator measured; in Rust it beats
+  `kand` on all six; into a reused buffer it reaches about 3,100 million
+  updates per second from C, C#, Go and Java alike (BENCHMARKS.md).
+- **Batches into a buffer the caller keeps.** Writing a fresh multi-megabyte
+  result costs page faults on the order of the computation, so every binding
+  that can gains a form that allocates nothing: `batch_nan_into` /
+  `batch_fast_into` in Rust (provided methods of `Indicator`, so every generic
+  caller reaches an indicator's fast path), `Span<double>` overloads of `Batch`
+  and `BatchFast` in C#, `BatchInto(dst, ...)` / `BatchFastInto` in Go,
+  `batchInto` / `batchFastInto` in Java over arrays and over native
+  `MemorySegment`s (handed to the C ABI without a copy, after checking they are
+  off-heap, equally long and aligned), and `batchInto` / `batchFastInto` into a
+  `Float64Array` in Node and WASM. C# allocating batches use
+  `GC.AllocateUninitializedArray`, since the native side writes every element.
+- **Node batches take a `Float64Array`,** read in place without a copy, as well
+  as a plain array; `batch` keeps returning an `Array`. An output
+  `Float64Array` is refused when it has the wrong length, overlaps an input or
+  is backed by a `SharedArrayBuffer`.
+- **`wickra-simd`,** a new published crate holding the one `unsafe` call runtime
+  dispatch needs: a kernel runs in a function compiled with AVX2 and FMA when
+  the CPU has both, the portable build otherwise, with the same bits either way.
+  `wickra-core` stays `#![forbid(unsafe_code)]`.
+- **`Candle::all_valid`** holds a set of OHLCV columns to the rules of
+  `Candle::new` as a branch-free fold; the C ABI's column batches use it.
+- **Tests:** an adversarial-input test replays all 149 scalar indicators of
+  the fuzz list over nine hostile series (NaN, infinities, 1e150, flat, steps,
+  subnormals, signed noise) and requires `batch_nan` to equal streaming bit for
+  bit and `batch_fast` to keep length and `NaN` placement, falling back to the
+  exact batch on non-finite or out-of-range input; the scalar fuzz target
+  asserts the same on arbitrary input. Every binding tests the new surface
+  against its exact batch.
+
+### Changed
+
+- **Exact batches, bit for bit faster.** The hot indicators run fused batch
+  paths written to perform the same arithmetic in the same order as `update`:
+  SMA, EMA, RSI, MACD (with its tail through the SIMD dispatch, so its fused
+  multiply-adds become hardware FMA), Bollinger Bands, ATR, the Chaikin
+  oscillator and Pearson correlation. The C ABI's scalar `_batch` now calls
+  them instead of replaying `update`, which carries them to C, C++, C#, Go,
+  Java and R; Node and WASM batches run them too.
+  Through C#, SMA(20) over 200,000 bars: 297 -> 744 million updates per
+  second (1,143 into a `Span`), same machine and session.
+- **Python batches read and write their buffers once.** A NumPy array,
+  `array.array` or `memoryview` is read with one copy instead of being walked
+  element by element through the sequence protocol, and results are written
+  straight into the `bytes` object that seeds the returned `array.array('d')`.
+  Together with the fused paths, 20,000 bars, us per call: SMA 385 -> 21.7,
+  EMA 406 -> 33.9, RSI 802 -> 36.4, MACD 732 -> 36.0, Bollinger
+  816 -> 71.6, ATR 1,565 -> 49.3 -- 11 to 32 times faster, the output
+  unchanged to the bit.
+- **Streaming, same bits, less work per tick.**
+  - EMA keeps its warmup as a running sum instead of a buffer (2.9 -> 1.6 ns per
+    update in the core); ATR likewise keeps its seed as a sum and a count, which
+    speeds up every indicator built on it (ATR bands, Keltner, SuperTrend,
+    NATR, Chandelier, STARC and more).
+  - The autocorrelation periodogram tabulates its cosines and sines once
+    instead of computing some 3,600 per update: (10, 48) 18.4 -> 0.72 us.
+  - Thirteen quantile and median indicators (VaR, CVaR, tail ratio, median MA,
+    rolling quantile and IQR, quartile bands, common sense ratio, MAD, median
+    channel, Bomar bands, regime label, volatility cone) keep their window
+    sorted as it slides instead of sorting a copy per update; MAD, median
+    channel and Bomar merge their absolute deviations instead of sorting them.
+    RollingQuantile(220) 2.4 us -> 64 ns, MAD(220) 2.6 -> 0.63 us, VaR(20)
+    173 -> 47 ns, volatility cone 713 -> 90 ns.
+  - Kendall's tau keeps its pair counts as pairs enter and leave (period 20:
+    235 -> 92 ns), and the Hilbert-transform phase (HtDcPhase, HtTrendMode)
+    integrates against a shared table (354 -> 78 and 389 -> 114 ns).
+  - Pearson correlation and WMA keep their windows in ring buffers.
+- **Node ATR and Chaikin batches validate every bar before consuming any,**
+  where they used to fail part-way with the state advanced; the same holds for
+  WASM, and for the Python Chaikin batch.
+- **The benchmarks:** every binding's `throughput` benchmark reports the fast
+  batch and the caller-buffer forms; the Go one repeats each sample to at least
+  20 ms (a batch now finishes inside one tick of the Windows clock and was
+  timed as zero); the Rust one batches into reused buffers, as the C ABI's
+  callers do; the cross-library criterion benchmark times Wickra's exact batch
+  into a caller buffer, as kand's fill-the-slice functions are timed, and adds
+  `wickra/fast`; `compare_libraries.py` adds a "Wickra (fast)" row.
+
+### Fixed
+
+- **WMA's running sums drifted.** The weighted sum was updated as
+  `W - S + period * x` and never recomputed, so rounding accumulated without
+  bound: on 500,000 prices WMA(14) ended 6.4e-10 (relative) from its
+  definition. Both sums are now recomputed from the live window every
+  `16 * period` updates, the SMA's cadence, keeping a long stream at the
+  definition to about 1e-14. Until the first recompute the values are the old
+  ones, bit for bit; after it they move towards the definition. HMA and the
+  other WMA-built indicators follow. The golden fixtures are shorter than one
+  interval and are unchanged.
+- **MACD's fused batch disagreed with streaming in two corners:** an
+  all-negative-zero seed window kept the wrong sign bit, and values beyond
+  1e300 could overflow a difference the streaming signal EMA skips. Both now
+  match the replay.
+- **The Node README said a warming-up `batch` returns `null`;** it returns
+  `NaN`.
+
+
 ## [1.0.6] - 2026-09-23
 
 A maintenance release: no crate, binding or indicator changed. It publishes the
