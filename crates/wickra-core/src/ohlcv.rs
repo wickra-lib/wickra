@@ -149,6 +149,26 @@ impl Candle {
         })
     }
 
+    /// [`all_valid`](Self::all_valid) for the candles a high/low/close series
+    /// builds, `Candle::new(close, high, low, close, 0.0, _)`: every value finite
+    /// and `low <= close <= high`. The same kernel over three columns.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the columns differ in length.
+    pub fn all_valid_hlc(high: &[f64], low: &[f64], close: &[f64]) -> bool {
+        let n = high.len();
+        assert!(
+            low.len() == n && close.len() == n,
+            "every column must be equally long"
+        );
+        wickra_simd::dispatch(AllValidHlc {
+            high,
+            low: &low[..n],
+            close: &close[..n],
+        })
+    }
+
     /// The typical price `(high + low + close) / 3`. Used by CCI, MFI, VWAP, etc.
     #[inline]
     pub fn typical_price(&self) -> f64 {
@@ -301,6 +321,45 @@ impl wickra_simd::Kernel for AllValid<'_> {
     }
 }
 
+/// [`Candle::all_valid_hlc`]: [`AllValid`] over three columns, the open being the
+/// close and the volume zero.
+struct AllValidHlc<'a> {
+    high: &'a [f64],
+    low: &'a [f64],
+    close: &'a [f64],
+}
+
+// As for `AllValid`.
+#[allow(clippy::inline_always, clippy::needless_bitwise_bool)]
+impl wickra_simd::Kernel for AllValidHlc<'_> {
+    type Output = bool;
+
+    #[inline(always)]
+    fn run<S: wickra_simd::Simd>(self, _simd: S) -> bool {
+        const LANES: usize = 8;
+        fn blocks(col: &[f64]) -> impl Iterator<Item = &[f64; LANES]> {
+            col.chunks_exact(LANES)
+                .map(|block| <&[f64; LANES]>::try_from(block).expect("a whole block"))
+        }
+        let (high, low, close) = (self.high, self.low, self.close);
+        let n = high.len();
+        let bar = |h: f64, l: f64, c: f64| {
+            let finite = (h * 0.0 == 0.0) & (l * 0.0 == 0.0) & (c * 0.0 == 0.0);
+            finite & (h >= l) & (h >= c) & (l <= c)
+        };
+        let mut lanes = [true; LANES];
+        for ((h, l), c) in blocks(high).zip(blocks(low)).zip(blocks(close)) {
+            for (k, lane) in lanes.iter_mut().enumerate() {
+                *lane &= bar(h[k], l[k], c[k]);
+            }
+        }
+        let full = n - n % LANES;
+        (full..n).fold(lanes.iter().all(|&ok| ok), |ok, i| {
+            ok & bar(high[i], low[i], close[i])
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -362,6 +421,47 @@ mod tests {
         bad[1_100] = high[1_100] + 1.0;
         assert!(!Candle::all_valid(&close, &high, &bad, &close, &volume));
         assert!(Candle::all_valid(&[], &[], &[], &[], &[]));
+    }
+
+    #[test]
+    fn all_valid_hlc_agrees_with_candle_new_at_every_position() {
+        // (high, low, close); each breaks at most one rule of the candle a
+        // high/low/close series builds, `Candle::new(c, h, l, c, 0.0, _)`.
+        let bars: [(f64, f64, f64); 10] = [
+            (11.0, 9.0, 10.0),
+            (10.0, 10.0, 10.0),
+            (0.0, -0.0, 0.0),
+            (f64::NAN, 9.0, 10.0),
+            (11.0, f64::NEG_INFINITY, 10.0),
+            (11.0, 9.0, f64::INFINITY),
+            (9.0, 9.5, 9.2),
+            (11.0, 9.0, 12.0),
+            (11.0, 9.0, 8.0),
+            (-5.0, -7.0, -6.0),
+        ];
+        let fine = bars[0];
+        for &(h, l, c) in &bars {
+            let want = Candle::new(c, h, l, c, 0.0, 0).is_ok();
+            for at in 0..21 {
+                let mut run = [fine; 21];
+                run[at] = (h, l, c);
+                let high: Vec<f64> = run.iter().map(|b| b.0).collect();
+                let low: Vec<f64> = run.iter().map(|b| b.1).collect();
+                let close: Vec<f64> = run.iter().map(|b| b.2).collect();
+                assert_eq!(
+                    Candle::all_valid_hlc(&high, &low, &close),
+                    want,
+                    "{h} {l} {c} at {at}"
+                );
+            }
+        }
+        assert!(Candle::all_valid_hlc(&[], &[], &[]));
+    }
+
+    #[test]
+    #[should_panic(expected = "every column must be equally long")]
+    fn all_valid_hlc_rejects_mismatched_columns() {
+        let _ = Candle::all_valid_hlc(&[1.0, 2.0], &[1.0], &[1.0, 2.0]);
     }
 
     #[test]

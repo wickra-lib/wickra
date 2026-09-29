@@ -61,7 +61,10 @@ definition (see Fixed).
   to AVX2 where the CPU has it (0.57 ns a bar; a per-element check cost as much
   as the ATR batch it guards). The C ABI's column batches use it, so ATR from
   C, C#, Go, Java and R batches at 482 instead of 348 million bars a second,
-  772 instead of 471 with the fast batch.
+  772 instead of 471 with the fast batch. **`Candle::all_valid_hlc`** is the
+  same check for the candles a high/low/close series builds (open = close, no
+  volume); the Python, Node and WASM high/low/close batches validate with it,
+  and walk the bars one by one only to name a bad one.
 - **Tests:** an adversarial-input test replays all 149 scalar indicators of
   the fuzz list over nine hostile series (NaN, infinities, 1e150, flat, steps,
   subnormals, signed noise) and requires `batch_nan` to equal streaming bit for

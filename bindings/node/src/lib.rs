@@ -2474,8 +2474,12 @@ impl AtrNode {
         let n = same_length(&[&high, &low, &close], "high, low, close")?;
         // Every bar is validated first, as `update` would build it, so a bad bar
         // is refused before the indicator consumes anything.
-        for i in 0..n {
-            cnd(high[i], low[i], close[i], 0.0)?;
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid_hlc(&high, &low, &close) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], 0.0)?;
+            }
         }
         let mut out = vec![0.0; n];
         self.inner.batch_atr_into(&high, &low, &close, &mut out);
@@ -2491,8 +2495,12 @@ impl AtrNode {
         let n = same_length(&[&high, &low, &close], "high, low, close")?;
         // Every bar is validated first, as `update` would build it, so a bad bar
         // is refused before the indicator consumes anything.
-        for i in 0..n {
-            cnd(high[i], low[i], close[i], 0.0)?;
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid_hlc(&high, &low, &close) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], 0.0)?;
+            }
         }
         let mut out = vec![0.0; n];
         self.inner
@@ -2510,8 +2518,12 @@ impl AtrNode {
         let n = same_length(&[&high, &low, &close], "high, low, close")?;
         // Every bar is validated first, as `update` would build it, so a bad bar
         // is refused before the indicator consumes anything.
-        for i in 0..n {
-            cnd(high[i], low[i], close[i], 0.0)?;
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid_hlc(&high, &low, &close) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], 0.0)?;
+            }
         }
         let rows = out.rows(n, &[&high, &low, &close])?;
         self.inner.batch_atr_into(&high, &low, &close, rows);
@@ -2528,8 +2540,12 @@ impl AtrNode {
         let n = same_length(&[&high, &low, &close], "high, low, close")?;
         // Every bar is validated first, as `update` would build it, so a bad bar
         // is refused before the indicator consumes anything.
-        for i in 0..n {
-            cnd(high[i], low[i], close[i], 0.0)?;
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid_hlc(&high, &low, &close) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], 0.0)?;
+            }
         }
         let rows = out.rows(n, &[&high, &low, &close])?;
         self.inner.batch_atr_fast_into(&high, &low, &close, rows);
@@ -6998,8 +7014,12 @@ impl ChaikinOscillatorNode {
         let n = same_length(&[&high, &low, &close, &volume], "high, low, close, volume")?;
         // Every bar is validated first, as `update` would build it, so a bad bar
         // is refused before the indicator consumes anything.
-        for i in 0..n {
-            cnd(high[i], low[i], close[i], volume[i])?;
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid(&close, &high, &low, &close, &volume) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], volume[i])?;
+            }
         }
         let mut out = vec![0.0; n];
         self.inner
@@ -7017,8 +7037,12 @@ impl ChaikinOscillatorNode {
         let n = same_length(&[&high, &low, &close, &volume], "high, low, close, volume")?;
         // Every bar is validated first, as `update` would build it, so a bad bar
         // is refused before the indicator consumes anything.
-        for i in 0..n {
-            cnd(high[i], low[i], close[i], volume[i])?;
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid(&close, &high, &low, &close, &volume) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], volume[i])?;
+            }
         }
         let mut out = vec![0.0; n];
         self.inner
@@ -7037,8 +7061,12 @@ impl ChaikinOscillatorNode {
         let n = same_length(&[&high, &low, &close, &volume], "high, low, close, volume")?;
         // Every bar is validated first, as `update` would build it, so a bad bar
         // is refused before the indicator consumes anything.
-        for i in 0..n {
-            cnd(high[i], low[i], close[i], volume[i])?;
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid(&close, &high, &low, &close, &volume) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], volume[i])?;
+            }
         }
         let rows = out.rows(n, &[&high, &low, &close, &volume])?;
         self.inner
@@ -7057,8 +7085,12 @@ impl ChaikinOscillatorNode {
         let n = same_length(&[&high, &low, &close, &volume], "high, low, close, volume")?;
         // Every bar is validated first, as `update` would build it, so a bad bar
         // is refused before the indicator consumes anything.
-        for i in 0..n {
-            cnd(high[i], low[i], close[i], volume[i])?;
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid(&close, &high, &low, &close, &volume) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], volume[i])?;
+            }
         }
         let rows = out.rows(n, &[&high, &low, &close, &volume])?;
         self.inner
