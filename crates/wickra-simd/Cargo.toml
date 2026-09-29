@@ -13,6 +13,10 @@ keywords.workspace = true
 categories.workspace = true
 documentation = "https://docs.rs/wickra-simd"
 
+# Render the docs on docs.rs with every feature enabled, as the other crates do.
+[package.metadata.docs.rs]
+all-features = true
+
 # Dispatching to code compiled for a CPU feature the build target does not
 # assume is `unsafe` in Rust: the caller vouches that the feature is present.
 # The workspace forbids `unsafe_code`, so this crate cannot inherit
