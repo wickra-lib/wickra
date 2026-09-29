@@ -12,3 +12,18 @@
  * the Rust constructor.
  */
 export type Count = number
+
+/**
+ * A numeric input series: a `Float64Array` is read in place without a copy,
+ * any other array of numbers is converted element by element. A typed array of
+ * another element type is refused rather than reinterpreted.
+ */
+export type Series = Float64Array | Array<number>
+
+/**
+ * A caller-owned `Float64Array` a `batchInto` / `batchFastInto` call writes
+ * its result into. It must be exactly as long as the result, must not share
+ * memory with an input, and must not be backed by a `SharedArrayBuffer`;
+ * anything else is refused.
+ */
+export type OutSeries = Float64Array

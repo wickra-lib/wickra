@@ -40,7 +40,7 @@ const wickra = require('wickra');
 
 // Batch: run an indicator over a whole array.
 const prices = Array.from({ length: 1000 }, (_, i) => 100 + i * 0.1);
-const values = new wickra.RSI(14).batch(prices); // null during warmup
+const values = new wickra.RSI(14).batch(prices); // NaN during warmup
 
 // Streaming: the same indicator, fed tick by tick.
 const rsi = new wickra.RSI(14);
@@ -54,6 +54,34 @@ for (const price of liveFeed) {
 
 `batch(prices)` and feeding the same prices through `update()` produce
 identical values — the equivalence is enforced by the test suite.
+
+### Typed arrays, caller buffers, and the opt-in fast batch
+
+Every batch accepts a `Float64Array` as well as a plain array; a `Float64Array`
+is read in place, without a copy. `batch` keeps returning a plain `Array`. For
+throughput, the single-output indicators (and MACD, Bollinger Bands, ATR, the
+Chaikin oscillator and Pearson correlation) add three methods:
+
+```js
+const input = Float64Array.from(prices);
+const out = new Float64Array(input.length);
+
+new wickra.SMA(20).batchInto(input, out);           // the same bits as batch(), no allocation
+const fast = new wickra.EMA(20).batchFast(input);   // a new Float64Array
+new wickra.EMA(20).batchFastInto(input, out);       // fast, into the caller's buffer
+```
+
+`batchFast` runs a SIMD kernel where the indicator has one (moving averages,
+RSI, ATR, MACD, Bollinger, Chaikin, skewness, Pearson and more). The kernel
+reassociates the arithmetic, so each value agrees with `batch` to within a few
+units in the last place rather than bit for bit; NaN placement and length are
+identical, and the result is the same on every platform. Where there is no
+kernel, `batchFast` is `batch` exactly. MACD and Bollinger Bands write flat rows
+(`n * 3` and `n * 4` values), as their `batch` does.
+
+The output of `batchInto` / `batchFastInto` must be exactly as long as the
+result, must not share memory with an input, and must not be backed by a
+`SharedArrayBuffer`; anything else throws before a value is written.
 
 ## Benchmark
 
