@@ -78,6 +78,12 @@ fn quad_mut(values: &mut [f64]) -> &mut [f64; 4] {
 /// through `decay¹..decay⁴`, and the carry from the previous step folded in
 /// through `decay¹..decay⁸`. The tail of fewer than eight values runs as a
 /// scalar recurrence.
+///
+/// Every step is a multiplication and a separate addition, not a fused
+/// multiply-add: the result has to be the same on every platform, and
+/// WebAssembly has no fused instruction, so there it would be emulated in
+/// software -- slow enough to make the scan lose to the plain recurrence it
+/// replaces. With hardware FMA the split costs a few percent.
 #[inline(always)]
 pub(crate) fn lin_scan<S: Simd>(
     simd: S,
@@ -97,7 +103,7 @@ pub(crate) fn lin_scan<S: Simd>(
     let powers_hi = simd.mul(powers, simd.splat(decay4));
     let gain_v = simd.splat(gain);
     // The carry is kept as a scalar: `carry * decay⁸ + hi[3]` is exactly the
-    // fused multiply-add the vector's last lane performs, but as a scalar it is
+    // multiply and add the vector's last lane performs, but as a scalar it is
     // the only thing on the loop-carried path (the vector outputs hang off it).
     let mut carry = start;
     let head = xs.len() / 8 * 8;
@@ -106,20 +112,23 @@ pub(crate) fn lin_scan<S: Simd>(
     for (chunk, dest) in xs_head.chunks_exact(8).zip(out_head.chunks_exact_mut(8)) {
         let mut lo = simd.mul(gain_v, simd.load(quad(chunk)));
         let mut hi = simd.mul(gain_v, simd.load(quad(&chunk[4..])));
-        lo = simd.mul_add(decay_v, simd.shift1(lo), lo);
-        hi = simd.mul_add(decay_v, simd.shift1(hi), hi);
-        lo = simd.mul_add(decay2_v, simd.shift2(lo), lo);
-        hi = simd.mul_add(decay2_v, simd.shift2(hi), hi);
-        hi = simd.mul_add(simd.broadcast_last(lo), powers, hi);
+        lo = simd.add(simd.mul(decay_v, simd.shift1(lo)), lo);
+        hi = simd.add(simd.mul(decay_v, simd.shift1(hi)), hi);
+        lo = simd.add(simd.mul(decay2_v, simd.shift2(lo)), lo);
+        hi = simd.add(simd.mul(decay2_v, simd.shift2(hi)), hi);
+        hi = simd.add(simd.mul(simd.broadcast_last(lo), powers), hi);
         let carry_v = simd.splat(carry);
         let (dest_lo, dest_hi) = dest.split_at_mut(4);
-        simd.store(simd.mul_add(carry_v, powers, lo), quad_mut(dest_lo));
-        simd.store(simd.mul_add(carry_v, powers_hi, hi), quad_mut(dest_hi));
-        carry = carry.mul_add(decay8, simd.last_lane(hi));
+        simd.store(simd.add(simd.mul(carry_v, powers), lo), quad_mut(dest_lo));
+        simd.store(
+            simd.add(simd.mul(carry_v, powers_hi), hi),
+            quad_mut(dest_hi),
+        );
+        carry = carry * decay8 + simd.last_lane(hi);
     }
     let mut last = carry;
     for (slot, &value) in out_tail.iter_mut().zip(xs_tail) {
-        last = decay.mul_add(last, gain * value);
+        last = decay * last + gain * value;
         *slot = last;
     }
     last
