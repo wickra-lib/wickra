@@ -24814,18 +24814,7 @@ pub unsafe extern "C" fn wickra_atr_batch(
     let volumes = slice::from_raw_parts(volume, n);
     let timestamps = slice::from_raw_parts(timestamp, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    let valid = (0..n).all(|idx| {
-        Candle::new(
-            opens[idx],
-            highs[idx],
-            lows[idx],
-            closes[idx],
-            volumes[idx],
-            timestamps[idx],
-        )
-        .is_ok()
-    });
-    if valid {
+    if Candle::all_valid(opens, highs, lows, closes, volumes) {
         ind.batch_atr_into(highs, lows, closes, outputs);
         return;
     }
@@ -24884,18 +24873,7 @@ pub unsafe extern "C" fn wickra_atr_batch_fast(
     let volumes = slice::from_raw_parts(volume, n);
     let timestamps = slice::from_raw_parts(timestamp, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    let valid = (0..n).all(|idx| {
-        Candle::new(
-            opens[idx],
-            highs[idx],
-            lows[idx],
-            closes[idx],
-            volumes[idx],
-            timestamps[idx],
-        )
-        .is_ok()
-    });
-    if valid {
+    if Candle::all_valid(opens, highs, lows, closes, volumes) {
         ind.batch_atr_fast_into(highs, lows, closes, outputs);
         return;
     }
@@ -27080,18 +27058,7 @@ pub unsafe extern "C" fn wickra_chaikin_oscillator_batch(
     let volumes = slice::from_raw_parts(volume, n);
     let timestamps = slice::from_raw_parts(timestamp, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    let valid = (0..n).all(|idx| {
-        Candle::new(
-            opens[idx],
-            highs[idx],
-            lows[idx],
-            closes[idx],
-            volumes[idx],
-            timestamps[idx],
-        )
-        .is_ok()
-    });
-    if valid {
+    if Candle::all_valid(opens, highs, lows, closes, volumes) {
         ind.batch_hlcv_into(highs, lows, closes, volumes, outputs);
         return;
     }
@@ -27150,18 +27117,7 @@ pub unsafe extern "C" fn wickra_chaikin_oscillator_batch_fast(
     let volumes = slice::from_raw_parts(volume, n);
     let timestamps = slice::from_raw_parts(timestamp, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    let valid = (0..n).all(|idx| {
-        Candle::new(
-            opens[idx],
-            highs[idx],
-            lows[idx],
-            closes[idx],
-            volumes[idx],
-            timestamps[idx],
-        )
-        .is_ok()
-    });
-    if valid {
+    if Candle::all_valid(opens, highs, lows, closes, volumes) {
         ind.batch_hlcv_fast_into(highs, lows, closes, volumes, outputs);
         return;
     }

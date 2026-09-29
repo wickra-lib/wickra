@@ -116,6 +116,46 @@ impl Candle {
         }
     }
 
+    /// Whether [`Candle::new`] would accept every bar `(open[i], high[i],
+    /// low[i], close[i], volume[i])`: all finite, a non-negative volume, and
+    /// `low <= open, close <= high`.
+    ///
+    /// Each block of bars is folded without an early exit, so the check
+    /// vectorizes rather than branching once per rule per bar -- which is what
+    /// a batch over OHLCV columns spends most of its time on otherwise.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the columns differ in length.
+    pub fn all_valid(
+        open: &[f64],
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+    ) -> bool {
+        const BLOCK: usize = 512;
+        let n = open.len();
+        assert!(
+            high.len() == n && low.len() == n && close.len() == n && volume.len() == n,
+            "every column must be equally long"
+        );
+        (0..n).step_by(BLOCK).all(|start| {
+            let end = (start + BLOCK).min(n);
+            let bars = open[start..end]
+                .iter()
+                .zip(&high[start..end])
+                .zip(&low[start..end])
+                .zip(&close[start..end])
+                .zip(&volume[start..end]);
+            bars.fold(true, |ok, ((((&o, &h), &l), &c), &v)| {
+                let finite = o.is_finite() & h.is_finite() & l.is_finite() & c.is_finite();
+                let ordered = (h >= l) & (h >= o) & (h >= c) & (l <= o) & (l <= c);
+                ok & finite & v.is_finite() & (v >= 0.0) & ordered
+            })
+        })
+    }
+
     /// The typical price `(high + low + close) / 3`. Used by CCI, MFI, VWAP, etc.
     #[inline]
     pub fn typical_price(&self) -> f64 {
@@ -209,6 +249,50 @@ impl Tick {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn all_valid_agrees_with_candle_new_bar_by_bar() {
+        // Each bar breaks at most one rule, or none; every rule is broken once.
+        let bars: [(f64, f64, f64, f64, f64); 12] = [
+            (10.0, 11.0, 9.0, 10.5, 100.0),
+            (10.0, 10.0, 10.0, 10.0, 0.0),
+            (-0.0, 0.0, -0.0, 0.0, -0.0),
+            (f64::NAN, 11.0, 9.0, 10.0, 1.0),
+            (10.0, f64::INFINITY, 9.0, 10.0, 1.0),
+            (10.0, 11.0, f64::NEG_INFINITY, 10.0, 1.0),
+            (10.0, 11.0, 9.0, f64::NAN, 1.0),
+            (10.0, 11.0, 9.0, 10.0, f64::INFINITY),
+            (10.0, 11.0, 9.0, 10.0, -1.0),
+            (10.0, 9.0, 9.5, 9.2, 1.0),
+            (12.0, 11.0, 9.0, 10.0, 1.0),
+            (10.0, 11.0, 9.0, 8.0, 1.0),
+        ];
+        for &(o, h, l, c, v) in &bars {
+            let single = Candle::all_valid(&[o], &[h], &[l], &[c], &[v]);
+            assert_eq!(
+                single,
+                Candle::new(o, h, l, c, v, 0).is_ok(),
+                "{o} {h} {l} {c} {v}"
+            );
+        }
+        // A long run of valid bars spans several blocks; one bad bar anywhere fails it.
+        let n = 1_300;
+        let close: Vec<f64> = (0..n).map(|i| 100.0 + f64::from(i % 17)).collect();
+        let high: Vec<f64> = close.iter().map(|c| c + 1.0).collect();
+        let low: Vec<f64> = close.iter().map(|c| c - 1.0).collect();
+        let volume = vec![5.0; close.len()];
+        assert!(Candle::all_valid(&close, &high, &low, &close, &volume));
+        let mut bad = low.clone();
+        bad[1_100] = high[1_100] + 1.0;
+        assert!(!Candle::all_valid(&close, &high, &bad, &close, &volume));
+        assert!(Candle::all_valid(&[], &[], &[], &[], &[]));
+    }
+
+    #[test]
+    #[should_panic(expected = "every column must be equally long")]
+    fn all_valid_rejects_ragged_columns() {
+        let _ = Candle::all_valid(&[1.0], &[1.0], &[1.0], &[1.0], &[]);
+    }
 
     #[test]
     fn candle_new_accepts_valid_ohlc() {
