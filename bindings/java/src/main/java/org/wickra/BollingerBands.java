@@ -79,6 +79,34 @@ public final class BollingerBands implements AutoCloseable {
         }
     }
 
+    /**
+     * Opt-in fast batch: the SIMD kernel reassociates the arithmetic, so each
+     * field agrees with {@code batch} to within a few units in the last place
+     * rather than bit for bit; warmup rows and length are identical, and the
+     * result is the same on every platform.
+     */
+    public BollingerOutput[] batchFast(double[] input) {
+        int n = input.length;
+        try (Arena a = Arena.ofConfined()) {
+            MemorySegment inputSeg = a.allocateFrom(JAVA_DOUBLE, input);
+            MemorySegment outSeg = a.allocate(32L * n);
+            NativeMethods.WICKRA_BOLLINGER_BANDS_BATCH_FAST.invokeExact(handle(), inputSeg, outSeg, (long) n);
+            BollingerOutput[] out = new BollingerOutput[n];
+            for (int i = 0; i < n; i++) {
+                out[i] = new BollingerOutput(
+                        outSeg.get(JAVA_DOUBLE, i * 32L + 0L),
+                        outSeg.get(JAVA_DOUBLE, i * 32L + 8L),
+                        outSeg.get(JAVA_DOUBLE, i * 32L + 16L),
+                        outSeg.get(JAVA_DOUBLE, i * 32L + 24L));
+            }
+            return out;
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
     /** Number of updates required before update() yields a value. */
     public int warmupPeriod() {
         try {

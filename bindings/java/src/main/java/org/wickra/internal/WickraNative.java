@@ -7,6 +7,7 @@ import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.nio.file.Files;
@@ -72,6 +73,24 @@ public final class WickraNative {
             bytes[i] = (byte) (flags[i] ? 1 : 0);
         }
         return arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_BYTE, bytes);
+    }
+
+    /**
+     * Check a caller segment handed straight to a native batch: it must be
+     * native (off-heap) memory, hold exactly {@code n} elements of
+     * {@code layout}, and be aligned for that element type, since the native
+     * side reads it as a typed slice without copying.
+     */
+    public static void checkBatchSegment(MemorySegment segment, ValueLayout layout, long n) {
+        if (!segment.isNative()) {
+            throw new IllegalArgumentException("wickra: batch segments must be native (off-heap) memory");
+        }
+        if (segment.byteSize() != n * layout.byteSize()) {
+            throw new IllegalArgumentException("wickra: every batch segment must hold the same number of elements");
+        }
+        if (segment.address() % layout.byteAlignment() != 0) {
+            throw new IllegalArgumentException("wickra: batch segment is not aligned for its element type");
+        }
     }
 
     /** Re-throw a {@link MethodHandle#invokeExact} {@link Throwable} as an unchecked exception. */

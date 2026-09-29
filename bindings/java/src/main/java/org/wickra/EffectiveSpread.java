@@ -40,8 +40,23 @@ public final class EffectiveSpread implements AutoCloseable {
         }
     }
 
-    /** Vectorized update over a whole series; NaN at warmup positions. */
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     */
     public double[] batch(double[] price, double[] size, boolean[] isBuy, long[] timestamp, double[] mid) {
+        double[] output = new double[price.length];
+        batchInto(price, size, isBuy, timestamp, mid, output);
+        return output;
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Writes into {@code output}, which must be as long as the input.
+     */
+    public void batchInto(double[] price, double[] size, boolean[] isBuy, long[] timestamp, double[] mid, double[] output) {
         int n = price.length;
         if (size.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
@@ -55,17 +70,43 @@ public final class EffectiveSpread implements AutoCloseable {
         if (mid.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
         }
+        if (output.length != n) {
+            throw new IllegalArgumentException("the output array must be as long as the input");
+        }
         try (Arena a = Arena.ofConfined()) {
             MemorySegment priceSeg = a.allocateFrom(JAVA_DOUBLE, price);
             MemorySegment sizeSeg = a.allocateFrom(JAVA_DOUBLE, size);
             MemorySegment isBuySeg = WickraNative.boolSegment(a, isBuy);
             MemorySegment timestampSeg = a.allocateFrom(JAVA_LONG, timestamp);
             MemorySegment midSeg = a.allocateFrom(JAVA_DOUBLE, mid);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE.byteSize() * n);
+            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, n);
             NativeMethods.WICKRA_EFFECTIVE_SPREAD_BATCH.invokeExact(handle(), priceSeg, sizeSeg, isBuySeg, timestampSeg, midSeg, outSeg, (long) n);
-            double[] out = new double[n];
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, out, 0, n);
-            return out;
+            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every segment must be
+     * off-heap, aligned for its element type, and hold the same number of
+     * elements, {@code output} as many doubles. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment price, MemorySegment size, MemorySegment isBuy, MemorySegment timestamp, MemorySegment mid, MemorySegment output) {
+        long n = price.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(price, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(size, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(isBuy, JAVA_BYTE, n);
+        WickraNative.checkBatchSegment(timestamp, JAVA_LONG, n);
+        WickraNative.checkBatchSegment(mid, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n);
+        try {
+            NativeMethods.WICKRA_EFFECTIVE_SPREAD_BATCH.invokeExact(handle(), price, size, isBuy, timestamp, mid, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

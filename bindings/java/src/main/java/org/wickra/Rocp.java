@@ -43,16 +43,116 @@ public final class Rocp implements AutoCloseable {
         }
     }
 
-    /** Vectorized update over a whole series; NaN at warmup positions. */
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     */
     public double[] batch(double[] input) {
+        double[] output = new double[input.length];
+        batchInto(input, output);
+        return output;
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Writes into {@code output}, which must be as long as the input.
+     */
+    public void batchInto(double[] input, double[] output) {
         int n = input.length;
+        if (output.length != n) {
+            throw new IllegalArgumentException("the output array must be as long as the input");
+        }
         try (Arena a = Arena.ofConfined()) {
             MemorySegment inputSeg = a.allocateFrom(JAVA_DOUBLE, input);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE.byteSize() * n);
+            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, n);
             NativeMethods.WICKRA_ROCP_BATCH.invokeExact(handle(), inputSeg, outSeg, (long) n);
-            double[] out = new double[n];
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, out, 0, n);
-            return out;
+            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every segment must be
+     * off-heap, aligned for its element type, and hold the same number of
+     * elements, {@code output} as many doubles. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment input, MemorySegment output) {
+        long n = input.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(input, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n);
+        try {
+            NativeMethods.WICKRA_ROCP_BATCH.invokeExact(handle(), input, output, n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each
+     * value agrees with {@code batch} to within a few units in the last place
+     * rather than bit for bit; NaN placement and length are identical, and the
+     * result is the same on every platform. Without a kernel it is exactly
+     * {@code batch}.
+     */
+    public double[] batchFast(double[] input) {
+        double[] output = new double[input.length];
+        batchFastInto(input, output);
+        return output;
+    }
+
+    /**
+     * Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each
+     * value agrees with {@code batch} to within a few units in the last place
+     * rather than bit for bit; NaN placement and length are identical, and the
+     * result is the same on every platform. Without a kernel it is exactly
+     * {@code batch}.
+     * 
+     * <p>Writes into {@code output}, which must be as long as the input.
+     */
+    public void batchFastInto(double[] input, double[] output) {
+        int n = input.length;
+        if (output.length != n) {
+            throw new IllegalArgumentException("the output array must be as long as the input");
+        }
+        try (Arena a = Arena.ofConfined()) {
+            MemorySegment inputSeg = a.allocateFrom(JAVA_DOUBLE, input);
+            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, n);
+            NativeMethods.WICKRA_ROCP_BATCH_FAST.invokeExact(handle(), inputSeg, outSeg, (long) n);
+            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each
+     * value agrees with {@code batch} to within a few units in the last place
+     * rather than bit for bit; NaN placement and length are identical, and the
+     * result is the same on every platform. Without a kernel it is exactly
+     * {@code batch}.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every segment must be
+     * off-heap, aligned for its element type, and hold the same number of
+     * elements, {@code output} as many doubles. Nothing is copied or allocated.
+     */
+    public void batchFastInto(MemorySegment input, MemorySegment output) {
+        long n = input.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(input, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n);
+        try {
+            NativeMethods.WICKRA_ROCP_BATCH_FAST.invokeExact(handle(), input, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

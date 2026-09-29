@@ -84,6 +84,36 @@ values — the equivalence is enforced by the test suite. Multi-output indicator
 indicator owns a native handle freed by a `Cleaner`; `close()` releases it
 eagerly (use try-with-resources).
 
+### Caller buffers, zero-copy segments, and the opt-in fast batch
+
+Every single-output `batch` has a `batchInto` form that writes into a caller
+array, and one over caller-owned native memory that copies nothing: the
+`MemorySegment`s go straight to the C ABI. Each also has a `batchFast` twin:
+
+```java
+double[] out = new double[prices.length];
+try (Sma exact = new Sma(20)) {
+    exact.batchInto(prices, out);      // the same bits as new Sma(20).batch(prices)
+}
+
+try (Ema fast = new Ema(20); Arena arena = Arena.ofConfined()) {
+    MemorySegment in = arena.allocateFrom(ValueLayout.JAVA_DOUBLE, prices);
+    MemorySegment values = arena.allocate(ValueLayout.JAVA_DOUBLE, prices.length);
+    fast.batchFastInto(in, values);    // zero-copy; or: double[] v = fast.batchFast(prices);
+}
+```
+
+Segments must be off-heap, aligned for their element type and all hold the same
+number of elements; anything else throws `IllegalArgumentException`.
+
+`batchFast` runs a SIMD kernel where the indicator has one (moving averages,
+RSI, ATR, MACD, Bollinger, Chaikin, skewness, Pearson and more). The kernel
+reassociates the arithmetic, so each value agrees with `batch` to within a few
+units in the last place rather than bit for bit; NaN placement and length are
+identical, and the result is the same on every platform. Where there is no
+kernel, `batchFast` is `batch` exactly. An indicator keeps its state across
+calls, so a second batch on the same instance continues the series.
+
 ## Benchmark
 
 `benchmarks/` reports streaming and batch updates-per-second for `SMA`, `ATR`

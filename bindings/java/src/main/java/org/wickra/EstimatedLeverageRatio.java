@@ -40,8 +40,23 @@ public final class EstimatedLeverageRatio implements AutoCloseable {
         }
     }
 
-    /** Vectorized update over a whole series; NaN at warmup positions. */
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     */
     public double[] batch(double[] fundingRate, double[] markPrice, double[] indexPrice, double[] futuresPrice, double[] openInterest, double[] longSize, double[] shortSize, double[] takerBuyVolume, double[] takerSellVolume, double[] longLiquidation, double[] shortLiquidation, long[] timestamp) {
+        double[] output = new double[fundingRate.length];
+        batchInto(fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp, output);
+        return output;
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Writes into {@code output}, which must be as long as the input.
+     */
+    public void batchInto(double[] fundingRate, double[] markPrice, double[] indexPrice, double[] futuresPrice, double[] openInterest, double[] longSize, double[] shortSize, double[] takerBuyVolume, double[] takerSellVolume, double[] longLiquidation, double[] shortLiquidation, long[] timestamp, double[] output) {
         int n = fundingRate.length;
         if (markPrice.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
@@ -76,6 +91,9 @@ public final class EstimatedLeverageRatio implements AutoCloseable {
         if (timestamp.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
         }
+        if (output.length != n) {
+            throw new IllegalArgumentException("the output array must be as long as the input");
+        }
         try (Arena a = Arena.ofConfined()) {
             MemorySegment fundingRateSeg = a.allocateFrom(JAVA_DOUBLE, fundingRate);
             MemorySegment markPriceSeg = a.allocateFrom(JAVA_DOUBLE, markPrice);
@@ -89,11 +107,41 @@ public final class EstimatedLeverageRatio implements AutoCloseable {
             MemorySegment longLiquidationSeg = a.allocateFrom(JAVA_DOUBLE, longLiquidation);
             MemorySegment shortLiquidationSeg = a.allocateFrom(JAVA_DOUBLE, shortLiquidation);
             MemorySegment timestampSeg = a.allocateFrom(JAVA_LONG, timestamp);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE.byteSize() * n);
+            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, n);
             NativeMethods.WICKRA_ESTIMATED_LEVERAGE_RATIO_BATCH.invokeExact(handle(), fundingRateSeg, markPriceSeg, indexPriceSeg, futuresPriceSeg, openInterestSeg, longSizeSeg, shortSizeSeg, takerBuyVolumeSeg, takerSellVolumeSeg, longLiquidationSeg, shortLiquidationSeg, timestampSeg, outSeg, (long) n);
-            double[] out = new double[n];
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, out, 0, n);
-            return out;
+            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every segment must be
+     * off-heap, aligned for its element type, and hold the same number of
+     * elements, {@code output} as many doubles. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment fundingRate, MemorySegment markPrice, MemorySegment indexPrice, MemorySegment futuresPrice, MemorySegment openInterest, MemorySegment longSize, MemorySegment shortSize, MemorySegment takerBuyVolume, MemorySegment takerSellVolume, MemorySegment longLiquidation, MemorySegment shortLiquidation, MemorySegment timestamp, MemorySegment output) {
+        long n = fundingRate.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(fundingRate, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(markPrice, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(indexPrice, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(futuresPrice, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(openInterest, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(longSize, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(shortSize, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(takerBuyVolume, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(takerSellVolume, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(longLiquidation, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(shortLiquidation, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(timestamp, JAVA_LONG, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n);
+        try {
+            NativeMethods.WICKRA_ESTIMATED_LEVERAGE_RATIO_BATCH.invokeExact(handle(), fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {
