@@ -10,7 +10,6 @@ exposes it to that contract.
 from __future__ import annotations
 
 import array
-import inspect
 import math
 
 import numpy as np
@@ -34,20 +33,29 @@ COLUMNS = {
 }
 # Constructor arguments where "14 for every required parameter" is not valid.
 CONSTRUCT = {"DecyclerOscillator": (10, 20)}
+# The batch columns of the indicators whose batch is not one price series.
+BATCH_COLUMNS = {
+    "ATR": ("high", "low", "close"),
+    "ChaikinOscillator": ("high", "low", "close", "volume"),
+    "PearsonCorrelation": ("x", "y"),
+}
 
 FAST_CLASSES = sorted(n for n in dir(ta) if hasattr(getattr(ta, n), "batch_fast"))
 
 
 def _build(name: str):
+    """The class with 14 for each required argument (they come first), found by
+    trying: the abi3 wheels expose no constructor signature to `inspect` before
+    Python 3.10."""
     cls = getattr(ta, name)
     if name in CONSTRUCT:
         return cls(*CONSTRUCT[name])
-    required = {
-        p: 14
-        for p, spec in inspect.signature(cls).parameters.items()
-        if spec.default is inspect.Parameter.empty
-    }
-    return cls(**required)
+    for required in range(5):
+        try:
+            return cls(*([14] * required))
+        except TypeError:
+            continue
+    raise AssertionError(f"no constructor arguments found for {name}")
 
 
 def _flat(result) -> list[float]:
@@ -75,8 +83,7 @@ def test_every_scalar_batch_has_a_fast_twin():
 @pytest.mark.parametrize("name", FAST_CLASSES)
 def test_batch_fast_agrees_with_batch(name):
     exact, fast = _build(name), _build(name)
-    params = [p for p in inspect.signature(exact.batch_fast).parameters if p != "self"]
-    cols = [COLUMNS[p] for p in params]
+    cols = [COLUMNS[p] for p in BATCH_COLUMNS.get(name, ("prices",))]
     _assert_within(exact.batch(*cols), fast.batch_fast(*cols), 1e-11)
 
 
