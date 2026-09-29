@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
 use crate::indicators::rolling_quantile::quantile_sorted;
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Bomar Bands output.
@@ -61,8 +62,18 @@ pub struct BomarBands {
     period: usize,
     coverage: f64,
     window: VecDeque<f64>,
+    /// The window's values in `total_cmp` order, kept sorted as it slides
+    /// (from a period of [`MERGE_FROM`]; empty below it).
+    sorted: Vec<f64>,
+    /// The relative deviations from the mean, in ascending order.
     scratch: Vec<f64>,
 }
+
+/// The period from which the sorted deviations are merged from a window kept
+/// sorted rather than sorted afresh: below it, sorting a short slice is
+/// cheaper than keeping the window in order and merging two runs. Both give
+/// the same sorted sequence, bit for bit.
+const MERGE_FROM: usize = 32;
 
 impl BomarBands {
     /// Construct new Bomar Bands.
@@ -91,6 +102,7 @@ impl BomarBands {
             period,
             coverage,
             window: VecDeque::with_capacity(period),
+            sorted: Vec::with_capacity(period),
             scratch: Vec::with_capacity(period),
         })
     }
@@ -115,10 +127,17 @@ impl Indicator for BomarBands {
         if !value.is_finite() {
             return None;
         }
+        let merge = self.period >= MERGE_FROM;
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            if merge {
+                sorted_window::remove(&mut self.sorted, oldest);
+            }
         }
         self.window.push_back(value);
+        if merge {
+            sorted_window::insert(&mut self.sorted, value);
+        }
         if self.window.len() < self.period {
             return None;
         }
@@ -126,16 +145,24 @@ impl Indicator for BomarBands {
         let middle = sum / (self.period as f64);
         let denom = middle.abs();
 
-        self.scratch.clear();
-        for &v in &self.window {
-            let dev = if denom == 0.0 {
-                0.0
-            } else {
-                ((v - middle) / denom).abs()
-            };
-            self.scratch.push(dev);
+        if denom == 0.0 {
+            self.scratch.clear();
+            self.scratch.resize(self.period, 0.0);
+        } else if merge {
+            // `|(v - middle) / denom|` falls towards the mean and rises past
+            // it, so the sorted deviations come from merging the two runs.
+            sorted_window::distances(
+                &self.sorted,
+                middle,
+                |v| ((v - middle) / denom).abs(),
+                &mut self.scratch,
+            );
+        } else {
+            self.scratch.clear();
+            let devs = self.window.iter().map(|&v| ((v - middle) / denom).abs());
+            self.scratch.extend(devs);
+            self.scratch.sort_by(f64::total_cmp);
         }
-        self.scratch.sort_by(f64::total_cmp);
         let p = quantile_sorted(&self.scratch, self.coverage);
         let offset = denom * p;
 
@@ -148,6 +175,7 @@ impl Indicator for BomarBands {
 
     fn reset(&mut self) {
         self.window.clear();
+        self.sorted.clear();
         self.scratch.clear();
     }
 
@@ -172,6 +200,51 @@ mod tests {
     use super::*;
     use crate::traits::BatchExt;
     use approx::assert_relative_eq;
+
+    /// Bands from a freshly sorted copy of `window`, as each update used to
+    /// compute them.
+    fn from_scratch(window: &[f64], coverage: f64) -> [f64; 3] {
+        let middle = window.iter().sum::<f64>() / window.len() as f64;
+        let denom = middle.abs();
+        let mut devs: Vec<f64> = window
+            .iter()
+            .map(|&v| {
+                if denom == 0.0 {
+                    0.0
+                } else {
+                    ((v - middle) / denom).abs()
+                }
+            })
+            .collect();
+        devs.sort_by(f64::total_cmp);
+        let offset = denom * quantile_sorted(&devs, coverage);
+        [middle + offset, middle, middle - offset]
+    }
+
+    #[test]
+    fn short_and_long_periods_match_a_fresh_sort() {
+        let prices: Vec<f64> = (0..400)
+            .map(|i| {
+                let t = f64::from(i);
+                100.0 + ((t * 0.07).sin() * 4.0).round() / 2.0 + (t * 0.31).cos()
+            })
+            .collect();
+        for period in [5, MERGE_FROM - 1, MERGE_FROM, 60] {
+            let mut bands = BomarBands::new(period, 0.85).unwrap();
+            for (i, &price) in prices.iter().enumerate() {
+                let got = bands.update(price);
+                if i + 1 >= period {
+                    let o = got.unwrap();
+                    let want = from_scratch(&prices[i + 1 - period..=i], 0.85);
+                    assert_eq!(
+                        [o.upper.to_bits(), o.middle.to_bits(), o.lower.to_bits()],
+                        want.map(f64::to_bits),
+                        "period {period} at {i}"
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn rejects_zero_period() {

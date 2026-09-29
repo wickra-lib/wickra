@@ -3,6 +3,7 @@
 use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Median Moving Average — the rolling median of the last `period` inputs.
@@ -33,7 +34,8 @@ use crate::traits::Indicator;
 pub struct MedianMa {
     period: usize,
     window: VecDeque<f64>,
-    /// Reusable scratch buffer to avoid allocating per `update`.
+    /// The window's values in `total_cmp` order, kept sorted as it slides:
+    /// bit for bit what sorting a copy of the window would give.
     scratch: Vec<f64>,
     /// Median of the current window, recomputed by `update`.
     last: Option<f64>,
@@ -81,11 +83,6 @@ impl MedianMa {
             self.last = None;
             return;
         }
-        self.scratch.clear();
-        self.scratch.extend(self.window.iter().copied());
-        // Total ordering rather than `partial_cmp`: the window only ever holds
-        // finite values, but this needs no justification to stay correct.
-        self.scratch.sort_unstable_by(f64::total_cmp);
         let mid = self.period / 2;
         self.last = Some(if self.period % 2 == 1 {
             self.scratch[mid]
@@ -105,9 +102,11 @@ impl Indicator for MedianMa {
             return None;
         }
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            sorted_window::remove(&mut self.scratch, oldest);
         }
         self.window.push_back(input);
+        sorted_window::insert(&mut self.scratch, input);
         self.recompute();
         self.last
     }

@@ -3,6 +3,7 @@
 use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Common Sense Ratio over a trailing window of `period` returns.
@@ -46,8 +47,14 @@ use crate::traits::Indicator;
 pub struct CommonSenseRatio {
     period: usize,
     window: VecDeque<f64>,
-    /// Reusable scratch buffer to avoid allocating per `update`.
+    /// The window's values in `total_cmp` order, kept sorted as it slides
+    /// while `sorted_live`: bit for bit what sorting a copy of the window would
+    /// give.
     scratch: Vec<f64>,
+    /// Whether `scratch` mirrors the window. A window without losses never
+    /// reads its tails, so upkeep pauses there and the copy is rebuilt the next
+    /// time a loss makes them count.
+    sorted_live: bool,
 }
 
 impl CommonSenseRatio {
@@ -72,6 +79,7 @@ impl CommonSenseRatio {
             period,
             window: VecDeque::with_capacity(period),
             scratch: Vec::with_capacity(period),
+            sorted_live: true,
         })
     }
 
@@ -88,11 +96,15 @@ impl CommonSenseRatio {
             losses += (-ret).max(0.0);
         }
         if losses <= 0.0 {
+            self.sorted_live = false;
             return 0.0;
         }
-        self.scratch.clear();
-        self.scratch.extend(self.window.iter().copied());
-        self.scratch.sort_unstable_by(f64::total_cmp);
+        if !self.sorted_live {
+            self.scratch.clear();
+            self.scratch.extend(self.window.iter().copied());
+            self.scratch.sort_by(f64::total_cmp);
+            self.sorted_live = true;
+        }
         let lower_tail = percentile(&self.scratch, 5.0).abs();
         if lower_tail <= 0.0 {
             return 0.0;
@@ -129,9 +141,15 @@ impl Indicator for CommonSenseRatio {
             return None;
         }
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            if self.sorted_live {
+                sorted_window::remove(&mut self.scratch, oldest);
+            }
         }
         self.window.push_back(ret);
+        if self.sorted_live {
+            sorted_window::insert(&mut self.scratch, ret);
+        }
         if self.window.len() < self.period {
             return None;
         }
@@ -141,6 +159,7 @@ impl Indicator for CommonSenseRatio {
     fn reset(&mut self) {
         self.window.clear();
         self.scratch.clear();
+        self.sorted_live = true;
     }
 
     #[inline]
@@ -164,6 +183,48 @@ mod tests {
     use super::*;
     use crate::traits::BatchExt;
     use approx::assert_relative_eq;
+
+    /// The ratio from a freshly sorted copy of `window`, as each update used to
+    /// compute it.
+    fn from_scratch(window: &[f64]) -> f64 {
+        let gains: f64 = window.iter().map(|r| r.max(0.0)).sum();
+        let losses: f64 = window.iter().map(|r| (-r).max(0.0)).sum();
+        if losses <= 0.0 {
+            return 0.0;
+        }
+        let mut sorted = window.to_vec();
+        sorted.sort_by(f64::total_cmp);
+        let lower_tail = percentile(&sorted, 5.0).abs();
+        if lower_tail <= 0.0 {
+            return 0.0;
+        }
+        gains / losses * (percentile(&sorted, 95.0) / lower_tail)
+    }
+
+    #[test]
+    fn the_sorted_copy_survives_a_stretch_without_losses() {
+        // Mixed returns, then a gain-only stretch (upkeep pauses), then mixed
+        // again (the copy is rebuilt), then mixed after a gain-only window.
+        let returns: Vec<f64> = (0..120)
+            .map(|i| {
+                let t = f64::from(i);
+                if (40..70).contains(&i) {
+                    0.001 + (t * 0.3).sin().abs() * 0.01
+                } else {
+                    (t * 0.9).sin() * 0.02
+                }
+            })
+            .collect();
+        let period = 10;
+        let mut csr = CommonSenseRatio::new(period).unwrap();
+        for (i, &r) in returns.iter().enumerate() {
+            let got = csr.update(r);
+            if i + 1 >= period {
+                let want = from_scratch(&returns[i + 1 - period..=i]);
+                assert_eq!(got.unwrap().to_bits(), want.to_bits(), "at {i}");
+            }
+        }
+    }
 
     #[test]
     fn rejects_period_less_than_two() {

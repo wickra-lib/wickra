@@ -3,6 +3,7 @@
 use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Tail Ratio over a trailing window of `period` returns.
@@ -43,7 +44,8 @@ use crate::traits::Indicator;
 pub struct TailRatio {
     period: usize,
     window: VecDeque<f64>,
-    /// Reusable scratch buffer to avoid allocating per `update`.
+    /// The window's values in `total_cmp` order, kept sorted as it slides:
+    /// bit for bit what sorting a copy of the window would give.
     scratch: Vec<f64>,
 }
 
@@ -78,9 +80,6 @@ impl TailRatio {
     }
 
     fn compute(&mut self) -> f64 {
-        self.scratch.clear();
-        self.scratch.extend(self.window.iter().copied());
-        self.scratch.sort_unstable_by(f64::total_cmp);
         let upper = percentile(&self.scratch, 95.0);
         let lower = percentile(&self.scratch, 5.0).abs();
         if lower > 0.0 {
@@ -117,9 +116,11 @@ impl Indicator for TailRatio {
             return None;
         }
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            sorted_window::remove(&mut self.scratch, oldest);
         }
         self.window.push_back(ret);
+        sorted_window::insert(&mut self.scratch, ret);
         if self.window.len() < self.period {
             return None;
         }

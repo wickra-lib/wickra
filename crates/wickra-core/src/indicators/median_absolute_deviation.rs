@@ -3,6 +3,7 @@
 use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Median Absolute Deviation of the last `period` values.
@@ -42,7 +43,9 @@ use crate::traits::Indicator;
 pub struct MedianAbsoluteDeviation {
     period: usize,
     window: VecDeque<f64>,
-    /// Reusable scratch buffer to avoid allocating per `update`.
+    /// The window's values in `total_cmp` order, kept sorted as it slides.
+    sorted: Vec<f64>,
+    /// The absolute deviations from the median, in ascending order.
     scratch: Vec<f64>,
 }
 
@@ -63,6 +66,7 @@ impl MedianAbsoluteDeviation {
         Ok(Self {
             period,
             window: VecDeque::with_capacity(period),
+            sorted: Vec::with_capacity(period),
             scratch: Vec::with_capacity(period),
         })
     }
@@ -71,11 +75,6 @@ impl MedianAbsoluteDeviation {
     pub const fn period(&self) -> usize {
         self.period
     }
-}
-
-/// Sort a slice of `f64` in-place using total ordering (NaN-safe).
-fn sort_finite(buf: &mut [f64]) {
-    buf.sort_by(f64::total_cmp);
 }
 
 /// Median of a sorted, non-empty slice.
@@ -99,27 +98,24 @@ impl Indicator for MedianAbsoluteDeviation {
             return None;
         }
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            sorted_window::remove(&mut self.sorted, oldest);
         }
         self.window.push_back(value);
+        sorted_window::insert(&mut self.sorted, value);
         if self.window.len() < self.period {
             return None;
         }
-        // Copy into scratch and sort to find the window median.
-        self.scratch.clear();
-        self.scratch.extend(self.window.iter().copied());
-        sort_finite(&mut self.scratch);
-        let med = median_sorted(&self.scratch);
-        // Replace with absolute deviations and sort again.
-        for x in &mut self.scratch {
-            *x = (*x - med).abs();
-        }
-        sort_finite(&mut self.scratch);
+        let med = median_sorted(&self.sorted);
+        // The absolute deviations, sorted by merging the runs either side of
+        // the median.
+        sorted_window::abs_deviations(&self.sorted, med, &mut self.scratch);
         Some(median_sorted(&self.scratch))
     }
 
     fn reset(&mut self) {
         self.window.clear();
+        self.sorted.clear();
         self.scratch.clear();
     }
 

@@ -13,6 +13,7 @@ pub(crate) mod pattern_swing;
 // indicator. Declared `pub(crate)` (not `mod`) for the same reason as
 // `pattern_swing`: it is not a catalogue entry.
 pub(crate) mod rolling_moments;
+pub(crate) mod sorted_window;
 
 mod abandoned_baby;
 mod abcd;
