@@ -11,8 +11,9 @@
 use std::arch::x86_64::{
     __m256d, _mm256_add_pd, _mm256_andnot_pd, _mm256_blend_pd, _mm256_div_pd,
     _mm256_extractf128_pd, _mm256_fmadd_pd, _mm256_loadu_pd, _mm256_max_pd, _mm256_min_pd,
-    _mm256_mul_pd, _mm256_permute4x64_pd, _mm256_set1_pd, _mm256_setzero_pd, _mm256_sqrt_pd,
-    _mm256_storeu_pd, _mm256_sub_pd, _mm_cvtsd_f64, _mm_unpackhi_pd,
+    _mm256_mul_pd, _mm256_permute2f128_pd, _mm256_permute4x64_pd, _mm256_set1_pd,
+    _mm256_setzero_pd, _mm256_sqrt_pd, _mm256_storeu_pd, _mm256_sub_pd, _mm256_unpackhi_pd,
+    _mm256_unpacklo_pd, _mm_cvtsd_f64, _mm_unpackhi_pd,
 };
 
 use crate::{Kernel, Simd};
@@ -134,6 +135,24 @@ impl Simd for Avx2 {
         unsafe {
             let hi = _mm256_extractf128_pd::<1>(v);
             _mm_cvtsd_f64(_mm_unpackhi_pd(hi, hi))
+        }
+    }
+    #[inline(always)]
+    fn transpose4(self, a: __m256d, b: __m256d, c: __m256d, d: __m256d) -> [__m256d; 4] {
+        // Interleave pairs within each 128-bit half, then swap the halves:
+        // [a0 b0 a2 b2], [a1 b1 a3 b3], [c0 d0 c2 d2], [c1 d1 c3 d3] →
+        // [a0 b0 c0 d0], [a1 b1 c1 d1], [a2 b2 c2 d2], [a3 b3 c3 d3].
+        unsafe {
+            let ab_even = _mm256_unpacklo_pd(a, b);
+            let ab_odd = _mm256_unpackhi_pd(a, b);
+            let cd_even = _mm256_unpacklo_pd(c, d);
+            let cd_odd = _mm256_unpackhi_pd(c, d);
+            [
+                _mm256_permute2f128_pd::<0x20>(ab_even, cd_even),
+                _mm256_permute2f128_pd::<0x20>(ab_odd, cd_odd),
+                _mm256_permute2f128_pd::<0x31>(ab_even, cd_even),
+                _mm256_permute2f128_pd::<0x31>(ab_odd, cd_odd),
+            ]
         }
     }
 }

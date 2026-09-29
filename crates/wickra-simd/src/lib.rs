@@ -88,6 +88,9 @@ pub trait Simd: Copy {
     fn broadcast_last(self, v: Self::V) -> Self::V;
     /// The last lane `v3` as a scalar.
     fn last_lane(self, v: Self::V) -> f64;
+    /// The 4×4 transpose of the rows `a`, `b`, `c`, `d`: result `j` is
+    /// `[a_j, b_j, c_j, d_j]`. Pure data movement, so no value changes.
+    fn transpose4(self, a: Self::V, b: Self::V, c: Self::V, d: Self::V) -> [Self::V; 4];
 }
 
 /// A unit of work [`dispatch`] can run with the best instruction set available.
@@ -249,6 +252,9 @@ mod tests {
                 ] {
                     out.extend_from_slice(&s.to_array(v));
                 }
+                for v in s.transpose4(x, y, z, s.sub(x, y)) {
+                    out.extend_from_slice(&s.to_array(v));
+                }
             }
             out
         }
@@ -326,6 +332,20 @@ mod tests {
         assert_eq!(
             bits(&s.abs([-0.0, -2.0, 2.0, -f64::INFINITY])),
             bits(&[0.0, 2.0, 2.0, f64::INFINITY])
+        );
+        assert_eq!(
+            s.transpose4(
+                [1.0, 2.0, 3.0, 4.0],
+                [5.0, 6.0, 7.0, 8.0],
+                [9.0, 10.0, 11.0, 12.0],
+                [13.0, 14.0, 15.0, 16.0]
+            ),
+            [
+                [1.0, 5.0, 9.0, 13.0],
+                [2.0, 6.0, 10.0, 14.0],
+                [3.0, 7.0, 11.0, 15.0],
+                [4.0, 8.0, 12.0, 16.0]
+            ]
         );
     }
 

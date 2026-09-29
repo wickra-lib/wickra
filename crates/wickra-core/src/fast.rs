@@ -46,9 +46,16 @@ pub(crate) const RESEED_EVERY: usize = 16;
 /// Values per block in the composite kernels' stack buffers.
 pub(crate) const BLOCK: usize = 512;
 
-/// Whether every input is finite and within [`MAX_ABS`].
+/// Whether every input is finite and within [`MAX_ABS`] (`NaN` fails the
+/// comparison).
+///
+/// Each block is folded without an early exit, which is what lets the check
+/// vectorize: a short-circuiting scan compares and branches once per value, a
+/// cost on the order of the kernels it guards.
 pub(crate) fn in_range(inputs: &[f64]) -> bool {
-    inputs.iter().all(|x| x.abs() <= MAX_ABS)
+    inputs
+        .chunks(BLOCK)
+        .all(|block| block.iter().fold(true, |ok, x| ok & (x.abs() <= MAX_ABS)))
 }
 
 /// Four consecutive values as an array reference.
@@ -118,6 +125,34 @@ pub(crate) fn lin_scan<S: Simd>(
     last
 }
 
+/// `Σ xs` over eight running lane sums (lane `j` of the two accumulators takes
+/// `xs[8i + j]`), a remaining four-value step into the first, the lanes folded
+/// in a fixed order and the last values added in order: the same bits on every
+/// dispatch path. A serial sum is one addition's latency per value; this is
+/// one per eight, which is what an anchor window costs on the kernels that
+/// re-anchor every window.
+#[inline(always)]
+fn sum_lanes<S: Simd>(simd: S, xs: &[f64]) -> f64 {
+    let mut low = simd.splat(0.0);
+    let mut high = simd.splat(0.0);
+    let mut chunks = xs.chunks_exact(8);
+    for chunk in &mut chunks {
+        low = simd.add(low, simd.load(quad(chunk)));
+        high = simd.add(high, simd.load(quad(&chunk[4..])));
+    }
+    let mut rest = chunks.remainder();
+    if rest.len() >= 4 {
+        low = simd.add(low, simd.load(quad(rest)));
+        rest = &rest[4..];
+    }
+    let lanes = simd.to_array(simd.add(low, high));
+    let mut total = (lanes[0] + lanes[1]) + (lanes[2] + lanes[3]);
+    for &value in rest {
+        total += value;
+    }
+    total
+}
+
 /// For `idx` in `range`: `out[idx] = scale * sum[idx]` with
 /// `sum[idx] = sum[idx - 1] + (xs[idx] - xs[idx - lag])` and
 /// `sum[range.start - 1] = start`. Returns the unscaled last sum (or `start`
@@ -168,7 +203,7 @@ fn diff_prefix<S: Simd>(
 
 /// Rolling sums of `period` values times `scale`: `out[idx]` for
 /// `idx >= period - 1`. Every [`RESEED_EVERY`] · `period` values the sum is
-/// recomputed exactly (in input order) from the window it covers. Returns the
+/// recomputed from the window it covers (by [`sum_lanes`]). Returns the
 /// unscaled last window sum; `out[..period - 1]` is left untouched.
 ///
 /// Requires `xs.len() >= period >= 1`.
@@ -186,7 +221,7 @@ pub(crate) fn window_sums<S: Simd>(
     let mut last = 0.0;
     while anchor < len {
         let end = (anchor + segment).min(len);
-        let exact: f64 = xs[anchor + 1 - period..=anchor].iter().sum();
+        let exact = sum_lanes(simd, &xs[anchor + 1 - period..=anchor]);
         out[anchor] = exact * scale;
         last = diff_prefix(simd, xs, period, anchor + 1..end, exact, scale, out);
         anchor = end;
@@ -581,7 +616,7 @@ impl PowerSegment<'_> {
 /// Rolling sums of powers of shifted values, the heart of the moment kernels.
 ///
 /// The series is cut into segments of `period` outputs. For each, the shift is
-/// the exact mean of the segment's first window — the re-anchoring the exact
+/// the mean of the segment's first window — the re-anchoring the exact
 /// accumulators perform every `period` values — and `POWERS` sums of
 /// `(x - shift)^k` run as window-sum scans over the segment plus its
 /// `period - 1` lookback. `finish` then receives each segment. Re-anchoring
@@ -608,7 +643,7 @@ pub(crate) fn shifted_power_sums<S: Simd, const POWERS: usize>(
         let end = (anchor + segment).min(len);
         let lookback = anchor + 1 - period;
         let local = end - lookback;
-        let shift = xs[lookback..=anchor].iter().sum::<f64>() / period as f64;
+        let shift = sum_lanes(simd, &xs[lookback..=anchor]) / period as f64;
         for (pos, &value) in xs[lookback..end].iter().enumerate() {
             let dev = value - shift;
             let mut power = dev;
@@ -680,14 +715,13 @@ kernel! {
                 let stddev = simd.sqrt(var);
                 let mean = simd.add(shift_v, mean_dev);
                 let band = simd.mul(mult_v, stddev);
-                let upper = simd.to_array(simd.add(mean, band));
-                let lower = simd.to_array(simd.sub(mean, band));
-                let (mean, stddev) = (simd.to_array(mean), simd.to_array(stddev));
+                let (upper, lower) = (simd.add(mean, band), simd.sub(mean, band));
+                // Four outputs' rows at once: the transpose turns the four
+                // field vectors into four `[upper, middle, lower, stddev]` rows.
+                let rows = simd.transpose4(upper, mean, lower, stddev);
                 let base = (seg.outputs.start + pos) * 4;
-                for lane in 0..4 {
-                    let row = base + lane * 4;
-                    out[row..row + 4]
-                        .copy_from_slice(&[upper[lane], mean[lane], lower[lane], stddev[lane]]);
+                for (lane, row) in rows.into_iter().enumerate() {
+                    simd.store(row, quad_mut(&mut out[base + lane * 4..]));
                 }
                 pos += 4;
             }
@@ -779,8 +813,8 @@ kernel! {
             let end = (anchor + segment).min(len);
             let lookback = anchor + 1 - period;
             let local = end - lookback;
-            let shift_a = kern.a[lookback..=anchor].iter().sum::<f64>() * inv;
-            let shift_b = kern.b[lookback..=anchor].iter().sum::<f64>() * inv;
+            let shift_a = sum_lanes(simd, &kern.a[lookback..=anchor]) * inv;
+            let shift_b = sum_lanes(simd, &kern.b[lookback..=anchor]) * inv;
             let pairs = kern.a[lookback..end].iter().zip(&kern.b[lookback..end]);
             for (pos, (&va, &vb)) in pairs.enumerate() {
                 let (da, db) = (va - shift_a, vb - shift_b);

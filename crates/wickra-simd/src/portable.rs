@@ -100,4 +100,13 @@ impl Simd for Portable {
     fn last_lane(self, v: [f64; 4]) -> f64 {
         v[3]
     }
+    #[inline(always)]
+    fn transpose4(self, a: [f64; 4], b: [f64; 4], c: [f64; 4], d: [f64; 4]) -> [[f64; 4]; 4] {
+        [
+            [a[0], b[0], c[0], d[0]],
+            [a[1], b[1], c[1], d[1]],
+            [a[2], b[2], c[2], d[2]],
+            [a[3], b[3], c[3], d[3]],
+        ]
+    }
 }
