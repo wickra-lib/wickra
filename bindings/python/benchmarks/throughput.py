@@ -1,19 +1,19 @@
 """Throughput benchmark for the Wickra Python binding.
 
-Measures how many indicator updates per second the binding sustains, both
-per-tick (streaming ``update``) and bulk (``batch``), over a synthetic OHLCV
-series. It is the Python counterpart of the Node ``throughput.js`` and the Rust
-criterion benches: it benchmarks Wickra's own O(1) streaming engine across the
-Python<->Rust boundary, so the headline number is raw per-binding throughput /
-FFI overhead, not a cross-library ratio.
+Measures how many indicator updates per second the binding sustains, per-tick
+(streaming ``update``), bulk (``batch``) and bulk through the opt-in SIMD
+kernels (``batch_fast``), over a synthetic OHLCV series. It is the Python
+counterpart of the Node ``throughput.js`` and the Rust criterion benches: it
+benchmarks Wickra's own O(1) streaming engine across the Python<->Rust boundary,
+so the headline number is raw per-binding throughput / FFI overhead, not a
+cross-library ratio.
 
 For the cross-library comparison against TA-Lib, pandas-ta, tulipy and finta,
 see ``benchmarks/compare_libraries.py`` instead.
 
 Three indicators are timed, chosen by call-signature archetype rather than
 algorithm: SMA (1-in -> 1-out), ATR (multi-in -> 1-out) and MACD (1-in ->
-multi-out). Streaming is timed for all three; batch only for the single-output
-SMA and ATR (multi-output batch returns a 2-D array and is not compared here).
+multi-out). All three are timed streaming, batch and fast batch.
 
 Install the binding first (``maturin develop --release`` in bindings/python),
 then run from bindings/python::
@@ -76,6 +76,9 @@ def main() -> None:
     def sma_batch() -> None:
         ta.SMA(20).batch(close)
 
+    def sma_fast() -> None:
+        ta.SMA(20).batch_fast(close)
+
     def atr_stream() -> None:
         ind = ta.ATR(14)
         for candle in candles:
@@ -84,31 +87,42 @@ def main() -> None:
     def atr_batch() -> None:
         ta.ATR(14).batch(high, low, close)
 
+    def atr_fast() -> None:
+        ta.ATR(14).batch_fast(high, low, close)
+
     def macd_stream() -> None:
         ind = ta.MACD(12, 26, 9)
         for value in close_list:
             ind.update(value)
 
+    def macd_batch() -> None:
+        ta.MACD(12, 26, 9).batch(close)
+
+    def macd_fast() -> None:
+        ta.MACD(12, 26, 9).batch_fast(close)
+
     # SMA (scalar 1-in/1-out), ATR (multi-in/1-out), MACD (1-in/multi-out).
     indicators = [
-        ("SMA(20)", sma_stream, sma_batch),
-        ("ATR(14)", atr_stream, atr_batch),
-        ("MACD(12,26,9)", macd_stream, None),  # multi-output: streaming only
+        ("SMA(20)", sma_stream, sma_batch, sma_fast),
+        ("ATR(14)", atr_stream, atr_batch, atr_fast),
+        ("MACD(12,26,9)", macd_stream, macd_batch, macd_fast),
     ]
 
     print(f"Wickra Python throughput - {bars:,} bars (median of 3 runs)\n")
-    print(f"{'Indicator':<22}{'streaming (Mupd/s)':>20}{'batch (Mupd/s)':>18}")
-    print("-" * 60)
-    for name, stream, batch in indicators:
-        stream_mups = f"{mups(_time_ns(stream)):.1f}"
-        batch_mups = "-" if batch is None else f"{mups(_time_ns(batch)):.1f}"
-        print(f"{name:<22}{stream_mups:>20}{batch_mups:>18}")
+    header = f"{'Indicator':<22}{'streaming (Mupd/s)':>20}{'batch (Mupd/s)':>18}{'fast (Mupd/s)':>18}"
+    print(header)
+    print("-" * len(header))
+    for name, stream, batch, fast in indicators:
+        cells = [f"{mups(_time_ns(run)):.1f}" for run in (stream, batch, fast)]
+        print(f"{name:<22}{cells[0]:>20}{cells[1]:>18}{cells[2]:>18}")
 
     print(
         "\nMupd/s = million indicator updates per second. Streaming is the per-tick\n"
         "`update` path crossing the Python<->Rust boundary once per value; batch is\n"
-        "the bulk numpy path (one boundary crossing). Higher is better. Numbers are\n"
-        "machine-dependent - use them for relative comparison, not as a speed claim."
+        "the bulk path (one boundary crossing); fast is the opt-in batch_fast, SIMD\n"
+        "kernels within a few units in the last place of batch. Higher is better.\n"
+        "Numbers are machine-dependent - use them for relative comparison, not as a\n"
+        "speed claim."
     )
 
 
