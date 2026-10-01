@@ -70,6 +70,100 @@ fn quad_mut(values: &mut [f64]) -> &mut [f64; 4] {
     (&mut values[..4]).try_into().expect("a four-value window")
 }
 
+/// The constants of a [`lin_scan`] step for `decay`: `decay` and `decay²` as
+/// vectors, the powers `decay¹..decay⁴` and `decay⁵..decay⁸`, and `decay⁸`.
+#[inline(always)]
+fn scan_steps<S: Simd>(simd: S, decay: f64) -> (S::V, S::V, S::V, S::V, f64) {
+    let decay2 = decay * decay;
+    let decay4 = decay2 * decay2;
+    let powers = simd.load(&[decay, decay2, decay * decay2, decay4]);
+    (
+        simd.splat(decay),
+        simd.splat(decay2),
+        powers,
+        simd.mul(powers, simd.splat(decay4)),
+        decay4 * decay4,
+    )
+}
+
+/// One [`lin_scan`] step over the eight values of `chunk`, from `carry`: the
+/// two output vectors and the last lane of the second before the carry, which
+/// advances it -- the operations `lin_scan` performs, in its order.
+#[inline(always)]
+fn scan8<S: Simd>(
+    simd: S,
+    chunk: &[f64],
+    gain_v: S::V,
+    (decay_v, decay2_v): (S::V, S::V),
+    (powers, powers_hi): (S::V, S::V),
+    carry: f64,
+) -> (S::V, S::V, f64) {
+    let mut lo = simd.mul(gain_v, simd.load(quad(chunk)));
+    let mut hi = simd.mul(gain_v, simd.load(quad(&chunk[4..])));
+    lo = simd.add(simd.mul(decay_v, simd.shift1(lo)), lo);
+    hi = simd.add(simd.mul(decay_v, simd.shift1(hi)), hi);
+    lo = simd.add(simd.mul(decay2_v, simd.shift2(lo)), lo);
+    hi = simd.add(simd.mul(decay2_v, simd.shift2(hi)), hi);
+    hi = simd.add(simd.mul(simd.broadcast_last(lo), powers), hi);
+    let carry_v = simd.splat(carry);
+    let out_lo = simd.add(simd.mul(carry_v, powers), lo);
+    let out_hi = simd.add(simd.mul(carry_v, powers_hi), hi);
+    (out_lo, out_hi, simd.last_lane(hi))
+}
+
+/// [`lin_scan`] of two recurrences over the same `xs`, storing only their
+/// difference `a - b`: every value of each is the operation `lin_scan` performs,
+/// and the difference the one the two-scan form took after it, so the same
+/// bits without the two intermediate rows. Returns the last `a` and `b`.
+#[inline(always)]
+pub(crate) fn lin_scan_diff<S: Simd>(
+    simd: S,
+    (decay_a, gain_a): (f64, f64),
+    (decay_b, gain_b): (f64, f64),
+    xs: &[f64],
+    (start_a, start_b): (f64, f64),
+    out: &mut [f64],
+) -> (f64, f64) {
+    debug_assert_eq!(xs.len(), out.len());
+    let (decay_a_v, decay2_a_v, powers_a, powers_hi_a, decay8_a) = scan_steps(simd, decay_a);
+    let (decay_b_v, decay2_b_v, powers_b, powers_hi_b, decay8_b) = scan_steps(simd, decay_b);
+    let (gain_a_v, gain_b_v) = (simd.splat(gain_a), simd.splat(gain_b));
+    let (mut carry_a, mut carry_b) = (start_a, start_b);
+    let head = xs.len() / 8 * 8;
+    let (xs_head, xs_tail) = xs.split_at(head);
+    let (out_head, out_tail) = out.split_at_mut(head);
+    for (chunk, dest) in xs_head.chunks_exact(8).zip(out_head.chunks_exact_mut(8)) {
+        let (a_lo, a_hi, a_last) = scan8(
+            simd,
+            chunk,
+            gain_a_v,
+            (decay_a_v, decay2_a_v),
+            (powers_a, powers_hi_a),
+            carry_a,
+        );
+        let (b_lo, b_hi, b_last) = scan8(
+            simd,
+            chunk,
+            gain_b_v,
+            (decay_b_v, decay2_b_v),
+            (powers_b, powers_hi_b),
+            carry_b,
+        );
+        let (dest_lo, dest_hi) = dest.split_at_mut(4);
+        simd.store(simd.sub(a_lo, b_lo), quad_mut(dest_lo));
+        simd.store(simd.sub(a_hi, b_hi), quad_mut(dest_hi));
+        carry_a = carry_a * decay8_a + a_last;
+        carry_b = carry_b * decay8_b + b_last;
+    }
+    let (mut last_a, mut last_b) = (carry_a, carry_b);
+    for (slot, &value) in out_tail.iter_mut().zip(xs_tail) {
+        last_a = decay_a * last_a + gain_a * value;
+        last_b = decay_b * last_b + gain_b * value;
+        *slot = last_a - last_b;
+    }
+    (last_a, last_b)
+}
+
 /// `out[i] = decay * y[i - 1] + gain * xs[i]` with `y[-1] = start`; returns the
 /// last `y` (or `start` for an empty slice).
 ///
@@ -1226,16 +1320,18 @@ kernel! {
         let macd = fast - slow;
         kern.out[first_full * 3..first_full * 3 + 3].copy_from_slice(&[macd, signal, macd - signal]);
         let mut fast_block = [0.0; BLOCK];
-        let mut slow_block = [0.0; BLOCK];
         let mut signal_block = [0.0; BLOCK];
         let inputs = kern.x[first_full + 1..].chunks(BLOCK);
         for (block, rows) in inputs.zip(kern.out[(first_full + 1) * 3..].chunks_mut(BLOCK * 3)) {
             let len = block.len();
-            fast = lin_scan(simd, fast_decay, fast_alpha, block, fast, &mut fast_block[..len]);
-            slow = lin_scan(simd, slow_decay, slow_alpha, block, slow, &mut slow_block[..len]);
-            for (line, &sl) in fast_block[..len].iter_mut().zip(&slow_block[..len]) {
-                *line -= sl;
-            }
+            (fast, slow) = lin_scan_diff(
+                simd,
+                (fast_decay, fast_alpha),
+                (slow_decay, slow_alpha),
+                block,
+                (fast, slow),
+                &mut fast_block[..len],
+            );
             signal = lin_scan(
                 simd,
                 signal_decay,
@@ -1312,8 +1408,6 @@ kernel! {
         let (mut adl, mut fast, mut slow) = kern.state;
         let mut flows = [0.0; BLOCK];
         let mut adl_block = [0.0; BLOCK];
-        let mut fast_block = [0.0; BLOCK];
-        let mut slow_block = [0.0; BLOCK];
         let mut pos = 0;
         for dest in kern.out.chunks_mut(BLOCK) {
             let len = dest.len();
@@ -1326,11 +1420,14 @@ kernel! {
                 *flow = money_flow(hi, lo, cl, vol);
             }
             adl = prefix_sums(simd, &flows[..len], adl, &mut adl_block[..len]);
-            fast = lin_scan(simd, fast_decay, fast_alpha, &adl_block[..len], fast, &mut fast_block[..len]);
-            slow = lin_scan(simd, slow_decay, slow_alpha, &adl_block[..len], slow, &mut slow_block[..len]);
-            for ((slot, &f), &s) in dest.iter_mut().zip(&fast_block[..len]).zip(&slow_block[..len]) {
-                *slot = f - s;
-            }
+            (fast, slow) = lin_scan_diff(
+                simd,
+                (fast_decay, fast_alpha),
+                (slow_decay, slow_alpha),
+                &adl_block[..len],
+                (fast, slow),
+                dest,
+            );
             pos += len;
         }
         (adl, fast, slow)
