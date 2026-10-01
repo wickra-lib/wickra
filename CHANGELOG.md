@@ -93,10 +93,15 @@ definition (see Fixed).
   Java and R; Node and WASM batches run them too.
   Through C#, SMA(20) over 200,000 bars: 297 -> 744 million updates per
   second (1,143 into a `Span`), same machine and session.
-- **Python batches read and write their buffers once.** A NumPy array,
-  `array.array` or `memoryview` is read with one copy instead of being walked
-  element by element through the sequence protocol, and results are written
-  straight into the `bytes` object that seeds the returned `array.array('d')`.
+- **Python batches share their buffers instead of copying them.** A contiguous
+  `float64` NumPy array or `array.array('d')` is read in place; any other
+  NumPy array, `array.array` or `memoryview` is read with one copy instead of
+  being walked element by element through the sequence protocol. From Python
+  3.11 results are written straight into the returned `array.array('d')`,
+  before that into the `bytes` object that seeds it. While a series is read in
+  place the cyclic garbage collector is held off, so no Python code can run
+  until the batch is done; the one module that dereferences these addresses
+  is the binding's only `unsafe`.
   Together with the fused paths, 20,000 bars, us per call: SMA 385 -> 21.7,
   EMA 406 -> 33.9, RSI 802 -> 36.4, MACD 732 -> 36.0, Bollinger
   816 -> 71.6, ATR 1,565 -> 49.3 -- 11 to 32 times faster, the output

@@ -24,8 +24,30 @@ crate-type = ["cdylib"]
 # `vendored-tls` feature in wickra-data for the rationale.
 vendored-tls = ["wickra-data/vendored-tls"]
 
-[lints]
-workspace = true
+# Reading a NumPy array or `array.array` in place, and writing a result array in
+# place, means dereferencing an address Python handed over: `unsafe`. The
+# workspace forbids `unsafe_code`, so this crate cannot inherit
+# `workspace = true`; it mirrors every workspace lint and relaxes `unsafe_code`
+# to `deny`, allowed only in the one module (`src/native.rs`) that holds those
+# blocks.
+[lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_must_use = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+similar_names = "allow"
+float_cmp = "allow"
 
 [dependencies]
 wickra-core = { workspace = true }

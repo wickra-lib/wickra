@@ -1,8 +1,10 @@
 """Every accepted input container must give the same batch result, bit for bit.
 
-The batch helpers read a one-dimensional buffer (NumPy arrays, ``array.array``,
-``memoryview``) with a single copy of its bytes and widen non-``float64`` dtypes
-element by element; lists, tuples and exotic buffers take the sequence path.
+The batch helpers read a contiguous ``float64`` NumPy array or ``array.array('d')``
+in place, any other one-dimensional buffer (``memoryview``, strided or foreign
+byte-order arrays) with a single copy of its bytes, and widen non-``float64``
+dtypes element by element; lists, tuples and exotic buffers take the sequence
+path.
 These tests pin that every one of those routes produces exactly what a plain
 Python list of floats produces, and that the error a caller got before is the
 error they still get.
@@ -11,6 +13,7 @@ error they still get.
 from __future__ import annotations
 
 import array
+import gc
 import math
 
 import numpy as np
@@ -158,3 +161,95 @@ def test_float_timestamps_are_rejected_as_before(candle_columns):
     *ohlcv, ts = candle_columns
     with pytest.raises(TypeError):
         ta.SessionVwap(0).batch(*ohlcv, ts.astype(np.float64))
+
+
+def test_a_long_series_read_in_place_matches_a_list():
+    values = [100.0 + math.sin(i * 0.011) * 9.0 + (i % 13) * 0.1 for i in range(20_000)]
+    for make in (ta.SMA, ta.EMA, ta.WMA):
+        want = _bits(make(20).batch(values))
+        assert _bits(make(20).batch(np.asarray(values))) == want
+        assert _bits(make(20).batch(array.array("d", values))) == want
+        fast = _bits(make(20).batch_fast(values))
+        assert _bits(make(20).batch_fast(np.asarray(values))) == fast
+
+
+def test_a_read_only_array_is_read_in_place(prices, reference):
+    frozen = np.asarray(prices, dtype=np.float64)
+    frozen.flags.writeable = False
+    assert _bits(_sma(frozen)) == reference
+
+
+def test_an_ndarray_subclass_is_copied_like_any_buffer(prices, reference):
+    class Tagged(np.ndarray):
+        pass
+
+    assert _bits(_sma(np.asarray(prices, dtype=np.float64).view(Tagged))) == reference
+
+
+def test_candle_columns_read_in_place_match_lists(candle_columns):
+    _, high, low, close, _, _ = candle_columns
+    want = _bits(ta.ATR(14).batch(high.tolist(), low.tolist(), close.tolist()))
+    assert _bits(ta.ATR(14).batch(high, low, close)) == want
+    as_arrays = [array.array("d", col.tolist()) for col in (high, low, close)]
+    assert _bits(ta.ATR(14).batch(*as_arrays)) == want
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_the_garbage_collector_is_left_as_it_was(prices, enabled):
+    was = gc.isenabled()
+    try:
+        if enabled:
+            gc.enable()
+        else:
+            gc.disable()
+        _sma(np.asarray(prices, dtype=np.float64))
+        ta.ATR(3).batch(np.asarray(prices) + 1.0, np.asarray(prices) - 1.0, np.asarray(prices))
+        assert gc.isenabled() is enabled
+        with pytest.raises(TypeError):
+            ta.ATR(3).batch(np.asarray(prices), np.asarray(prices), "not a series")
+        assert gc.isenabled() is enabled
+    finally:
+        if was:
+            gc.enable()
+        else:
+            gc.disable()
+
+
+def test_a_column_changed_while_a_later_one_converts_is_read_again(candle_columns):
+    # The `close` column converts by iterating a sequence; that Python code
+    # reinterprets the `high` array the binding already accepted for sharing.
+    # The binding must read `high` as it is when the batch runs.
+    _, high, low, close, _, _ = candle_columns
+    shared = high.copy()
+
+    class Reinterpreting:
+        def __len__(self):
+            return len(close)
+
+        def __getitem__(self, index):
+            if index == 0:
+                shared.dtype = np.int64
+            return close.tolist()[index]
+
+    got = ta.ATR(14).batch(shared, low, Reinterpreting())
+    want = ta.ATR(14).batch([float(x) for x in shared], low.tolist(), close.tolist())
+    assert _bits(got) == _bits(want)
+
+
+@pytest.mark.parametrize("method", ["batch", "batch_fast"])
+def test_chaikin_rejects_an_invalid_bar_with_the_candle_error(candle_columns, method):
+    _, high, low, close, volume, _ = candle_columns
+    bad_high = high.copy()
+    bad_high[40] = low[40] - 1.0
+    with pytest.raises(ValueError) as rejected:
+        getattr(ta.ChaikinOscillator(3, 10), method)(bad_high, low, close, volume)
+    with pytest.raises(ValueError) as single:
+        bar = (close[40], bad_high[40], low[40], close[40], volume[40])
+        ta.ChaikinOscillator(3, 10).update((*map(float, bar), 0))
+    assert str(rejected.value) == str(single.value)
+    # The rejected batch left the indicator untouched.
+    osc = ta.ChaikinOscillator(3, 10)
+    with pytest.raises(ValueError):
+        getattr(osc, method)(bad_high, low, close, volume)
+    want = _bits(getattr(ta.ChaikinOscillator(3, 10), method)(high, low, close, volume))
+    assert _bits(getattr(osc, method)(high, low, close, volume)) == want

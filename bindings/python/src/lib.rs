@@ -23,6 +23,8 @@ use pyo3::Borrowed;
 use wickra_core as wc;
 use wickra_core::{BarBuilder, BatchExt, Indicator};
 
+mod native;
+
 /// The element type a one-dimensional buffer carries, read from its
 /// `memoryview` format string.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -109,58 +111,101 @@ fn elem_f64(chunk: &[u8], elem: Elem) -> f64 {
 ///
 /// Accepts `array.array`, `memoryview`, a `NumPy` `ndarray`, or any plain Python
 /// sequence of numbers — the same set the previous `NumPy` `PyReadonlyArray1`
-/// covered, without depending on `NumPy`. A native `float64` buffer is read with a
-/// single copy and borrowed in place when that copy is 8-byte aligned (the
-/// `bytes` object stays alive inside the value); other numeric buffers are
-/// widened to `f64` in one pass; lists, tuples and anything else go through the
-/// sequence protocol exactly as before.
+/// covered, without depending on `NumPy`. A contiguous `float64` `NumPy` array or
+/// `array.array('d')` is read in place, with no copy (see [`native::SharedF64`]);
+/// any other native `float64` buffer is read with a single copy and borrowed in
+/// place when that copy is 8-byte aligned (the `bytes` object stays alive inside
+/// the value); other numeric buffers are widened to `f64` in one pass; lists,
+/// tuples and anything else go through the sequence protocol exactly as before.
 struct Buf1 {
-    /// A native `float64` buffer's single `tobytes()` copy, read in place when
+    source: Source,
+    /// The copy a shared series falls back to if it stopped qualifying before
+    /// its values were read; filled at most once.
+    copied: std::cell::OnceCell<Vec<f64>>,
+}
+
+/// Where a [`Buf1`]'s values live.
+enum Source {
+    /// The caller's own memory, read in place.
+    Shared(native::SharedF64),
+    /// A native `float64` buffer's single `tobytes()` copy, read in place as
     /// its data is 8-byte aligned. Python `bytes` are immutable, so the values
     /// cannot change while this value holds the reference.
-    bytes: Option<Py<PyBytes>>,
+    Bytes(Py<PyBytes>),
     /// Values converted element by element (other dtypes, lists, a misaligned
-    /// copy) — used when `bytes` is `None`.
-    owned: Vec<f64>,
+    /// copy).
+    Owned(Vec<f64>),
 }
 
 impl<'py> FromPyObject<'_, 'py> for Buf1 {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
-        if let Some((bytes, elem, itemsize)) = buffer_bytes(&obj) {
-            let raw = bytes.as_bytes();
-            if elem == Elem::Float
-                && itemsize == 8
-                && bytemuck::try_cast_slice::<u8, f64>(raw).is_ok()
-            {
-                return Ok(Self {
-                    bytes: Some(bytes.unbind()),
-                    owned: Vec::new(),
-                });
-            }
-            let owned = raw
-                .chunks_exact(itemsize)
-                .map(|c| elem_f64(c, elem))
-                .collect();
-            return Ok(Self { bytes: None, owned });
-        }
-        Vec::<f64>::extract(obj).map(|owned| Self { bytes: None, owned })
+        let source = match native::SharedF64::new(&obj) {
+            Some(shared) => Source::Shared(shared),
+            None => copy_source(&obj)?,
+        };
+        Ok(Self {
+            source,
+            copied: std::cell::OnceCell::new(),
+        })
     }
+}
+
+/// The values of `obj` as a single copy or an element-wise conversion.
+fn copy_source(obj: &Bound<'_, PyAny>) -> PyResult<Source> {
+    if let Some((bytes, elem, itemsize)) = buffer_bytes(obj) {
+        let raw = bytes.as_bytes();
+        if elem == Elem::Float && itemsize == 8 && bytemuck::try_cast_slice::<u8, f64>(raw).is_ok()
+        {
+            return Ok(Source::Bytes(bytes.unbind()));
+        }
+        let owned = raw
+            .chunks_exact(itemsize)
+            .map(|c| elem_f64(c, elem))
+            .collect();
+        return Ok(Source::Owned(owned));
+    }
+    Vec::<f64>::extract(obj.as_borrowed()).map(Source::Owned)
 }
 
 impl Buf1 {
     /// Borrow the values as a slice.
     fn as_slice(&self) -> &[f64] {
-        match &self.bytes {
+        match &self.source {
+            Source::Shared(shared) => shared.as_slice().unwrap_or_else(|| {
+                // Python code that ran while a later argument was converted
+                // changed the object (its dtype, its length); read it again
+                // the way any other object is read.
+                self.copied.get_or_init(|| {
+                    Python::attach(|py| match copy_source(shared.object().bind(py)) {
+                        Ok(Source::Owned(values)) => values,
+                        Ok(Source::Bytes(bytes)) => {
+                            bytemuck::cast_slice::<u8, f64>(bytes.as_bytes(py)).to_vec()
+                        }
+                        Ok(Source::Shared(_)) => unreachable!("copy_source never shares"),
+                        Err(err) => panic!("the series changed into something unreadable: {err}"),
+                    })
+                })
+            }),
             // `Py::as_bytes` ties the slice to `self`, not to the `Python` token,
             // and the alignment was checked when the value was built.
-            Some(bytes) => Python::attach(|py| {
+            Source::Bytes(bytes) => Python::attach(|py| {
                 bytemuck::try_cast_slice(bytes.as_bytes(py)).expect("checked aligned at extraction")
             }),
-            None => &self.owned,
+            Source::Owned(values) => values,
         }
     }
+}
+
+/// The error `Candle::new` gives for the first invalid bar of high/low/close/
+/// volume columns (the close doubling as the open), for a batch that found one.
+fn first_invalid_bar(h: &[f64], l: &[f64], c: &[f64], v: &[f64]) -> PyErr {
+    map_err(
+        (0..h.len())
+            .find_map(|i| wc::Candle::new(c[i], h[i], l[i], c[i], v[i], 0).err())
+            .expect("a batch rejects its columns only for an invalid bar"),
+    )
 }
 
 /// A one-dimensional `i64` input (e.g. millisecond timestamps for seasonality).
@@ -225,12 +270,16 @@ static ARRAY_TYPE: PyOnceLock<Py<PyType>> = PyOnceLock::new();
 
 /// Build a stdlib `array.array('d')` from a slice of `f64`s.
 ///
-/// `array('d', x)` iterates any `x` that is not `bytes`/`list`/`array` element
-/// by element, so the values go in as one `bytes` object, which `array` copies
-/// with a single `memcpy`. `array.array` is a buffer-protocol object, so
-/// `numpy.asarray(result)` wraps it zero-copy for callers who opt into `NumPy` —
-/// but importing `NumPy` is never required.
+/// The values are copied once, into an array of their length (see
+/// [`native::OutArray`]); where that is not cheaper, they go in as one `bytes`
+/// object, which `array('d', x)` copies with a single `memcpy` (it would iterate
+/// any other `x` element by element). `array.array` is a buffer-protocol
+/// object, so `numpy.asarray(result)` wraps it zero-copy for callers who opt
+/// into `NumPy` — but importing `NumPy` is never required.
 fn f64_array<'py>(py: Python<'py>, data: &[f64]) -> PyResult<Bound<'py, PyAny>> {
+    if let Some(out) = native::OutArray::new(py, data.len())? {
+        return Ok(out.fill(|values| values.copy_from_slice(data)));
+    }
     let bytes = PyBytes::new(py, bytemuck::cast_slice(data));
     ARRAY_TYPE.import(py, "array", "array")?.call1(("d", bytes))
 }
@@ -238,15 +287,20 @@ fn f64_array<'py>(py: Python<'py>, data: &[f64]) -> PyResult<Bound<'py, PyAny>> 
 /// Run a batch that writes one `f64` per input straight into the result's
 /// storage and return it as `array.array('d')`.
 ///
-/// `fill` writes into the `bytes` object that seeds the array, so the values
-/// are copied once (into the array) instead of going through an intermediate
-/// `Vec` first. `bytes` data is 16-byte aligned in `CPython`; should it ever not
-/// be `f64`-aligned, the values are computed in a `Vec` and copied in.
+/// `fill` writes into the result array itself (see [`native::OutArray`]).
+/// Where that is not cheaper it writes into the `bytes` object that seeds the
+/// array, so the values are copied once (into the array) instead of going
+/// through an intermediate `Vec` first. `bytes` data is 16-byte aligned in
+/// `CPython`; should it ever not be `f64`-aligned, the values are computed in a
+/// `Vec` and copied in.
 fn f64_batch(
     py: Python<'_>,
     len: usize,
     fill: impl FnOnce(&mut [f64]),
 ) -> PyResult<Bound<'_, PyAny>> {
+    if let Some(out) = native::OutArray::new(py, len)? {
+        return Ok(out.fill(fill));
+    }
     let bytes = PyBytes::new_with(py, len * std::mem::size_of::<f64>(), |raw| {
         if let Ok(out) = bytemuck::try_cast_slice_mut::<u8, f64>(raw) {
             fill(out);
@@ -9506,14 +9560,17 @@ impl PyChaikinOscillator {
                 "high, low, close, volume must be equal length",
             ));
         }
-        // Validate every bar first, as `Candle::new` would on the streaming path
-        // (the close doubles as the open), so a bad bar leaves the state untouched.
-        for i in 0..h.len() {
-            wc::Candle::new(c[i], h[i], l[i], c[i], v[i], 0).map_err(map_err)?;
+        // Every bar is validated as `Candle::new` would on the streaming path
+        // (the close doubles as the open); a bad bar leaves the state untouched.
+        let mut valid = false;
+        let out = f64_batch(py, h.len(), |out| {
+            valid = self.inner.batch_ohlcv_into(c, h, l, c, v, out);
+        })?;
+        if valid {
+            Ok(out)
+        } else {
+            Err(first_invalid_bar(h, l, c, v))
         }
-        f64_batch(py, h.len(), |out| {
-            self.inner.batch_hlcv_into(h, l, c, v, out);
-        })
     }
     fn batch_fast<'py>(
         &mut self,
@@ -9532,14 +9589,17 @@ impl PyChaikinOscillator {
                 "high, low, close, volume must be equal length",
             ));
         }
-        // Validate every bar first, as `Candle::new` would on the streaming path
-        // (the close doubles as the open), so a bad bar leaves the state untouched.
-        for i in 0..h.len() {
-            wc::Candle::new(c[i], h[i], l[i], c[i], v[i], 0).map_err(map_err)?;
+        // Every bar is validated as `Candle::new` would on the streaming path
+        // (the close doubles as the open); a bad bar leaves the state untouched.
+        let mut valid = false;
+        let out = f64_batch(py, h.len(), |out| {
+            valid = self.inner.batch_ohlcv_fast_into(c, h, l, c, v, out);
+        })?;
+        if valid {
+            Ok(out)
+        } else {
+            Err(first_invalid_bar(h, l, c, v))
         }
-        f64_batch(py, h.len(), |out| {
-            self.inner.batch_hlcv_fast_into(h, l, c, v, out);
-        })
     }
     #[getter]
     fn periods(&self) -> (usize, usize) {
