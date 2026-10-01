@@ -85,6 +85,11 @@ impl Simd for Portable {
         map(a, f64::abs)
     }
     #[inline(always)]
+    fn select_positive(self, test: [f64; 4], yes: [f64; 4], no: [f64; 4]) -> [f64; 4] {
+        let pick = |k: usize| if test[k] > 0.0 { yes[k] } else { no[k] };
+        [pick(0), pick(1), pick(2), pick(3)]
+    }
+    #[inline(always)]
     fn shift1(self, v: [f64; 4]) -> [f64; 4] {
         [0.0, v[0], v[1], v[2]]
     }

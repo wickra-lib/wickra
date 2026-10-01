@@ -682,7 +682,7 @@ pub(crate) fn shifted_power_sums<S: Simd, const POWERS: usize>(
     let len = xs.len();
     let stride = period;
     let count = period as f64;
-    let (steps, sums) = scratch.split_at_mut(POWERS * stride);
+    let sums = &mut scratch[..POWERS * stride];
     let mut anchor = period - 1;
     let (mut shift, mut window) = window_power_sums::<S, POWERS>(simd, &xs[..period]);
     let fresh_every = fresh_cadence(period);
@@ -690,17 +690,7 @@ pub(crate) fn shifted_power_sums<S: Simd, const POWERS: usize>(
     loop {
         let end = (anchor + period).min(len);
         let outputs = end - anchor;
-        power_steps::<S, POWERS>(simd, xs, period, shift, anchor + 1..end, steps, stride);
-        for (k, &start) in window.iter().enumerate() {
-            let row = k * stride;
-            sums[row] = start;
-            prefix_sums(
-                simd,
-                &steps[row..row + outputs - 1],
-                start,
-                &mut sums[row + 1..row + outputs],
-            );
-        }
+        power_prefix::<S, POWERS>(simd, xs, period, shift, anchor, end, window, sums, stride);
         finish(PowerSegment {
             outputs: anchor..end,
             shift,
@@ -766,41 +756,74 @@ fn window_power_sums<S: Simd, const POWERS: usize>(
     (shift, sums)
 }
 
-/// For outputs `idx` in `range`: the entering value's powers minus the leaving
-/// one's, `(xs[idx] - shift)^k - (xs[idx - period] - shift)^k`, into
-/// `steps[(k - 1) * stride + idx - range.start]` for `k` in `1..=POWERS`.
-/// Lane-wise subtractions and products only, so the vector and scalar steps
-/// round alike.
+/// The window sums of the first `POWERS` powers about `shift` for outputs
+/// `anchor..end`, from the sums at `anchor` (`start`): each later sum is the
+/// previous one plus the step `(xs[idx] - shift)^k - (xs[idx - period] -
+/// shift)^k`, written to `sums[(k - 1) * stride + idx - anchor]`.
+///
+/// One pass computes the steps and runs every power's prefix scan as the
+/// steps leave the multiplier: eight steps per power from four-lane
+/// subtractions and products, scanned as [`prefix_sums`] scans them (a
+/// Hillis–Steele scan per vector, a scalar carry between them), the last
+/// fewer than eight scalar. Every step and every sum is the same operation on
+/// the same operands as a pass of steps followed by a [`prefix_sums`] per
+/// power, so the same bits.
+#[allow(clippy::too_many_arguments)]
 #[inline(always)]
-fn power_steps<S: Simd, const POWERS: usize>(
+fn power_prefix<S: Simd, const POWERS: usize>(
     simd: S,
     xs: &[f64],
     period: usize,
     shift: f64,
-    range: std::ops::Range<usize>,
-    steps: &mut [f64],
+    anchor: usize,
+    end: usize,
+    start: [f64; POWERS],
+    sums: &mut [f64],
     stride: usize,
 ) {
     let shift_v = simd.splat(shift);
-    let mut idx = range.start;
-    while idx + 4 <= range.end {
-        let enter = simd.sub(simd.load(quad(&xs[idx..])), shift_v);
-        let leave = simd.sub(simd.load(quad(&xs[idx - period..])), shift_v);
-        let (mut up, mut down) = (enter, leave);
-        let at = idx - range.start;
-        for k in 0..POWERS {
-            simd.store(simd.sub(up, down), quad_mut(&mut steps[k * stride + at..]));
-            up = simd.mul(up, enter);
-            down = simd.mul(down, leave);
-        }
-        idx += 4;
+    let mut acc = start;
+    for (k, &first) in start.iter().enumerate() {
+        sums[k * stride] = first;
     }
-    while idx < range.end {
+    let mut idx = anchor + 1;
+    while idx + 8 <= end {
+        let enter_lo = simd.sub(simd.load(quad(&xs[idx..])), shift_v);
+        let leave_lo = simd.sub(simd.load(quad(&xs[idx - period..])), shift_v);
+        let enter_hi = simd.sub(simd.load(quad(&xs[idx + 4..])), shift_v);
+        let leave_hi = simd.sub(simd.load(quad(&xs[idx + 4 - period..])), shift_v);
+        let (mut up_lo, mut down_lo, mut up_hi, mut down_hi) =
+            (enter_lo, leave_lo, enter_hi, leave_hi);
+        let at = idx - anchor;
+        for (k, carry) in acc.iter_mut().enumerate() {
+            let mut lo = simd.sub(up_lo, down_lo);
+            let mut hi = simd.sub(up_hi, down_hi);
+            lo = simd.add(lo, simd.shift1(lo));
+            hi = simd.add(hi, simd.shift1(hi));
+            lo = simd.add(lo, simd.shift2(lo));
+            hi = simd.add(hi, simd.shift2(hi));
+            let row = k * stride + at;
+            simd.store(simd.add(lo, simd.splat(*carry)), quad_mut(&mut sums[row..]));
+            let mid = *carry + simd.last_lane(lo);
+            simd.store(
+                simd.add(hi, simd.splat(mid)),
+                quad_mut(&mut sums[row + 4..]),
+            );
+            *carry = mid + simd.last_lane(hi);
+            up_lo = simd.mul(up_lo, enter_lo);
+            down_lo = simd.mul(down_lo, leave_lo);
+            up_hi = simd.mul(up_hi, enter_hi);
+            down_hi = simd.mul(down_hi, leave_hi);
+        }
+        idx += 8;
+    }
+    while idx < end {
         let (enter, leave) = (xs[idx] - shift, xs[idx - period] - shift);
         let (mut up, mut down) = (enter, leave);
-        let at = idx - range.start;
-        for k in 0..POWERS {
-            steps[k * stride + at] = up - down;
+        let at = idx - anchor;
+        for (k, carry) in acc.iter_mut().enumerate() {
+            *carry += up - down;
+            sums[k * stride + at] = *carry;
             up *= enter;
             down *= leave;
         }
@@ -946,11 +969,10 @@ kernel! {
                     simd.sub(third, simd.mul(three, simd.mul(mean_dev, second))),
                     simd.mul(two, cube),
                 );
-                let skew = simd.to_array(simd.div(m3, simd.mul(m2, simd.sqrt(m2))));
-                let m2 = simd.to_array(m2);
-                for lane in 0..4 {
-                    dest[pos + lane] = if m2[lane] == 0.0 { 0.0 } else { skew[lane] };
-                }
+                let skew = simd.div(m3, simd.mul(m2, simd.sqrt(m2)));
+                // `m2` is clamped at zero by `max`, which never yields `NaN`, so
+                // "not positive" is exactly the scalar path's `m2 == 0`.
+                simd.store(simd.select_positive(m2, skew, zero), quad_mut(&mut dest[pos..]));
                 pos += 4;
             }
             while pos < count {

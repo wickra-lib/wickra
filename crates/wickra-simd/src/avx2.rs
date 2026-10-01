@@ -9,11 +9,11 @@
 #![allow(unsafe_code)]
 
 use std::arch::x86_64::{
-    __m256d, _mm256_add_pd, _mm256_andnot_pd, _mm256_blend_pd, _mm256_div_pd,
-    _mm256_extractf128_pd, _mm256_fmadd_pd, _mm256_loadu_pd, _mm256_max_pd, _mm256_min_pd,
-    _mm256_mul_pd, _mm256_permute2f128_pd, _mm256_permute4x64_pd, _mm256_set1_pd,
+    __m256d, _mm256_add_pd, _mm256_andnot_pd, _mm256_blend_pd, _mm256_blendv_pd, _mm256_cmp_pd,
+    _mm256_div_pd, _mm256_extractf128_pd, _mm256_fmadd_pd, _mm256_loadu_pd, _mm256_max_pd,
+    _mm256_min_pd, _mm256_mul_pd, _mm256_permute2f128_pd, _mm256_permute4x64_pd, _mm256_set1_pd,
     _mm256_setzero_pd, _mm256_sqrt_pd, _mm256_storeu_pd, _mm256_sub_pd, _mm256_unpackhi_pd,
-    _mm256_unpacklo_pd, _mm_cvtsd_f64, _mm_unpackhi_pd,
+    _mm256_unpacklo_pd, _mm_cvtsd_f64, _mm_unpackhi_pd, _CMP_GT_OQ,
 };
 
 use crate::{Kernel, Simd};
@@ -104,6 +104,14 @@ impl Simd for Avx2 {
     #[inline(always)]
     fn abs(self, a: __m256d) -> __m256d {
         unsafe { _mm256_andnot_pd(_mm256_set1_pd(-0.0), a) }
+    }
+    #[inline(always)]
+    fn select_positive(self, test: __m256d, yes: __m256d, no: __m256d) -> __m256d {
+        // Ordered greater-than: a `NaN` lane compares false and keeps `no`.
+        unsafe {
+            let positive = _mm256_cmp_pd::<_CMP_GT_OQ>(test, _mm256_setzero_pd());
+            _mm256_blendv_pd(no, yes, positive)
+        }
     }
     #[inline(always)]
     fn shift1(self, v: __m256d) -> __m256d {

@@ -80,6 +80,8 @@ pub trait Simd: Copy {
     fn min(self, a: Self::V, b: Self::V) -> Self::V;
     /// Lane-wise absolute value (sign bit cleared).
     fn abs(self, a: Self::V) -> Self::V;
+    /// Lane-wise `if test > 0 { yes } else { no }` (`NaN` takes `no`).
+    fn select_positive(self, test: Self::V, yes: Self::V, no: Self::V) -> Self::V;
     /// `[0, v0, v1, v2]`: lanes moved up by one, `+0.0` shifted in.
     fn shift1(self, v: Self::V) -> Self::V;
     /// `[0, 0, v0, v1]`: lanes moved up by two, `+0.0` shifted in.
@@ -244,6 +246,7 @@ mod tests {
                     s.max(x, y),
                     s.min(x, y),
                     s.abs(x),
+                    s.select_positive(s.sub(x, y), x, y),
                     s.shift1(x),
                     s.shift2(x),
                     s.broadcast_last(x),
