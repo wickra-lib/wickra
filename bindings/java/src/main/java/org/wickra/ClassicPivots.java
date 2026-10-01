@@ -133,16 +133,9 @@ public final class ClassicPivots implements AutoCloseable {
         if (output.length != (long) n * 7) {
             throw new IllegalArgumentException("the output array must hold 7 values per input");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment openSeg = a.allocateFrom(JAVA_DOUBLE, open);
-            MemorySegment highSeg = a.allocateFrom(JAVA_DOUBLE, high);
-            MemorySegment lowSeg = a.allocateFrom(JAVA_DOUBLE, low);
-            MemorySegment closeSeg = a.allocateFrom(JAVA_DOUBLE, close);
-            MemorySegment volumeSeg = a.allocateFrom(JAVA_DOUBLE, volume);
-            MemorySegment timestampSeg = a.allocateFrom(JAVA_LONG, timestamp);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, output.length);
-            NativeMethods.WICKRA_CLASSIC_PIVOTS_BATCH.invokeExact(handle(), openSeg, highSeg, lowSeg, closeSeg, volumeSeg, timestampSeg, outSeg, (long) n);
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, output.length);
+        try {
+            WickraNative.heapDowncall("wickra_classic_pivots_batch", NativeMethods.WICKRA_CLASSIC_PIVOTS_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(open), MemorySegment.ofArray(high), MemorySegment.ofArray(low), MemorySegment.ofArray(close), MemorySegment.ofArray(volume), MemorySegment.ofArray(timestamp), MemorySegment.ofArray(output), (long) n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

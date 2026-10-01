@@ -72,12 +72,9 @@ public final class PairSpreadZScore implements AutoCloseable {
         if (output.length != n) {
             throw new IllegalArgumentException("the output array must be as long as the input");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment xSeg = a.allocateFrom(JAVA_DOUBLE, x);
-            MemorySegment ySeg = a.allocateFrom(JAVA_DOUBLE, y);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, n);
-            NativeMethods.WICKRA_PAIR_SPREAD_Z_SCORE_BATCH.invokeExact(handle(), xSeg, ySeg, outSeg, (long) n);
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, n);
+        try {
+            WickraNative.heapDowncall("wickra_pair_spread_z_score_batch", NativeMethods.WICKRA_PAIR_SPREAD_Z_SCORE_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(x), MemorySegment.ofArray(y), MemorySegment.ofArray(output), (long) n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

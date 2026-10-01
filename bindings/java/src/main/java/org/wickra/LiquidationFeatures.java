@@ -171,22 +171,9 @@ public final class LiquidationFeatures implements AutoCloseable {
         if (output.length != (long) n * 5) {
             throw new IllegalArgumentException("the output array must hold 5 values per input");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment fundingRateSeg = a.allocateFrom(JAVA_DOUBLE, fundingRate);
-            MemorySegment markPriceSeg = a.allocateFrom(JAVA_DOUBLE, markPrice);
-            MemorySegment indexPriceSeg = a.allocateFrom(JAVA_DOUBLE, indexPrice);
-            MemorySegment futuresPriceSeg = a.allocateFrom(JAVA_DOUBLE, futuresPrice);
-            MemorySegment openInterestSeg = a.allocateFrom(JAVA_DOUBLE, openInterest);
-            MemorySegment longSizeSeg = a.allocateFrom(JAVA_DOUBLE, longSize);
-            MemorySegment shortSizeSeg = a.allocateFrom(JAVA_DOUBLE, shortSize);
-            MemorySegment takerBuyVolumeSeg = a.allocateFrom(JAVA_DOUBLE, takerBuyVolume);
-            MemorySegment takerSellVolumeSeg = a.allocateFrom(JAVA_DOUBLE, takerSellVolume);
-            MemorySegment longLiquidationSeg = a.allocateFrom(JAVA_DOUBLE, longLiquidation);
-            MemorySegment shortLiquidationSeg = a.allocateFrom(JAVA_DOUBLE, shortLiquidation);
-            MemorySegment timestampSeg = a.allocateFrom(JAVA_LONG, timestamp);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, output.length);
-            NativeMethods.WICKRA_LIQUIDATION_FEATURES_BATCH.invokeExact(handle(), fundingRateSeg, markPriceSeg, indexPriceSeg, futuresPriceSeg, openInterestSeg, longSizeSeg, shortSizeSeg, takerBuyVolumeSeg, takerSellVolumeSeg, longLiquidationSeg, shortLiquidationSeg, timestampSeg, outSeg, (long) n);
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, output.length);
+        try {
+            WickraNative.heapDowncall("wickra_liquidation_features_batch", NativeMethods.WICKRA_LIQUIDATION_FEATURES_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(fundingRate), MemorySegment.ofArray(markPrice), MemorySegment.ofArray(indexPrice), MemorySegment.ofArray(futuresPrice), MemorySegment.ofArray(openInterest), MemorySegment.ofArray(longSize), MemorySegment.ofArray(shortSize), MemorySegment.ofArray(takerBuyVolume), MemorySegment.ofArray(takerSellVolume), MemorySegment.ofArray(longLiquidation), MemorySegment.ofArray(shortLiquidation), MemorySegment.ofArray(timestamp), MemorySegment.ofArray(output), (long) n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

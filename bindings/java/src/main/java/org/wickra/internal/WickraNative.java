@@ -5,10 +5,12 @@ import java.io.InputStream;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
+import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
 import java.lang.ref.Cleaner;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Native library resolution and FFM downcall plumbing for the Wickra C ABI.
@@ -67,6 +70,52 @@ public final class WickraNative {
         MemorySegment symbol = LOOKUP.find(name)
                 .orElseThrow(() -> new UnsatisfiedLinkError("wickra: missing symbol " + name));
         return LINKER.downcallHandle(symbol, descriptor, Linker.Option.critical(false));
+    }
+
+    private static final ConcurrentHashMap<String, MethodHandle> HEAP_DOWNCALLS = new ConcurrentHashMap<>();
+
+    /**
+     * The batch function {@code name} linked to take heap memory: Java arrays
+     * passed in place through {@link MemorySegment#ofArray}, with no copy into
+     * native memory and none back. Linked critical with heap access -- the
+     * garbage collector waits for the call, which keeps the arrays where they
+     * are -- once per function, on first use, from the signature of its
+     * ordinary handle {@code regular}. Valid because a batch never calls back
+     * into Java.
+     */
+    public static MethodHandle heapDowncall(String name, MethodHandle regular) {
+        return HEAP_DOWNCALLS.computeIfAbsent(name, symbolName -> {
+            MethodType type = regular.type();
+            MemoryLayout[] params = type.parameterList().stream()
+                    .map(WickraNative::layoutOf)
+                    .toArray(MemoryLayout[]::new);
+            FunctionDescriptor descriptor = type.returnType() == void.class
+                    ? FunctionDescriptor.ofVoid(params)
+                    : FunctionDescriptor.of(layoutOf(type.returnType()), params);
+            MemorySegment symbol = LOOKUP.find(symbolName)
+                    .orElseThrow(() -> new UnsatisfiedLinkError("wickra: missing symbol " + symbolName));
+            return LINKER.downcallHandle(symbol, descriptor, Linker.Option.critical(true));
+        });
+    }
+
+    /** The C layout a downcall carries a Java parameter or result type as. */
+    private static MemoryLayout layoutOf(Class<?> carrier) {
+        if (carrier == MemorySegment.class) {
+            return ValueLayout.ADDRESS;
+        }
+        if (carrier == long.class) {
+            return ValueLayout.JAVA_LONG;
+        }
+        if (carrier == double.class) {
+            return ValueLayout.JAVA_DOUBLE;
+        }
+        if (carrier == int.class) {
+            return ValueLayout.JAVA_INT;
+        }
+        if (carrier == byte.class) {
+            return ValueLayout.JAVA_BYTE;
+        }
+        throw new IllegalArgumentException("wickra: no C layout for " + carrier);
     }
 
     /**

@@ -66,11 +66,9 @@ public final class UlcerIndex implements AutoCloseable {
         if (output.length != n) {
             throw new IllegalArgumentException("the output array must be as long as the input");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment inputSeg = a.allocateFrom(JAVA_DOUBLE, input);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, n);
-            NativeMethods.WICKRA_ULCER_INDEX_BATCH.invokeExact(handle(), inputSeg, outSeg, (long) n);
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, n);
+        try {
+            WickraNative.heapDowncall("wickra_ulcer_index_batch", NativeMethods.WICKRA_ULCER_INDEX_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(input), MemorySegment.ofArray(output), (long) n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {
@@ -126,11 +124,9 @@ public final class UlcerIndex implements AutoCloseable {
         if (output.length != n) {
             throw new IllegalArgumentException("the output array must be as long as the input");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment inputSeg = a.allocateFrom(JAVA_DOUBLE, input);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, n);
-            NativeMethods.WICKRA_ULCER_INDEX_BATCH_FAST.invokeExact(handle(), inputSeg, outSeg, (long) n);
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, n);
+        try {
+            WickraNative.heapDowncall("wickra_ulcer_index_batch_fast", NativeMethods.WICKRA_ULCER_INDEX_BATCH_FAST)
+                    .invokeExact(handle(), MemorySegment.ofArray(input), MemorySegment.ofArray(output), (long) n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

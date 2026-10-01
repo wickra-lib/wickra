@@ -99,11 +99,9 @@ public final class MacdExt implements AutoCloseable {
         if (output.length != (long) n * 3) {
             throw new IllegalArgumentException("the output array must hold 3 values per input");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment inputSeg = a.allocateFrom(JAVA_DOUBLE, input);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, output.length);
-            NativeMethods.WICKRA_MACD_EXT_BATCH.invokeExact(handle(), inputSeg, outSeg, (long) n);
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, output.length);
+        try {
+            WickraNative.heapDowncall("wickra_macd_ext_batch", NativeMethods.WICKRA_MACD_EXT_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(input), MemorySegment.ofArray(output), (long) n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

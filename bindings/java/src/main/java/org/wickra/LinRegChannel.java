@@ -93,11 +93,9 @@ public final class LinRegChannel implements AutoCloseable {
         if (output.length != (long) n * 3) {
             throw new IllegalArgumentException("the output array must hold 3 values per input");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment inputSeg = a.allocateFrom(JAVA_DOUBLE, input);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, output.length);
-            NativeMethods.WICKRA_LIN_REG_CHANNEL_BATCH.invokeExact(handle(), inputSeg, outSeg, (long) n);
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, output.length);
+        try {
+            WickraNative.heapDowncall("wickra_lin_reg_channel_batch", NativeMethods.WICKRA_LIN_REG_CHANNEL_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(input), MemorySegment.ofArray(output), (long) n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

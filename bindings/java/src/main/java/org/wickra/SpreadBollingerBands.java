@@ -102,12 +102,9 @@ public final class SpreadBollingerBands implements AutoCloseable {
         if (output.length != (long) n * 4) {
             throw new IllegalArgumentException("the output array must hold 4 values per input");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment xSeg = a.allocateFrom(JAVA_DOUBLE, x);
-            MemorySegment ySeg = a.allocateFrom(JAVA_DOUBLE, y);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, output.length);
-            NativeMethods.WICKRA_SPREAD_BOLLINGER_BANDS_BATCH.invokeExact(handle(), xSeg, ySeg, outSeg, (long) n);
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, output.length);
+        try {
+            WickraNative.heapDowncall("wickra_spread_bollinger_bands_batch", NativeMethods.WICKRA_SPREAD_BOLLINGER_BANDS_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(x), MemorySegment.ofArray(y), MemorySegment.ofArray(output), (long) n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {
