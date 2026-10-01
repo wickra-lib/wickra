@@ -27058,8 +27058,7 @@ pub unsafe extern "C" fn wickra_chaikin_oscillator_batch(
     let volumes = slice::from_raw_parts(volume, n);
     let timestamps = slice::from_raw_parts(timestamp, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    if Candle::all_valid(opens, highs, lows, closes, volumes) {
-        ind.batch_hlcv_into(highs, lows, closes, volumes, outputs);
+    if ind.batch_ohlcv_into(opens, highs, lows, closes, volumes, outputs) {
         return;
     }
     for (idx, slot) in outputs.iter_mut().enumerate() {
@@ -27117,8 +27116,7 @@ pub unsafe extern "C" fn wickra_chaikin_oscillator_batch_fast(
     let volumes = slice::from_raw_parts(volume, n);
     let timestamps = slice::from_raw_parts(timestamp, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    if Candle::all_valid(opens, highs, lows, closes, volumes) {
-        ind.batch_hlcv_fast_into(highs, lows, closes, volumes, outputs);
+    if ind.batch_ohlcv_fast_into(opens, highs, lows, closes, volumes, outputs) {
         return;
     }
     for (idx, slot) in outputs.iter_mut().enumerate() {

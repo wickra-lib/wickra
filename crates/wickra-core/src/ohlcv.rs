@@ -135,6 +135,25 @@ impl Candle {
         close: &[f64],
         volume: &[f64],
     ) -> bool {
+        Self::all_valid_within(open, high, low, close, volume, f64::MAX)
+    }
+
+    /// [`all_valid`](Self::all_valid) with every value at most `bound` in
+    /// magnitude as well -- the one pass a fast batch needs to know its
+    /// columns are both valid bars and inside its kernel's range. With
+    /// `f64::MAX` it is exactly `all_valid`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the columns differ in length.
+    pub(crate) fn all_valid_within(
+        open: &[f64],
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+        volume: &[f64],
+        bound: f64,
+    ) -> bool {
         let n = open.len();
         assert!(
             high.len() == n && low.len() == n && close.len() == n && volume.len() == n,
@@ -146,6 +165,7 @@ impl Candle {
             low: &low[..n],
             close: &close[..n],
             volume: &volume[..n],
+            bound,
         })
     }
 
@@ -268,6 +288,8 @@ struct AllValid<'a> {
     low: &'a [f64],
     close: &'a [f64],
     volume: &'a [f64],
+    /// The largest magnitude a value may have: `f64::MAX` for finite.
+    bound: f64,
 }
 
 // Inlining into the dispatching function is what compiles the body with its
@@ -288,20 +310,25 @@ impl wickra_simd::Kernel for AllValid<'_> {
             col.chunks_exact(LANES)
                 .map(|block| <&[f64; LANES]>::try_from(block).expect("a whole block"))
         }
-        let (open, high, low, close, volume) =
-            (self.open, self.high, self.low, self.close, self.volume);
+        let (open, high, low, close, volume, bound) = (
+            self.open,
+            self.high,
+            self.low,
+            self.close,
+            self.volume,
+            self.bound,
+        );
         let n = open.len();
-        // `x * 0.0 == 0.0` is `x.is_finite()` -- false exactly for NaN and the
-        // infinities -- as a plain comparison, which vectorizes where
-        // `is_finite` did not.
+        // `x.abs() <= bound` is false for NaN and the infinities, so with
+        // `f64::MAX` it is `x.is_finite()` as a plain comparison, which
+        // vectorizes where `is_finite` did not. `NaN` fails every comparison,
+        // and an open and close between a low and high within the bound are
+        // within it themselves (and put the high above the low), so only the
+        // two ends and the volume need bounding.
         let bar = |o: f64, h: f64, l: f64, c: f64, v: f64| {
-            let finite = (o * 0.0 == 0.0)
-                & (h * 0.0 == 0.0)
-                & (l * 0.0 == 0.0)
-                & (c * 0.0 == 0.0)
-                & (v * 0.0 == 0.0);
-            let ordered = (h >= l) & (h >= o) & (h >= c) & (l <= o) & (l <= c);
-            finite & (v >= 0.0) & ordered
+            let bounded = (h.abs() <= bound) & (l.abs() <= bound) & (v <= bound);
+            let ordered = (h >= o) & (h >= c) & (l <= o) & (l <= c);
+            bounded & (v >= 0.0) & ordered
         };
         let mut lanes = [true; LANES];
         for ((((o, h), l), c), v) in blocks(open)
@@ -343,10 +370,9 @@ impl wickra_simd::Kernel for AllValidHlc<'_> {
         }
         let (high, low, close) = (self.high, self.low, self.close);
         let n = high.len();
-        let bar = |h: f64, l: f64, c: f64| {
-            let finite = (h * 0.0 == 0.0) & (l * 0.0 == 0.0) & (c * 0.0 == 0.0);
-            finite & (h >= l) & (h >= c) & (l <= c)
-        };
+        // As in `AllValid`: a close between a finite low and high is finite.
+        let bar =
+            |h: f64, l: f64, c: f64| (h * 0.0 == 0.0) & (l * 0.0 == 0.0) & (h >= c) & (l <= c);
         let mut lanes = [true; LANES];
         for ((h, l), c) in blocks(high).zip(blocks(low)).zip(blocks(close)) {
             for (k, lane) in lanes.iter_mut().enumerate() {
@@ -366,8 +392,11 @@ mod tests {
 
     #[test]
     fn all_valid_agrees_with_candle_new_bar_by_bar() {
-        // Each bar breaks at most one rule, or none; every rule is broken once.
-        let bars: [(f64, f64, f64, f64, f64); 12] = [
+        // Every rule is broken once, alone; then the bars an ordering check
+        // alone would let through -- an infinite price bounded by an infinite
+        // high or low, a `NaN` at either end, a `NaN` or negative infinite
+        // volume.
+        let bars: [(f64, f64, f64, f64, f64); 21] = [
             (10.0, 11.0, 9.0, 10.5, 100.0),
             (10.0, 10.0, 10.0, 10.0, 0.0),
             (-0.0, 0.0, -0.0, 0.0, -0.0),
@@ -380,6 +409,27 @@ mod tests {
             (10.0, 9.0, 9.5, 9.2, 1.0),
             (12.0, 11.0, 9.0, 10.0, 1.0),
             (10.0, 11.0, 9.0, 8.0, 1.0),
+            (f64::INFINITY, f64::INFINITY, 9.0, 10.0, 1.0),
+            (10.0, f64::INFINITY, 9.0, f64::INFINITY, 1.0),
+            (f64::NEG_INFINITY, 11.0, f64::NEG_INFINITY, 10.0, 1.0),
+            (
+                f64::INFINITY,
+                f64::INFINITY,
+                f64::INFINITY,
+                f64::INFINITY,
+                1.0,
+            ),
+            (
+                f64::NEG_INFINITY,
+                f64::NEG_INFINITY,
+                f64::NEG_INFINITY,
+                f64::NEG_INFINITY,
+                1.0,
+            ),
+            (10.0, f64::NAN, 9.0, 10.0, 1.0),
+            (10.0, 11.0, f64::NAN, 10.0, 1.0),
+            (10.0, 11.0, 9.0, 10.0, f64::NAN),
+            (10.0, 11.0, 9.0, 10.0, f64::NEG_INFINITY),
         ];
         for &(o, h, l, c, v) in &bars {
             let single = Candle::all_valid(&[o], &[h], &[l], &[c], &[v]);
@@ -426,8 +476,10 @@ mod tests {
     #[test]
     fn all_valid_hlc_agrees_with_candle_new_at_every_position() {
         // (high, low, close); each breaks at most one rule of the candle a
-        // high/low/close series builds, `Candle::new(c, h, l, c, 0.0, _)`.
-        let bars: [(f64, f64, f64); 10] = [
+        // high/low/close series builds, `Candle::new(c, h, l, c, 0.0, _)`,
+        // then the infinite closes an infinite high or low would bound and a
+        // `NaN` at either end.
+        let bars: [(f64, f64, f64); 15] = [
             (11.0, 9.0, 10.0),
             (10.0, 10.0, 10.0),
             (0.0, -0.0, 0.0),
@@ -438,6 +490,11 @@ mod tests {
             (11.0, 9.0, 12.0),
             (11.0, 9.0, 8.0),
             (-5.0, -7.0, -6.0),
+            (f64::INFINITY, 9.0, f64::INFINITY),
+            (11.0, f64::NEG_INFINITY, f64::NEG_INFINITY),
+            (f64::INFINITY, f64::INFINITY, f64::INFINITY),
+            (11.0, f64::NAN, 10.0),
+            (11.0, 9.0, f64::NAN),
         ];
         let fine = bars[0];
         for &(h, l, c) in &bars {

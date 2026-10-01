@@ -1261,7 +1261,7 @@ kernel! {
 
 /// The money-flow volume of one bar, exactly as `Adl::update` computes it.
 #[inline(always)]
-fn money_flow(high: f64, low: f64, close: f64, volume: f64) -> f64 {
+pub(crate) fn money_flow(high: f64, low: f64, close: f64, volume: f64) -> f64 {
     let range = high - low;
     if range == 0.0 {
         0.0
@@ -1271,48 +1271,29 @@ fn money_flow(high: f64, low: f64, close: f64, volume: f64) -> f64 {
 }
 
 kernel! {
-    /// Chaikin oscillator `EMA_fast(ADL) − EMA_slow(ADL)`: the warmup until the
-    /// slow EMA is seeded runs the exact accumulation and recurrences, then
-    /// blocks of money-flow volumes, their running sum (a scan with decay 1)
-    /// and both EMA scans. Returns the last ADL, fast EMA and slow EMA.
+    /// Chaikin oscillator `EMA_fast(ADL) − EMA_slow(ADL)` past its warmup, from
+    /// the ADL and both EMAs in `state`: blocks of money-flow volumes, their
+    /// running sum (a scan with decay 1) and both EMA scans. Resumable: a
+    /// series split at multiples of [`BLOCK`] gives the same bits as one call.
+    /// Returns the last ADL, fast EMA and slow EMA.
     ChaikinFast {
         high: &'a [f64],
         low: &'a [f64],
         close: &'a [f64],
         volume: &'a [f64],
-        periods: (usize, usize),
+        state: (f64, f64, f64),
         alphas: (f64, f64),
         out: &'a mut [f64],
     } -> (f64, f64, f64) = |simd, kern| {
-        let (fast_period, slow_period) = kern.periods;
         let (fast_alpha, slow_alpha) = kern.alphas;
         let (fast_decay, slow_decay) = (1.0 - fast_alpha, 1.0 - slow_alpha);
-        let first = slow_period - 1;
-        kern.out[..first].fill(f64::NAN);
-        let mut adl = 0.0_f64;
-        let (mut fast_sum, mut slow_sum) = (-0.0_f64, -0.0_f64);
-        let mut fast = 0.0;
-        for idx in 0..=first {
-            adl += money_flow(kern.high[idx], kern.low[idx], kern.close[idx], kern.volume[idx]);
-            if idx < fast_period {
-                fast_sum += adl;
-                if idx + 1 == fast_period {
-                    fast = fast_sum / fast_period as f64;
-                }
-            } else {
-                fast = ema_step(fast_alpha, fast_decay, fast, adl);
-            }
-            slow_sum += adl;
-        }
-        let mut slow = slow_sum / slow_period as f64;
-        kern.out[first] = fast - slow;
+        let (mut adl, mut fast, mut slow) = kern.state;
         let mut flows = [0.0; BLOCK];
         let mut adl_block = [0.0; BLOCK];
         let mut fast_block = [0.0; BLOCK];
         let mut slow_block = [0.0; BLOCK];
-        let start = first + 1;
-        let mut pos = start;
-        for dest in kern.out[start..].chunks_mut(BLOCK) {
+        let mut pos = 0;
+        for dest in kern.out.chunks_mut(BLOCK) {
             let len = dest.len();
             let bars = kern.high[pos..pos + len]
                 .iter()
@@ -1897,7 +1878,7 @@ mod tests {
             low: &low,
             close: &close,
             volume: &volume,
-            periods: (3, 10),
+            state: (12.5, 3.0, -1.5),
             alphas: (0.5, 2.0 / 11.0),
             out: &mut a[..n],
             _borrow: PhantomData,
@@ -1907,7 +1888,7 @@ mod tests {
             low: &low,
             close: &close,
             volume: &volume,
-            periods: (3, 10),
+            state: (12.5, 3.0, -1.5),
             alphas: (0.5, 2.0 / 11.0),
             out: &mut b[..n],
             _borrow: PhantomData,

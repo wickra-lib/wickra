@@ -107,6 +107,11 @@ impl Ema {
         self.alpha
     }
 
+    /// The cached `1 - alpha` the recurrence multiplies the previous value by.
+    pub(crate) const fn one_minus_alpha(&self) -> f64 {
+        self.one_minus_alpha
+    }
+
     /// Current value if available.
     pub const fn value(&self) -> Option<f64> {
         if self.seeded {
