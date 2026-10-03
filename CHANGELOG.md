@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-10-03
+
 Throughput. Every batch the library had gets faster without a bit of its output
 changing, an opt-in `batch_fast` runs SIMD kernels where the last place may, and
 every binding can write a batch into a buffer the caller keeps. Streaming gets
@@ -202,6 +204,24 @@ definition (see Fixed).
   callers do; the cross-library criterion benchmark times Wickra's exact batch
   into a caller buffer, as kand's fill-the-slice functions are timed, and adds
   `wickra/fast`; `compare_libraries.py` adds a "Wickra (fast)" row.
+- **The release skips a Maven Central deploy that already happened.** The Java
+  job looks up the version's pom on Maven Central first and builds the jar
+  without deploying when it is there, so a re-run after a deploy that timed out
+  while Central was still publishing reaches the attestation and the GitHub
+  Release instead of failing on the duplicate -- the check every other publish
+  job (crates.io, PyPI, npm, NuGet, the Go mirror) already makes.
+- **`yoke-derive` 0.8.4** in `Cargo.lock`: 0.8.3 was yanked.
+- **CI and build tooling on the family's line:** the hash-locked CI
+  requirements (maturin 1.15.0, pytest 9.1.1, pygments 2.21.0, pandas 3.0.5 for
+  the benchmarks, typing-extensions 4.16.0 on Python 3.9); the Node binding's
+  `@napi-rs/cli` 3.10.4 tree, re-resolved package for package; uv 0.12.19 for
+  the lockfile bootstrap, with all four platform checksums moved together;
+  `codecov/codecov-action` 7.1.1, `github/codeql-action` 4.38.1,
+  `taiki-e/install-action` 2.87.17, `exec-maven-plugin` 3.6.4 and
+  `Microsoft.NET.Test.Sdk` 18.10.1.
+- **The README banner is a vector image,** every glyph a path, so its text is
+  sharp at any width and zoom; the WebP every published package points at stays
+  where it is.
 
 ### Fixed
 
@@ -3863,7 +3883,8 @@ public API changes.
   optional Binance live feed.
 - Bindings for Python, Node.js, and WebAssembly.
 
-[Unreleased]: https://github.com/wickra-lib/wickra/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/wickra-lib/wickra/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/wickra-lib/wickra/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/wickra-lib/wickra/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/wickra-lib/wickra/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/wickra-lib/wickra/compare/v1.0.3...v1.0.4
