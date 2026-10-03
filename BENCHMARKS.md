@@ -123,10 +123,11 @@ its time is not a comparable result. ³ Wickra's skewness is the population
 skewness; QuanTAlib's default is the sample skewness (its population form, 600).
 
 The fast batch leads SMA, EMA and correlation; QuanTAlib's span batch leads WMA,
-HMA, ADOSC and skewness by 3–15 %, and TA-Lib trails both on ADOSC. Streaming —
-one call per value from C# into the native core — is level on SMA and EMA and
-1.3–4.2× faster than QuanTAlib's on the other five. The harness's `verify` mode
-checks the libraries agree before their times are compared, and CI runs it:
+HMA, ADOSC and skewness by 3–15 % (WMA's gap reaches 20 % in other runs), and
+TA-Lib trails both on ADOSC. Streaming — one call per value from C# into the
+native core — is level on SMA and EMA and 1.3–4.2× faster than QuanTAlib's on
+the other five. The harness's `verify` mode checks the libraries agree before
+their times are compared, and CI runs it:
 
 ```bash
 cargo build -p wickra-c --release
@@ -186,22 +187,22 @@ session:
 
 | Target               | streaming | batch  | fast batch | fast into a reused buffer |
 |----------------------|----------:|-------:|-----------:|--------------------------:|
-| Rust core (no FFI)   |     1 332 | 1 122¹ |    3 086¹  |                     3 086 |
-| C / C++              |       395 |   940¹ |    3 096¹  |                     3 096 |
-| C#                   |       337 |    709 |      1 239 |       3 106 (`Span<double>`) |
-| Go                   |        24 |  1 025 |      2 202 |          3 025 (`BatchFastInto`) |
-| Java                 |       234 |    760 |      1 717 |     2 899 (`MemorySegment`) |
-| R                    |       0.4 |    645 |      1 053 |                         — |
-| WASM                 |        34 |    423 |        389 |                         — |
-| Python               |        29 |    513 |        775 |                         — |
-| Node.js              |       5.4 |  11 ²  |      1 270 |     3 106 (`batchFastInto`) |
+| Rust core (no FFI)   |     1 362 | 1 144¹ |    3 068¹  |                     3 068 |
+| C / C++              |       397 | 1 131¹ |    3 140¹  |                     3 140 |
+| C#                   |       345 |    739 |      1 263 |       3 072 (`Span<double>`) |
+| Go                   |      24.5 |    998 |      2 290 |          2 960 (`BatchFastInto`) |
+| Java                 |       255 |    950 |      1 120 |     2 778 (`MemorySegment`) |
+| R                    |       0.4 |    623 |      1 031 |                         — |
+| WASM                 |      34.8 |    380 |        402 |                         — |
+| Python               |      27.5 |    530 |        752 |                         — |
+| Node.js              |       5.4 |  11 ²  |      1 256 |     3 160 (`batchFastInto`) |
 
 ¹ Into a reused buffer — the Rust benchmark and the C ABI have no allocating form.
 ² A plain JS `Array` in and out; from a `Float64Array` read in place, 19.
 
 `ATR(14)` and `MACD(12,26,9)` follow the same shape at lower rates, their kernels
 being recurrences rather than window sums (Rust core, fast batch into a reused
-buffer: ATR 1 416, MACD 939; batch 697 and 645). On the same machine the
+buffer: ATR 1 424, MACD 936; batch 704 and 632). On the same machine the
 previous release, 1.0.6, measures: C 399 streaming and 381 batch, C# 64 and 304,
 Java 61 and 166, Python 29 and 46, R 0.1 and 287, WASM 35 and 197, Node 5.4
 and 11.

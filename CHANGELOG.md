@@ -31,7 +31,7 @@ definition (see Fixed).
   indicator plus MACD, Bollinger Bands, ATR, the Chaikin oscillator and Pearson.
   In Python it runs SMA(20) over 20,000 bars in 9.0 us (TA-Lib 15.5,
   tulipy 16.1) and leads TA-Lib and tulipy on every indicator measured; in Rust
-  it beats `kand` on all six; into a reused buffer it reaches 2,900 to 3,100
+  it beats `kand` on all six; into a reused buffer it reaches 2,800 to 3,200
   million updates per second from C, C#, Go, Java and Node alike
   (BENCHMARKS.md).
 - **Batches into a buffer the caller keeps.** Writing a fresh multi-megabyte

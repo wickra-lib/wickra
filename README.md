@@ -171,7 +171,7 @@ the same result on every platform — every language has it (`batch_fast`,
 leads TA-Lib and tulipy on all six indicators measured (SMA(20) over 20 000
 bars: 9.0 µs against TA-Lib's 15.5); in Rust it beats `kand` on all six; in .NET,
 on QuanTAlib's own benchmark setup, it leads SMA, EMA and correlation and comes
-within 3–15 % of QuanTAlib's span batches on the other four.
+within 3–20 % of QuanTAlib's span batches on the other four.
 
 Full tables (Rust, Python and .NET, streaming + batch) and how to reproduce them
 live in **[BENCHMARKS.md](BENCHMARKS.md)**.
@@ -188,15 +188,15 @@ up and which to avoid for hot loops.
 
 | Language        | streaming (Mupd/s) | batch (Mupd/s) | fast batch (Mupd/s) |
 |-----------------|-------------------:|---------------:|--------------------:|
-| Rust (no FFI)   |              1 332 |          1 122 |               3 086 |
-| C / C++         |                395 |            940 |               3 096 |
-| C#              |                337 |            709 |     1 239 · 3 106 ¹ |
-| Go              |                 24 |          1 025 |     2 202 · 3 025 ¹ |
-| Java            |                234 |            760 |     1 717 · 2 899 ¹ |
-| R               |                0.4 |            645 |               1 053 |
-| WASM            |                 34 |            423 |                 389 |
-| Python          |                 29 |            513 |                 775 |
-| Node.js         |                5.4 |           11 ² |     1 270 · 3 106 ¹ |
+| Rust (no FFI)   |              1 362 |          1 144 |               3 068 |
+| C / C++         |                397 |          1 131 |               3 140 |
+| C#              |                345 |            739 |     1 263 · 3 072 ¹ |
+| Go              |               24.5 |            998 |     2 290 · 2 960 ¹ |
+| Java            |                255 |            950 |     1 120 · 2 778 ¹ |
+| R               |                0.4 |            623 |               1 031 |
+| WASM            |               34.8 |            380 |                 402 |
+| Python          |               27.5 |            530 |                 752 |
+| Node.js         |                5.4 |           11 ² |     1 256 · 3 160 ¹ |
 
 ¹ Allocating the result · into a reused buffer (`Span<double>`, `BatchFastInto`,
 a native `MemorySegment`, `batchFastInto`). ² A plain JS `Array`; `batchFast`
