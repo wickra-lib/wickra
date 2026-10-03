@@ -66,9 +66,12 @@ impl Drop for GcPause {
 ///
 /// Only the exact types qualify -- a subclass could compute its interface in
 /// Python -- and only a one-dimensional, contiguous, native-order, aligned
-/// series. The address is taken when the slice is, after every argument has
-/// been converted, and the collector stays off for as long as this value
-/// lives, so no Python code runs while the slice can be read.
+/// series of at least [`MIN_SHARED`] values; below that one copy costs less
+/// than asking the object where its values are. Taking a value checks the type
+/// and the length only; the address is read once, when the slice is taken,
+/// after every argument has been converted, and the collector stays off for as
+/// long as this value lives, so no Python code runs while the slice can be
+/// read.
 #[derive(Debug)]
 pub(crate) struct SharedF64 {
     obj: Py<PyAny>,
@@ -78,8 +81,17 @@ pub(crate) struct SharedF64 {
 impl SharedF64 {
     /// `obj` if its values can be read in place, `None` for everything else.
     pub(crate) fn new(obj: &Bound<'_, PyAny>) -> Option<Self> {
-        location(obj)?;
-        let gc = GcPause::new(obj.py()).ok()?;
+        let py = obj.py();
+        let ty = obj.get_type();
+        let candidate = if ty.is(array_type(py)?) {
+            obj.getattr("typecode").ok()?.extract::<String>().ok()? == "d"
+        } else {
+            is_ndarray(py, &ty)
+        };
+        if !candidate || obj.len().ok()? < MIN_SHARED {
+            return None;
+        }
+        let gc = GcPause::new(py).ok()?;
         Some(Self {
             obj: obj.clone().unbind(),
             _gc: gc,
@@ -111,6 +123,10 @@ impl SharedF64 {
     }
 }
 
+/// Series shorter than this are copied: below it, the copy costs less than
+/// the calls that find a shared series' values.
+const MIN_SHARED: usize = 8192;
+
 /// The address and length of `obj`'s `float64` values if they can be shared.
 fn location(obj: &Bound<'_, PyAny>) -> Option<(usize, usize)> {
     let ty = obj.get_type();
@@ -122,7 +138,7 @@ fn location(obj: &Bound<'_, PyAny>) -> Option<(usize, usize)> {
             .ok()?
             .extract::<(usize, usize)>()
             .ok()?
-    } else if is_ndarray(&ty)? {
+    } else if is_ndarray(obj.py(), &ty) {
         ndarray_location(obj)?
     } else {
         return None;
@@ -130,12 +146,27 @@ fn location(obj: &Bound<'_, PyAny>) -> Option<(usize, usize)> {
     (len == 0 || addr % std::mem::align_of::<f64>() == 0).then_some((addr, len))
 }
 
-/// Whether `ty` is exactly `numpy.ndarray`, read from its name so `NumPy` is
-/// never imported.
-fn is_ndarray(ty: &Bound<'_, PyType>) -> Option<bool> {
-    let module = ty.getattr("__module__").ok()?.extract::<String>().ok()?;
-    let name = ty.getattr("__qualname__").ok()?.extract::<String>().ok()?;
-    Some(module == "numpy" && name == "ndarray")
+/// `numpy.ndarray`, remembered the first time one is seen.
+static NDARRAY: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+
+/// Whether `ty` is exactly `numpy.ndarray`. The first match is found by name,
+/// so `NumPy` is never imported, and remembered; every later check compares
+/// the type object.
+fn is_ndarray(py: Python<'_>, ty: &Bound<'_, PyType>) -> bool {
+    if let Some(ndarray) = NDARRAY.get(py) {
+        return ty.is(ndarray.bind(py));
+    }
+    let name = |attr: &str| {
+        ty.getattr(attr)
+            .ok()
+            .and_then(|v| v.extract::<String>().ok())
+    };
+    let found = name("__module__").as_deref() == Some("numpy")
+        && name("__qualname__").as_deref() == Some("ndarray");
+    if found {
+        NDARRAY.get_or_init(py, || ty.clone().unbind());
+    }
+    found
 }
 
 /// A one-dimensional, C-contiguous, native little-endian `float64` array's

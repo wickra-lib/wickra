@@ -33,9 +33,14 @@ def _sma(prices):
     return ta.SMA(5).batch(prices)
 
 
+# Above the length from which a float64 NumPy array or array.array is read in
+# place rather than copied (8,192 values), so those containers take that path.
+LONG = 10_000
+
+
 @pytest.fixture(scope="module")
 def prices() -> list[float]:
-    return [100.0 + math.sin(i * 0.37) * 4.0 + (i % 7) * 0.25 for i in range(64)]
+    return [100.0 + math.sin(i * 0.37) * 4.0 + (i % 7) * 0.25 for i in range(LONG)]
 
 
 @pytest.fixture(scope="module")
@@ -122,7 +127,7 @@ def test_result_is_a_float64_array(prices):
 
 @pytest.fixture(scope="module")
 def candle_columns():
-    n = 96
+    n = LONG
     t = np.arange(n, dtype=np.float64)
     close = 100.0 + np.sin(t * 0.3) * 5.0
     open_ = close + np.sin(t * 0.5) * 0.5
@@ -253,3 +258,14 @@ def test_chaikin_rejects_an_invalid_bar_with_the_candle_error(candle_columns, me
         getattr(osc, method)(bad_high, low, close, volume)
     want = _bits(getattr(ta.ChaikinOscillator(3, 10), method)(high, low, close, volume))
     assert _bits(getattr(osc, method)(high, low, close, volume)) == want
+
+
+@pytest.mark.parametrize("n", [8_191, 8_192, 8_193])
+def test_series_either_side_of_the_sharing_length_match_a_list(n):
+    # Below 8,192 values a float64 array is copied, from there on read in place;
+    # the two paths give the same bits.
+    values = [100.0 + math.sin(i * 0.013) * 7.0 for i in range(n)]
+    for make in (ta.SMA, ta.EMA):
+        want = _bits(make(20).batch(values))
+        assert _bits(make(20).batch(np.asarray(values))) == want
+        assert _bits(make(20).batch(array.array("d", values))) == want
