@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn first_candle_seeds_without_brick() {
         let mut renko = RenkoBars::new(1.0).unwrap();
-        assert!(renko.update(flat(10.0)).is_empty());
+        assert_eq!(renko.update(flat(10.0)), Vec::new());
         assert_eq!(renko.level(), Some(10.0));
     }
 
@@ -240,7 +240,7 @@ mod tests {
         let mut renko = RenkoBars::new(1.0).unwrap();
         renko.update(flat(10.0));
         renko.update(flat(13.0));
-        assert!(renko.update(flat(12.5)).is_empty()); // less than a reversal
+        assert_eq!(renko.update(flat(12.5)), Vec::new()); // less than a reversal
         assert_eq!(renko.level(), Some(13.0));
     }
 
@@ -252,7 +252,7 @@ mod tests {
         renko.reset();
         assert_eq!(renko.level(), None);
         // After reset the next candle seeds again.
-        assert!(renko.update(flat(50.0)).is_empty());
+        assert_eq!(renko.update(flat(50.0)), Vec::new());
         assert_eq!(renko.level(), Some(50.0));
     }
 

@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn first_candle_seeds_without_bar() {
         let mut bars = RangeBars::new(1.0).unwrap();
-        assert!(bars.update(flat(10.0)).is_empty());
+        assert_eq!(bars.update(flat(10.0)), Vec::new());
         assert_eq!(bars.anchor(), Some(10.0));
     }
 
@@ -203,7 +203,7 @@ mod tests {
     fn small_move_prints_nothing() {
         let mut bars = RangeBars::new(1.0).unwrap();
         bars.update(flat(10.0));
-        assert!(bars.update(flat(10.5)).is_empty());
+        assert_eq!(bars.update(flat(10.5)), Vec::new());
         assert_eq!(bars.anchor(), Some(10.0));
     }
 
@@ -214,7 +214,7 @@ mod tests {
         bars.update(flat(13.0));
         bars.reset();
         assert_eq!(bars.anchor(), None);
-        assert!(bars.update(flat(50.0)).is_empty());
+        assert_eq!(bars.update(flat(50.0)), Vec::new());
         assert_eq!(bars.anchor(), Some(50.0));
     }
 

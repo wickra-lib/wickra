@@ -161,9 +161,9 @@ mod tests {
     #[test]
     fn emits_every_n_candles() {
         let mut bars = TickBars::new(2).unwrap();
-        assert!(bars.update(candle(10.0, 10.0, 10.0, 10.0, 1.0)).is_empty());
+        assert_eq!(bars.update(candle(10.0, 10.0, 10.0, 10.0, 1.0)), Vec::new());
         assert_eq!(bars.update(candle(10.0, 10.0, 10.0, 10.0, 1.0)).len(), 1);
-        assert!(bars.update(candle(10.0, 10.0, 10.0, 10.0, 1.0)).is_empty());
+        assert_eq!(bars.update(candle(10.0, 10.0, 10.0, 10.0, 1.0)), Vec::new());
         assert_eq!(bars.update(candle(10.0, 10.0, 10.0, 10.0, 1.0)).len(), 1);
     }
 
@@ -197,7 +197,7 @@ mod tests {
         bars.reset();
         assert_eq!(bars.count(), 0);
         // After reset the next candle starts a fresh group.
-        assert!(bars.update(candle(20.0, 20.0, 20.0, 20.0, 5.0)).is_empty());
+        assert_eq!(bars.update(candle(20.0, 20.0, 20.0, 20.0, 5.0)), Vec::new());
         assert_eq!(bars.count(), 1);
     }
 

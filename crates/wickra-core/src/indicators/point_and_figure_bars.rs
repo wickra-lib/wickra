@@ -211,22 +211,22 @@ mod tests {
     #[test]
     fn first_candle_seeds_without_column() {
         let mut pnf = PointAndFigureBars::new(1.0, 3).unwrap();
-        assert!(pnf.update(flat(10.0)).is_empty());
+        assert_eq!(pnf.update(flat(10.0)), Vec::new());
     }
 
     #[test]
     fn establishes_up_then_extends() {
         let mut pnf = PointAndFigureBars::new(1.0, 3).unwrap();
         pnf.update(flat(10.0));
-        assert!(pnf.update(flat(13.0)).is_empty()); // start X column
-        assert!(pnf.update(flat(15.0)).is_empty()); // extend up, no completed column
+        assert_eq!(pnf.update(flat(13.0)), Vec::new()); // start X column
+        assert_eq!(pnf.update(flat(15.0)), Vec::new()); // extend up, no completed column
     }
 
     #[test]
     fn establishes_down_direction() {
         let mut pnf = PointAndFigureBars::new(1.0, 3).unwrap();
         pnf.update(flat(10.0));
-        assert!(pnf.update(flat(7.0)).is_empty()); // start O column
+        assert_eq!(pnf.update(flat(7.0)), Vec::new()); // start O column
     }
 
     #[test]
@@ -262,7 +262,7 @@ mod tests {
         pnf.update(flat(10.0));
         pnf.update(flat(13.0));
         pnf.update(flat(15.0));
-        assert!(pnf.update(flat(14.0)).is_empty()); // 1-box pullback < 3
+        assert_eq!(pnf.update(flat(14.0)), Vec::new()); // 1-box pullback < 3
     }
 
     #[test]
@@ -271,7 +271,7 @@ mod tests {
         pnf.update(flat(10.0));
         pnf.update(flat(7.0)); // O column
         pnf.update(flat(5.0)); // extend down
-        assert!(pnf.update(flat(6.0)).is_empty()); // 1-box bounce < 3
+        assert_eq!(pnf.update(flat(6.0)), Vec::new()); // 1-box bounce < 3
     }
 
     #[test]
@@ -280,8 +280,8 @@ mod tests {
         pnf.update(flat(10.0));
         pnf.update(flat(15.0));
         pnf.reset();
-        assert!(pnf.update(flat(99.0)).is_empty()); // re-seeds
-        assert!(pnf.update(flat(100.0)).is_empty()); // first move after reseed
+        assert_eq!(pnf.update(flat(99.0)), Vec::new()); // re-seeds
+        assert_eq!(pnf.update(flat(100.0)), Vec::new()); // first move after reseed
     }
 
     #[test]

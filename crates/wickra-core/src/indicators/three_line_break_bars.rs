@@ -218,7 +218,7 @@ mod tests {
     #[test]
     fn seed_then_first_line() {
         let mut bars = ThreeLineBreakBars::new(3).unwrap();
-        assert!(bars.update(flat(10.0)).is_empty()); // seed
+        assert_eq!(bars.update(flat(10.0)), Vec::new()); // seed
         let first = bars.update(flat(11.0));
         assert_eq!(first.len(), 1);
         assert_eq!(first[0].direction, 1);
@@ -244,7 +244,7 @@ mod tests {
         bars.update(flat(11.0)); // line 1
         bars.update(flat(12.0)); // line 2
         bars.update(flat(13.0)); // line 3, lows are 10/11/12
-        assert!(bars.update(flat(10.5)).is_empty()); // not > 13, not < 10
+        assert_eq!(bars.update(flat(10.5)), Vec::new()); // not > 13, not < 10
     }
 
     #[test]
@@ -268,20 +268,20 @@ mod tests {
         bars.update(flat(11.0));
         bars.reset();
         assert_eq!(bars.tracked(), 0);
-        assert!(bars.update(flat(50.0)).is_empty()); // re-seeds
+        assert_eq!(bars.update(flat(50.0)), Vec::new()); // re-seeds
     }
 
     #[test]
     fn flat_first_move_prints_nothing() {
         let mut bars = ThreeLineBreakBars::new(3).unwrap();
-        assert!(bars.update(flat(10.0)).is_empty()); // seed
-        assert!(bars.update(flat(10.0)).is_empty()); // equal to seed -> no line
+        assert_eq!(bars.update(flat(10.0)), Vec::new()); // seed
+        assert_eq!(bars.update(flat(10.0)), Vec::new()); // equal to seed -> no line
     }
 
     #[test]
     fn first_line_down_then_down_trend_and_reversal() {
         let mut bars = ThreeLineBreakBars::new(3).unwrap();
-        assert!(bars.update(flat(10.0)).is_empty()); // seed
+        assert_eq!(bars.update(flat(10.0)), Vec::new()); // seed
         let first = bars.update(flat(9.0)); // first line down
         assert_eq!(first.len(), 1);
         assert_eq!(first[0].direction, -1);
@@ -292,7 +292,7 @@ mod tests {
         assert_eq!(cont[0].direction, -1);
         assert_relative_eq!(cont[0].open, 9.0, epsilon = 1e-12);
         bars.update(flat(7.0)); // third down line; highs are 10/9/8
-        assert!(bars.update(flat(7.5)).is_empty()); // not < 7, not > highest high 10
+        assert_eq!(bars.update(flat(7.5)), Vec::new()); // not < 7, not > highest high 10
         let rev = bars.update(flat(11.0)); // > highest high 10 -> reverse up
         assert_eq!(rev.len(), 1);
         assert_eq!(rev[0].direction, 1);

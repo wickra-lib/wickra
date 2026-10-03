@@ -337,7 +337,7 @@ mod tests {
     fn first_bar_only_bootstraps_no_pivot() {
         let mut t = SwingTracker::new(0.05, 6);
         assert!(!t.update(c_hl(100.0, 99.5, 0)));
-        assert!(t.pivots().is_empty());
+        assert_eq!(t.pivots(), Vec::new());
     }
 
     #[test]
@@ -346,7 +346,7 @@ mod tests {
         assert!(!t.update(c_hl(100.0, 99.5, 0)));
         // A higher high merely raises the candidate — no pivot yet.
         assert!(!t.update(c_hl(110.0, 109.0, 1)));
-        assert!(t.pivots().is_empty());
+        assert_eq!(t.pivots(), Vec::new());
     }
 
     #[test]
@@ -355,7 +355,7 @@ mod tests {
         let _ = t.update(c_hl(100.0, 99.5, 0));
         // A 1% dip is below the 10% threshold — neither extends nor confirms.
         assert!(!t.update(c_hl(99.8, 99.0, 1)));
-        assert!(t.pivots().is_empty());
+        assert_eq!(t.pivots(), Vec::new());
     }
 
     #[test]
@@ -429,7 +429,7 @@ mod tests {
         let _ = t.update(c_hl(101.0, 90.0, 2));
         assert_eq!(t.pivots().len(), 1);
         t.reset();
-        assert!(t.pivots().is_empty());
+        assert_eq!(t.pivots(), Vec::new());
         // After reset the next bar bootstraps again (returns false).
         assert!(!t.update(c_hl(100.0, 99.5, 0)));
     }

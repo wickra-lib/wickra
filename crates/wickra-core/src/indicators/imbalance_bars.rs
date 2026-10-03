@@ -233,7 +233,7 @@ mod tests {
         bars.update(flat(10.0));
         bars.update(flat(11.0)); // +1
         bars.update(flat(10.0)); // -1 -> theta 0
-        assert!(bars.update(flat(11.0)).is_empty()); // +1
+        assert_eq!(bars.update(flat(11.0)), Vec::new()); // +1
         assert_relative_eq!(bars.imbalance(), 1.0, epsilon = 1e-12);
     }
 
@@ -245,7 +245,7 @@ mod tests {
         bars.reset();
         assert_relative_eq!(bars.imbalance(), 0.0, epsilon = 1e-12);
         // After reset the next candle re-seeds (no previous close).
-        assert!(bars.update(flat(50.0)).is_empty());
+        assert_eq!(bars.update(flat(50.0)), Vec::new());
     }
 
     #[test]

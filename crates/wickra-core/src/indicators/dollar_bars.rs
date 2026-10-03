@@ -177,7 +177,10 @@ mod tests {
     #[test]
     fn closes_when_value_reached() {
         let mut bars = DollarBars::new(1000.0).unwrap();
-        assert!(bars.update(candle(10.0, 10.0, 10.0, 10.0, 60.0)).is_empty()); // 600
+        assert_eq!(
+            bars.update(candle(10.0, 10.0, 10.0, 10.0, 60.0)),
+            Vec::new()
+        ); // 600
         let out = bars.update(candle(10.0, 10.0, 10.0, 10.0, 60.0)); // 1200
         assert_eq!(out.len(), 1);
         assert_relative_eq!(out[0].dollar, 1200.0, epsilon = 1e-9);
@@ -208,7 +211,10 @@ mod tests {
         bars.update(candle(10.0, 10.0, 10.0, 10.0, 60.0));
         bars.reset();
         assert_relative_eq!(bars.accumulated(), 0.0, epsilon = 1e-12);
-        assert!(bars.update(candle(20.0, 20.0, 20.0, 20.0, 10.0)).is_empty());
+        assert_eq!(
+            bars.update(candle(20.0, 20.0, 20.0, 20.0, 10.0)),
+            Vec::new()
+        );
     }
 
     #[test]

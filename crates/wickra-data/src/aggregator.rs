@@ -477,10 +477,10 @@ mod tests {
     #[test]
     fn aggregates_ticks_into_one_candle_within_bucket() {
         let mut agg = TickAggregator::new(Timeframe::new(60).unwrap());
-        assert!(agg.push(t(10.0, 0)).unwrap().is_empty());
-        assert!(agg.push(t(12.0, 15)).unwrap().is_empty());
-        assert!(agg.push(t(8.0, 30)).unwrap().is_empty());
-        assert!(agg.push(t(11.0, 50)).unwrap().is_empty());
+        assert_eq!(agg.push(t(10.0, 0)).unwrap(), Vec::new());
+        assert_eq!(agg.push(t(12.0, 15)).unwrap(), Vec::new());
+        assert_eq!(agg.push(t(8.0, 30)).unwrap(), Vec::new());
+        assert_eq!(agg.push(t(11.0, 50)).unwrap(), Vec::new());
         let bar = agg.flush().unwrap().expect("open bar");
         assert_eq!(bar.open, 10.0);
         assert_eq!(bar.high, 12.0);

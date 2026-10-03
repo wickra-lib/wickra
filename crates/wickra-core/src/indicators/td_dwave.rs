@@ -239,7 +239,7 @@ mod tests {
             .iter()
             .filter_map(|&(high, low)| td.update(c(high, low)))
             .collect();
-        assert!(!vals.is_empty());
+        assert_ne!(vals, Vec::new());
         assert!(vals.iter().all(|&v| v == 1.0));
     }
 
@@ -263,7 +263,7 @@ mod tests {
             .iter()
             .filter_map(|&(high, low)| td.update(c(high, low)))
             .collect();
-        assert!(!vals.is_empty());
+        assert_ne!(vals, Vec::new());
         assert!(vals.iter().all(|&v| v == 1.0));
     }
 

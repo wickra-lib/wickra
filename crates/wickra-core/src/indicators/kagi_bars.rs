@@ -185,9 +185,9 @@ mod tests {
     #[test]
     fn seeds_then_establishes_up_direction() {
         let mut kagi = KagiBars::new(2.0).unwrap();
-        assert!(kagi.update(flat(10.0)).is_empty()); // seed
+        assert_eq!(kagi.update(flat(10.0)), Vec::new()); // seed
         assert_eq!(kagi.extreme(), Some(10.0));
-        assert!(kagi.update(flat(11.0)).is_empty()); // first move sets dir up
+        assert_eq!(kagi.update(flat(11.0)), Vec::new()); // first move sets dir up
         assert_eq!(kagi.extreme(), Some(11.0));
     }
 
@@ -195,7 +195,7 @@ mod tests {
     fn establishes_down_direction_from_seed() {
         let mut kagi = KagiBars::new(2.0).unwrap();
         kagi.update(flat(10.0));
-        assert!(kagi.update(flat(9.0)).is_empty()); // first move sets dir down
+        assert_eq!(kagi.update(flat(9.0)), Vec::new()); // first move sets dir down
         assert_eq!(kagi.extreme(), Some(9.0));
     }
 
@@ -204,7 +204,7 @@ mod tests {
         let mut kagi = KagiBars::new(2.0).unwrap();
         kagi.update(flat(10.0));
         kagi.update(flat(11.0));
-        assert!(kagi.update(flat(15.0)).is_empty()); // new high, extend
+        assert_eq!(kagi.update(flat(15.0)), Vec::new()); // new high, extend
         assert_eq!(kagi.extreme(), Some(15.0));
     }
 
@@ -242,7 +242,7 @@ mod tests {
         kagi.update(flat(10.0));
         kagi.update(flat(11.0));
         kagi.update(flat(15.0));
-        assert!(kagi.update(flat(14.0)).is_empty()); // retrace 1 < 2
+        assert_eq!(kagi.update(flat(14.0)), Vec::new()); // retrace 1 < 2
         assert_eq!(kagi.extreme(), Some(15.0));
     }
 
@@ -252,7 +252,7 @@ mod tests {
         kagi.update(flat(10.0));
         kagi.update(flat(9.0)); // dir down
         kagi.update(flat(5.0)); // extreme 5
-        assert!(kagi.update(flat(6.0)).is_empty()); // bounce 1 < 2
+        assert_eq!(kagi.update(flat(6.0)), Vec::new()); // bounce 1 < 2
         assert_eq!(kagi.extreme(), Some(5.0));
     }
 
@@ -263,7 +263,7 @@ mod tests {
         kagi.update(flat(15.0));
         kagi.reset();
         assert_eq!(kagi.extreme(), None);
-        assert!(kagi.update(flat(99.0)).is_empty());
+        assert_eq!(kagi.update(flat(99.0)), Vec::new());
         assert_eq!(kagi.extreme(), Some(99.0));
     }
 

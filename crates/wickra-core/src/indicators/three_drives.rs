@@ -142,7 +142,7 @@ mod tests {
         // The five-pivot shape holds only two drive legs. A third drive is what
         // the pattern is named for, so the detector must still be waiting.
         let out = run(&[120.0, 100.0, 128.0, 108.0, 136.0]);
-        assert!(out.is_empty());
+        assert_eq!(out, Vec::new());
     }
 
     #[test]
