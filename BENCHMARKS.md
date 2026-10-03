@@ -9,54 +9,56 @@ SIMD kernels reorder the arithmetic and agree with it to within a few units in
 the last place.
 
 - **Reproduced on:** Windows 11 Pro 26200, AMD Ryzen 9 9950X, 64 GB DDR5,
-  Rust 1.92 (release: `lto = "fat"`, `codegen-units = 1`), Python 3.12. Every
-  number in a table comes from the same session; the Rust tables are the better
-  of two criterion runs.
+  Rust 1.92 (release: `lto = "fat"`, `codegen-units = 1`), Python 3.12, .NET 10.
+  Every number in a table comes from the same session; the Rust tables are the
+  better of two criterion runs.
 - **Reproduce yourself:**
   - Rust core vs Rust crates: `cargo bench -p wickra-bench`
   - Python vs Python libs: `pip install -e bindings/python[bench]` then
     `python -m benchmarks.compare_libraries` (auto-detects installed peers).
+  - .NET vs .NET libs: `dotnet run -c Release --project bindings/csharp/cross-library`.
 
 ## 1. Streaming — the structural win
 
 Live trading feeds one tick at a time. Wickra updates every indicator
 incrementally, with no pass over the history behind the tick;
 batch-only libraries (TA-Lib, tulipy, finta, pandas-ta) have no incremental API
-and must recompute the whole history on every tick. Only `talipp` (Python) and
-`ta-rs` / `yata` (Rust) carry real per-tick state. This is the gap the library
-was built to expose.
+and must recompute the whole history on every tick. Only `talipp` (Python),
+`ta-rs` / `yata` (Rust) and QuanTAlib (.NET, section 2) carry real per-tick
+state. This is the gap the library was built to expose.
 
 **Python — per-tick latency** (seed 5 000 bars, then feed 10 000 ticks one at a
 time):
 
 | Indicator        | **★&nbsp;Wickra** | talipp           | TA-Lib (recompute)    |
 |------------------|------------------:|------------------|-----------------------|
-| SMA(20)          | **0.070 µs ★**    | 0.54 µs (8×)     | 225 µs (3 200×)       |
-| EMA(20)          | **0.074 µs ★**    | 0.85 µs (12×)    | 236 µs (3 200×)       |
-| RSI(14)          | **0.113 µs ★**    | 1.33 µs (12×)    | 259 µs (2 300×)       |
-| MACD(12, 26, 9)  | **0.121 µs ★**    | 4.37 µs (36×)    | 283 µs (2 300×)       |
-| Bollinger(20, 2) | **0.102 µs ★**    | 6.75 µs (66×)    | 290 µs (2 800×)       |
+| SMA(20)          | **0.061 µs ★**    | 0.54 µs (9×)     | 234 µs (3 800×)       |
+| EMA(20)          | **0.064 µs ★**    | 0.73 µs (11×)    | 242 µs (3 800×)       |
+| RSI(14)          | **0.068 µs ★**    | 1.11 µs (16×)    | 265 µs (3 900×)       |
+| MACD(12, 26, 9)  | **0.084 µs ★**    | 4.30 µs (51×)    | 278 µs (3 300×)       |
+| Bollinger(20, 2) | **0.102 µs ★**    | 5.69 µs (56×)    | 270 µs (2 600×)       |
 
-Against the only other incremental Python peer Wickra is **8–66× faster**;
-against the recompute-on-every-tick libraries it is **1 600–10 500× faster**
-(`finta` Bollinger hits 10 500×). tulipy / pandas-ta land in the same recompute
+Against the only other incremental Python peer Wickra is **9–56× faster**;
+against the recompute-on-every-tick libraries it is **1 800–15 400× faster**
+(`finta` RSI hits 15 400×). tulipy / pandas-ta land in the same recompute
 band as TA-Lib.
 
 **Rust — per-tick latency** (whole 50 000-bar series, µs, lower = faster):
 
 | Indicator        | **★&nbsp;Wickra** | kand    | ta-rs  | yata   |
 |------------------|------------------:|--------:|-------:|-------:|
-| SMA(20)          | 51                | 37      | 45     | **30** |
-| EMA(20)          | 70                | 68      | **54** | 70     |
-| RSI(14)          | 170               | 211     | **73** | —      |
-| MACD(12, 26, 9)  | 226               | 165     | **62** | —      |
-| Bollinger(20, 2) | 175               | 275     | **154** | —     |
-| ATR(14)          | 84                | 156     | **62** | —      |
+| SMA(20)          | 48                | 37      | 46     | **37** |
+| EMA(20)          | 72                | 69      | **54** | 72     |
+| RSI(14)          | 171               | 202     | **76** | —      |
+| MACD(12, 26, 9)  | 228               | 178     | **64** | —      |
+| Bollinger(20, 2) | 175               | 290     | **163** | —     |
+| ATR(14)          | 86                | 164     | **68** | —      |
 
 `ta-rs` hands back a bare `f64` from the first tick with no warmup and no
 validation; it leads the table by giving those guarantees up. Against `kand`,
-Wickra wins streaming RSI, Bollinger and ATR and ties EMA. `yata` exposes only
-SMA/EMA as raw-value methods, so its other rows are omitted rather than faked.
+Wickra wins streaming RSI, Bollinger and ATR and is within 5 % on EMA. `yata`
+exposes only SMA/EMA as raw-value methods, so its other rows are omitted rather
+than faked.
 
 ## 2. Batch — the exact batch, and the opt-in fast one
 
@@ -67,18 +69,19 @@ with identical `NaN` placement and the same result on every platform.
 
 **Python** (20 000-bar pass, µs/op, lower = faster):
 
-| Indicator        | Wickra | **Wickra fast** | TA-Lib | tulipy   | pandas-ta | finta  |
-|------------------|-------:|----------------:|-------:|---------:|----------:|-------:|
-| SMA(20)          | 21.7   | **10.4 ★**      | 15.2   | 15.8     | 32.6      | 269.8  |
-| EMA(20)          | 33.9   | **10.6 ★**      | 29.2   | 29.6     | 51.2      | 195.4  |
-| RSI(14)          | 36.4   | **21.3 ★**      | 69.8   | 35.3     | 107.6     | 792.0  |
-| MACD(12, 26, 9)  | 36.0   | **26.1 ★**      | 96.1   | 32.5     | 203.4     | 503.1  |
-| Bollinger(20, 2) | 71.6   | 36.4            | 68.4   | **35.9** | 397.0     | 753.5  |
-| ATR(14)          | 49.3   | 34.0            | 76.8   | **30.8** | —         | 2094.3 |
+| Indicator        | Wickra | **Wickra fast** | TA-Lib | tulipy | pandas-ta | finta  |
+|------------------|-------:|----------------:|-------:|-------:|----------:|-------:|
+| SMA(20)          | 20.5   | **9.0 ★**       | 15.5   | 16.1   | 32.7      | 286.5  |
+| EMA(20)          | 32.0   | **9.7 ★**       | 30.3   | 31.4   | 50.5      | 224.7  |
+| RSI(14)          | 38.3   | **22.9 ★**      | 74.7   | 34.8   | 106.9     | 962.9  |
+| MACD(12, 26, 9)  | 40.1   | **27.9 ★**      | 102.1  | 33.4   | 234.4     | 574.4  |
+| Bollinger(20, 2) | 75.0   | **33.1 ★**      | 71.5   | 34.2   | 351.1     | 871.1  |
+| ATR(14)          | 41.1   | **28.1 ★**      | 84.4   | 34.4   | —         | 3182.6 |
 
-The fast batch leads four of six rows outright and is within 1.5 % and 11 % of
-tulipy's SIMD C on the other two; the exact batch beats TA-Lib on RSI, MACD and
-ATR and every row of pandas-ta and finta.
+The fast batch leads every row, tulipy's SIMD C included; the exact batch beats
+TA-Lib on RSI, MACD and ATR and every row of pandas-ta and finta. A
+contiguous `float64` NumPy array or `array.array('d')` of 8 192 values or more is
+read in place, without a copy.
 
 **Rust** (50 000-bar pass, µs, lower = faster, into a caller buffer on both
 sides). Only Wickra and `kand` expose a batch API; `ta-rs` and `yata` are
@@ -86,18 +89,52 @@ streaming-only:
 
 | Indicator        | Wickra     | **Wickra fast** | kand    |
 |------------------|-----------:|----------------:|--------:|
-| SMA(20)          | 47         | **21 ★**        | 39      |
-| EMA(20)          | 75         | **16 ★**        | 67      |
-| RSI(14)          | 90         | **46 ★**        | 221     |
-| MACD(12, 26, 9)  | 82         | **58 ★**        | 228     |
-| Bollinger(20, 2) | 194        | **93 ★**        | 346     |
-| ATR(14)          | 71         | **38 ★**        | 157     |
+| SMA(20)          | 48         | **23 ★**        | 41      |
+| EMA(20)          | 82         | **18 ★**        | 67      |
+| RSI(14)          | 85         | **47 ★**        | 222     |
+| MACD(12, 26, 9)  | 83         | **58 ★**        | 249     |
+| Bollinger(20, 2) | 195        | **78 ★**        | 408     |
+| ATR(14)          | 73         | **42 ★**        | 165     |
 
 The fast batch wins every row; the exact batch wins RSI, MACD, Bollinger and
-ATR by 1.8–2.8× and trails `kand` by a few µs on the two pure recurrences, SMA
+ATR by 2.1–3.0× and trails `kand` by a few µs on the two pure recurrences, SMA
 and EMA, where keeping streaming's bits fixes the order of the additions.
 
-Run the suite yourself:
+**.NET** (500 000 bars, period 220, QuanTAlib's own setup: its
+geometric-Brownian-motion feed, seed 42, BenchmarkDotNet `ShortRun` on .NET 10,
+mean µs, lower = faster). Every library writes into a buffer the caller keeps:
+Wickra's `Batch` and `BatchFast` into a `Span`, QuanTAlib's span `Batch`,
+TA-Lib's output array:
+
+| Indicator   | Wickra | Wickra fast | QuanTAlib | TA-Lib | Wickra streaming | QuanTAlib streaming |
+|-------------|-------:|------------:|----------:|-------:|-----------------:|--------------------:|
+| SMA         | 512    | **197 ★**   | 298       | 361    | **1 801**        | 1 904               |
+| EMA         | 763    | **186 ★**   | 430       | 730    | 1 654            | **1 581**           |
+| WMA         | 653    | 358         | **312 ★** | 384    | **2 020**        | 2 962               |
+| HMA ¹       | 1 472  | 1 079       | **1 021 ★** | —    | **5 565**        | 20 436              |
+| ADOSC       | 1 048  | 687         | **650 ★** | 745    | **3 501**        | 14 122              |
+| Correlation | 3 464  | **1 322 ★** | 1 464 ²   | 2 154  | **4 323**        | 18 328              |
+| Skewness ³  | 3 600  | 603         | **584 ★** | —      | **4 282**        | 5 523               |
+
+¹ The two HMAs are different series: Wickra rounds √220 to 15, QuanTAlib — like
+TradingView and pandas-ta — truncates it to 14. ² QuanTAlib's span correlation
+returns `NaN` for most bars of this series (its streaming one is correct), so
+its time is not a comparable result. ³ Wickra's skewness is the population
+skewness; QuanTAlib's default is the sample skewness (its population form, 600).
+
+The fast batch leads SMA, EMA and correlation; QuanTAlib's span batch leads WMA,
+HMA, ADOSC and skewness by 3–15 %, and TA-Lib trails both on ADOSC. Streaming —
+one call per value from C# into the native core — is level on SMA and EMA and
+1.3–4.2× faster than QuanTAlib's on the other five. The harness's `verify` mode
+checks the libraries agree before their times are compared, and CI runs it:
+
+```bash
+cargo build -p wickra-c --release
+dotnet run -c Release --project bindings/csharp/cross-library -- verify   # numerical cross-check
+dotnet run -c Release --project bindings/csharp/cross-library             # every benchmark
+```
+
+Run the Rust and Python suites yourself:
 
 ```bash
 cargo bench -p wickra-bench            # Rust core vs kand / ta-rs / yata
@@ -107,9 +144,9 @@ python -m benchmarks.compare_libraries
 
 ## 3. Per-binding throughput — the cost of the boundary
 
-The sections above compare Wickra against other libraries, which only exists for
-Python and Rust (there is no comparable streaming TA library for C, C++, C#, Go, Java,
-R or WASM to benchmark against). Every binding calls the **same** Rust
+The sections above compare Wickra against other libraries, which exists for
+Python, Rust and .NET (there is no comparable streaming TA library for C, C++,
+Go, Java, R or WASM to benchmark against). Every binding calls the **same** Rust
 core, so these per-binding benchmarks are **not** a speed claim and **not** a
 cross-library ratio — they document the raw cost of crossing each language's FFI
 boundary, in million updates per second (Mupd/s).
@@ -125,15 +162,19 @@ kernels within a few units in the last place of `batch`; see
   Rust core computes the whole series internally, so batch throughput stays high
   for every binding that hands back a contiguous buffer. Node is the exception:
   its `batch` still returns a JS `Array`, boxing every element — `batchFast`
-  returns a `Float64Array` instead and runs 110× faster.
+  returns a `Float64Array` instead and runs over 100× faster.
 - **A reused buffer is worth as much as the kernel.** Writing a fresh multi-megabyte
   result costs page faults on the order of the computation, so the caller-buffer
-  forms — C#'s `Span` overloads, Go's `BatchInto`, Java's `batchInto` over native
-  `MemorySegment`s, the C ABI itself — reach the Rust ceiling.
+  forms — C#'s `Span` overloads, Go's `BatchFastInto`, Java's `batchInto` over
+  native `MemorySegment`s, Node's `batchFastInto`, the C ABI itself — reach the
+  Rust ceiling. Java's array batches hand their arrays to the C ABI in place, and
+  Python reads a long NumPy array or `array.array` in place and, from 3.11,
+  writes its result in place.
 - **Streaming reveals the boundary.** A per-tick `update` crosses the boundary
   once per value, so streaming throughput is where the bindings differ: the raw C
-  ABI is nearly free, while managed or interpreted per-call marshalling (P/Invoke's
-  `SafeHandle`, cgo, FFM, napi, the R/WASM boundary) costs more per tick.
+  ABI is nearly free; C# passes its handle without reference counting it and
+  Java calls without a thread-state transition; cgo, napi, PyO3 and the R and
+  WASM boundaries cost more per tick.
 
 The Rust core ships the same benchmark with **no** FFI boundary
 (`examples/rust/.../throughput.rs`) — it is the ceiling each binding is measured
@@ -145,27 +186,29 @@ session:
 
 | Target               | streaming | batch  | fast batch | fast into a reused buffer |
 |----------------------|----------:|-------:|-----------:|--------------------------:|
-| Rust core (no FFI)   |     1 374 | 1 151¹ |    3 115¹  |                     3 115 |
-| C / C++              |       399 | 1 126¹ |    3 160¹  |                     3 160 |
-| C#                   |        63 |    744 |      1 409 |       3 145 (`Span<double>`) |
-| Go                   |        24 |  1 046 |      2 435 |          3 005 (`BatchFastInto`) |
-| Java                 |        64 |    314 |        367 |     2 744 (`MemorySegment`) |
-| R                    |       0.1 |    601 |      1 021 |                         — |
-| WASM                 |        34 |    424 |        406 |                         — |
-| Python               |        29 |    248 |        314 |                         — |
-| Node.js              |       5.4 |  11 ²  |      1 255 |                         — |
+| Rust core (no FFI)   |     1 332 | 1 122¹ |    3 086¹  |                     3 086 |
+| C / C++              |       395 |   940¹ |    3 096¹  |                     3 096 |
+| C#                   |       337 |    709 |      1 239 |       3 106 (`Span<double>`) |
+| Go                   |        24 |  1 025 |      2 202 |          3 025 (`BatchFastInto`) |
+| Java                 |       234 |    760 |      1 717 |     2 899 (`MemorySegment`) |
+| R                    |       0.4 |    645 |      1 053 |                         — |
+| WASM                 |        34 |    423 |        389 |                         — |
+| Python               |        29 |    513 |        775 |                         — |
+| Node.js              |       5.4 |  11 ²  |      1 270 |     3 106 (`batchFastInto`) |
 
 ¹ Into a reused buffer — the Rust benchmark and the C ABI have no allocating form.
 ² A plain JS `Array` in and out; from a `Float64Array` read in place, 19.
 
 `ATR(14)` and `MACD(12,26,9)` follow the same shape at lower rates, their kernels
 being recurrences rather than window sums (Rust core, fast batch into a reused
-buffer: ATR 1 457, MACD 865; batch 705 and 640). The managed runtimes' streaming
-rates are what their call boundary costs on this machine today — the previous
-release measures the same (C#: 63 streaming, 297 batch).
+buffer: ATR 1 416, MACD 939; batch 697 and 645). On the same machine the
+previous release, 1.0.6, measures: C 399 streaming and 381 batch, C# 64 and 304,
+Java 61 and 166, Python 29 and 46, R 0.1 and 287, WASM 35 and 197, Node 5.4
+and 11.
 
 These are throughput numbers, not competitive numbers — the "Wickra is fast"
-claim lives in sections 1 and 2 (Rust core + the Python/Rust cross-library runs).
+claim lives in sections 1 and 2 (Rust core + the Python, Rust and .NET
+cross-library runs).
 
 Run any target's benchmark (build the C ABI library first where it links one):
 
@@ -203,13 +246,13 @@ Rust core, 50 000 real BTCUSDT one-minute candles
 
 | Operation                          | Throughput          | Per element |
 |------------------------------------|--------------------:|------------:|
-| CSV parse (`CandleReader`)         |   3.0 M candles/s   |      329 ns |
-| Tick aggregate → 1m (`TickAggregator`) |  44 M ticks/s   |     22.6 ns |
-| Resample 1m → 5m (`Resampler`)     | 234 M candles/s     |      4.3 ns |
+| CSV parse (`CandleReader`)         |   2.6 M candles/s   |      380 ns |
+| Tick aggregate → 1m (`TickAggregator`) |  39 M ticks/s   |     25.9 ns |
+| Resample 1m → 5m (`Resampler`)     | 115 M candles/s     |      8.7 ns |
 
-Reading and validating a 50 000-row CSV into typed candles takes ~16 ms;
-aggregating 50 000 ticks into one-minute bars ~1.1 ms; resampling 50 000
-one-minute candles to five-minute bars ~0.2 ms. CSV parsing is the floor because
+Reading and validating a 50 000-row CSV into typed candles takes ~19 ms;
+aggregating 50 000 ticks into one-minute bars ~1.3 ms; resampling 50 000
+one-minute candles to five-minute bars ~0.4 ms. CSV parsing is the floor because
 it does the most per row (UTF-8 scan, field split, six `f64` parses, finiteness
 checks); aggregation and resampling are pure arithmetic over already-typed
 candles.

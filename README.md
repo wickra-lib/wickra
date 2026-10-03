@@ -109,12 +109,13 @@ times to get there.
   construction; the other 53 call a libm transcendental, whose last bit belongs
   to the platform's math library rather than to Wickra, so the runners compare to
   a relative tolerance. See [Verification](#verification).)
-- **Orders of magnitude faster where it counts.** In streaming Wickra is **8–66×**
+- **Orders of magnitude faster where it counts.** In streaming Wickra is **9–56×**
   faster than the only other incremental peer and **thousands of times** faster
   than recompute-on-every-tick libraries. On batch the opt-in `batch_fast` beats
-  TA-Lib on every Python row and `kand` on every Rust row; the exact `batch` —
-  bit for bit the streaming result — still wins RSI, MACD, Bollinger and ATR in
-  Rust. Every number, losses included, is in [BENCHMARKS.md](BENCHMARKS.md).
+  TA-Lib and tulipy on every Python row and `kand` on every Rust row; the exact
+  `batch` — bit for bit the streaming result — still wins RSI, MACD, Bollinger
+  and ATR in Rust. Every number, losses included, is in
+  [BENCHMARKS.md](BENCHMARKS.md).
 - **Install in one line, anywhere.** `pip install wickra` / `npm install wickra` —
   precompiled wheels and binaries, **no C toolchain, none of TA-Lib's setup pain**.
   macOS · Linux · Windows.
@@ -159,7 +160,7 @@ the window you configure, never by how much history has gone before it. Most
 indicators do constant work; the ones that need an order statistic or a full-window
 pass — a rolling quantile keeps its window sorted, CCI averages absolute
 deviations — scale with the period, not the series. In **streaming** — the
-workload it is built for — it is **8–66× faster** than the only other incremental
+workload it is built for — it is **9–56× faster** than the only other incremental
 peer and **thousands of times** faster than recompute-on-every-tick libraries.
 
 **Batch** comes in two forms. `batch` is bit for bit what streaming gives; the
@@ -167,11 +168,13 @@ opt-in `batch_fast` runs SIMD kernels that reorder the arithmetic and agree with
 it to within a few units in the last place, with the same `NaN` placement and
 the same result on every platform — every language has it (`batch_fast`,
 `batchFast`, `BatchFast`, `wickra_<name>_batch_fast`). In Python the fast batch
-leads TA-Lib and tulipy on SMA, EMA, RSI and MACD (SMA(20) over 20 000 bars:
-10.4 µs against TA-Lib's 15.2); in Rust it beats `kand` on all six indicators.
+leads TA-Lib and tulipy on all six indicators measured (SMA(20) over 20 000
+bars: 9.0 µs against TA-Lib's 15.5); in Rust it beats `kand` on all six; in .NET,
+on QuanTAlib's own benchmark setup, it leads SMA, EMA and correlation and comes
+within 3–15 % of QuanTAlib's span batches on the other four.
 
-Full tables (Rust + Python, streaming + batch) and how to reproduce them live in
-**[BENCHMARKS.md](BENCHMARKS.md)**.
+Full tables (Rust, Python and .NET, streaming + batch) and how to reproduce them
+live in **[BENCHMARKS.md](BENCHMARKS.md)**.
 
 ### Pick your language with eyes open — per-binding throughput
 
@@ -185,19 +188,19 @@ up and which to avoid for hot loops.
 
 | Language        | streaming (Mupd/s) | batch (Mupd/s) | fast batch (Mupd/s) |
 |-----------------|-------------------:|---------------:|--------------------:|
-| Rust (no FFI)   |              1 374 |          1 151 |               3 115 |
-| C / C++         |                399 |          1 126 |               3 160 |
-| C#              |                 63 |            744 |     1 409 · 3 145 ¹ |
-| Go              |                 24 |          1 046 |     2 435 · 3 005 ¹ |
-| Java            |                 64 |            314 |       367 · 2 744 ¹ |
-| R               |                0.1 |            601 |               1 021 |
-| WASM            |                 34 |            424 |                 406 |
-| Python          |                 29 |            248 |                 314 |
-| Node.js         |                5.4 |           11 ² |               1 255 |
+| Rust (no FFI)   |              1 332 |          1 122 |               3 086 |
+| C / C++         |                395 |            940 |               3 096 |
+| C#              |                337 |            709 |     1 239 · 3 106 ¹ |
+| Go              |                 24 |          1 025 |     2 202 · 3 025 ¹ |
+| Java            |                234 |            760 |     1 717 · 2 899 ¹ |
+| R               |                0.4 |            645 |               1 053 |
+| WASM            |                 34 |            423 |                 389 |
+| Python          |                 29 |            513 |                 775 |
+| Node.js         |                5.4 |           11 ² |     1 270 · 3 106 ¹ |
 
 ¹ Allocating the result · into a reused buffer (`Span<double>`, `BatchFastInto`,
-a native `MemorySegment`). ² A plain JS `Array`; `batchFast` returns a
-`Float64Array`.
+a native `MemorySegment`, `batchFastInto`). ² A plain JS `Array`; `batchFast`
+returns a `Float64Array`.
 
 All ten share one verified implementation (see the verification badge above), so
 the *numbers* differ but the *values* do not. Methodology and
@@ -266,13 +269,16 @@ it — regenerate from the core).
 Each binding ships several runnable examples (streaming, backtest, live feed);
 [`examples/README.md`](examples/README.md) is the full cross-language index.
 
-The wickra-core crate is `unsafe`-forbidden, so the native bindings are
-memory-safe end to end. The C ABI runs the same safe core; only its thin FFI
-boundary uses `unsafe`, and the caller owns handle lifetimes (`_new` / `_free`).
-The core's batch kernels — the exact ones and the opt-in `batch_fast` — run with
-AVX2 and FMA where the CPU has them through [`wickra-simd`](crates/wickra-simd),
-whose single `unsafe` call is the runtime feature dispatch; each returns the same
-bits on every path and every platform.
+The wickra-core crate is `unsafe`-forbidden. The C ABI runs the same safe core;
+only its thin FFI boundary uses `unsafe`, and the caller owns handle lifetimes
+(`_new` / `_free`). The Python binding's `unsafe` is one module that reads a
+NumPy array or `array.array` in place and writes a result array in place, with
+the garbage collector held off while it does. The core's batch kernels — the
+exact ones and the opt-in `batch_fast` — run with AVX2 and FMA where the CPU has
+them, and the kernels that gain from it with AVX-512 as well, through
+[`wickra-simd`](crates/wickra-simd), whose `unsafe` is the runtime feature
+dispatch and its vector intrinsics; each returns the same bits on every path and
+every platform.
 
 ## Requirements
 

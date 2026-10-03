@@ -87,8 +87,10 @@ eagerly (use try-with-resources).
 ### Caller buffers, zero-copy segments, and the opt-in fast batch
 
 Every single-output `batch` has a `batchInto` form that writes into a caller
-array, and one over caller-owned native memory that copies nothing: the
-`MemorySegment`s go straight to the C ABI. Each also has a `batchFast` twin:
+array, and one over caller-owned native memory: the `MemorySegment`s go straight
+to the C ABI. Neither copies: the array forms hand their arrays to the C ABI in
+place too, through a downcall linked critical with heap access, so the garbage
+collector waits for the call. Each also has a `batchFast` twin:
 
 ```java
 double[] out = new double[prices.length];

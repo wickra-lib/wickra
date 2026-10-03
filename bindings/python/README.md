@@ -32,7 +32,9 @@ pip install wickra
 Pre-built wheels ship for Linux, macOS, and Windows — there is nothing to
 compile and no C library to track down. `pip install wickra` pulls **zero**
 third-party packages; NumPy is an optional extra (`pip install wickra[numpy]`)
-for zero-copy interop.
+for zero-copy interop. A contiguous `float64` NumPy array or `array.array('d')`
+of 8,192 values or more is read in place, without a copy, and from Python 3.11
+a batch writes its result straight into the `array.array('d')` it returns.
 
 ## Quick start
 
