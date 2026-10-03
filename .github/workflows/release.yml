@@ -269,7 +269,7 @@ jobs:
       # consumers can audit the published dependency tree without
       # re-resolving Cargo.lock.
       - name: Install cargo-cyclonedx
-        uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73 # v2.87.17
+        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
         timeout-minutes: 10 # fail fast on a stuck download instead of hanging the job
         with:
           tool: cargo-cyclonedx
@@ -794,7 +794,7 @@ jobs:
       - name: Install wasm-pack (latest, via prebuilt binary)
         # See the matching note in ci.yml: jetli's default installs an old
         # 0.10.x wasm-pack whose build subcommand rejects --features.
-        uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73 # v2.87.17
+        uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
         timeout-minutes: 10 # fail fast on a stuck download instead of hanging the job
         with:
           tool: wasm-pack
