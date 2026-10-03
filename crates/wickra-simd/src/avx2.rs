@@ -23,11 +23,22 @@ use crate::{Kernel, Simd};
 #[derive(Debug, Clone, Copy)]
 pub struct Avx2(());
 
+impl Avx2 {
+    /// The token, for the AVX-512 token whose CPU check implies this one.
+    #[cfg(wickra_avx512)]
+    pub(crate) const fn implied() -> Self {
+        Self(())
+    }
+}
+
 /// Run `kernel` with an [`Avx2`] token inside a function compiled for AVX2 and
 /// FMA. Only called by `dispatch`, after the CPU check.
 #[inline]
 pub(crate) fn run<K: Kernel>(kernel: K) -> K::Output {
-    debug_assert_eq!(crate::level(), crate::Level::Avx2Fma);
+    debug_assert!(matches!(
+        crate::level(),
+        crate::Level::Avx2Fma | crate::Level::Avx512
+    ));
     // SAFETY: `dispatch` calls this only when `level()` reported AVX2 and FMA.
     unsafe { run_avx2_fma(kernel) }
 }
@@ -162,5 +173,62 @@ impl Simd for Avx2 {
                 _mm256_permute2f128_pd::<0x31>(ab_odd, cd_odd),
             ]
         }
+    }
+
+    type W = [__m256d; 2];
+
+    #[inline(always)]
+    fn load8(self, a: &[f64; 8]) -> [__m256d; 2] {
+        let (lo, hi) = a.split_at(4);
+        [
+            self.load(lo.try_into().expect("four lanes")),
+            self.load(hi.try_into().expect("four lanes")),
+        ]
+    }
+    #[inline(always)]
+    fn store8(self, v: [__m256d; 2], a: &mut [f64; 8]) {
+        let (lo, hi) = a.split_at_mut(4);
+        self.store(v[0], lo.try_into().expect("four lanes"));
+        self.store(v[1], hi.try_into().expect("four lanes"));
+    }
+    #[inline(always)]
+    fn splat8(self, x: f64) -> [__m256d; 2] {
+        [self.splat(x); 2]
+    }
+    #[inline(always)]
+    fn add8(self, a: [__m256d; 2], b: [__m256d; 2]) -> [__m256d; 2] {
+        [self.add(a[0], b[0]), self.add(a[1], b[1])]
+    }
+    #[inline(always)]
+    fn sub8(self, a: [__m256d; 2], b: [__m256d; 2]) -> [__m256d; 2] {
+        [self.sub(a[0], b[0]), self.sub(a[1], b[1])]
+    }
+    #[inline(always)]
+    fn mul8(self, a: [__m256d; 2], b: [__m256d; 2]) -> [__m256d; 2] {
+        [self.mul(a[0], b[0]), self.mul(a[1], b[1])]
+    }
+    #[inline(always)]
+    fn div8(self, a: [__m256d; 2], b: [__m256d; 2]) -> [__m256d; 2] {
+        [self.div(a[0], b[0]), self.div(a[1], b[1])]
+    }
+    #[inline(always)]
+    fn sqrt8(self, a: [__m256d; 2]) -> [__m256d; 2] {
+        [self.sqrt(a[0]), self.sqrt(a[1])]
+    }
+    #[inline(always)]
+    fn max8(self, a: [__m256d; 2], b: [__m256d; 2]) -> [__m256d; 2] {
+        [self.max(a[0], b[0]), self.max(a[1], b[1])]
+    }
+    #[inline(always)]
+    fn select_positive8(
+        self,
+        test: [__m256d; 2],
+        yes: [__m256d; 2],
+        no: [__m256d; 2],
+    ) -> [__m256d; 2] {
+        [
+            self.select_positive(test[0], yes[0], no[0]),
+            self.select_positive(test[1], yes[1], no[1]),
+        ]
     }
 }

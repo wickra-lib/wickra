@@ -114,4 +114,47 @@ impl Simd for Portable {
             [a[3], b[3], c[3], d[3]],
         ]
     }
+
+    type W = [f64; 8];
+
+    #[inline(always)]
+    fn load8(self, a: &[f64; 8]) -> [f64; 8] {
+        *a
+    }
+    #[inline(always)]
+    fn store8(self, v: [f64; 8], a: &mut [f64; 8]) {
+        *a = v;
+    }
+    #[inline(always)]
+    fn splat8(self, x: f64) -> [f64; 8] {
+        [x; 8]
+    }
+    #[inline(always)]
+    fn add8(self, a: [f64; 8], b: [f64; 8]) -> [f64; 8] {
+        std::array::from_fn(|k| a[k] + b[k])
+    }
+    #[inline(always)]
+    fn sub8(self, a: [f64; 8], b: [f64; 8]) -> [f64; 8] {
+        std::array::from_fn(|k| a[k] - b[k])
+    }
+    #[inline(always)]
+    fn mul8(self, a: [f64; 8], b: [f64; 8]) -> [f64; 8] {
+        std::array::from_fn(|k| a[k] * b[k])
+    }
+    #[inline(always)]
+    fn div8(self, a: [f64; 8], b: [f64; 8]) -> [f64; 8] {
+        std::array::from_fn(|k| a[k] / b[k])
+    }
+    #[inline(always)]
+    fn sqrt8(self, a: [f64; 8]) -> [f64; 8] {
+        std::array::from_fn(|k| a[k].sqrt())
+    }
+    #[inline(always)]
+    fn max8(self, a: [f64; 8], b: [f64; 8]) -> [f64; 8] {
+        std::array::from_fn(|k| if a[k] > b[k] { a[k] } else { b[k] })
+    }
+    #[inline(always)]
+    fn select_positive8(self, test: [f64; 8], yes: [f64; 8], no: [f64; 8]) -> [f64; 8] {
+        std::array::from_fn(|k| if test[k] > 0.0 { yes[k] } else { no[k] })
+    }
 }

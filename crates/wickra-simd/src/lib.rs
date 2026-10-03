@@ -7,7 +7,10 @@
 //! [`dispatch`] closes that gap: it checks the CPU once (the standard library
 //! caches the answer) and runs a [`Kernel`] inside a function compiled with
 //! AVX2 and FMA enabled when both are present, and in the baseline build
-//! otherwise.
+//! otherwise. A kernel that opts in ([`Kernel::WIDE`]) runs with AVX-512F
+//! enabled as well where the CPU has it, and does its element-wise work in
+//! eight-lane [`Simd::W`] values: one 512-bit register there, two four-lane
+//! vectors everywhere else.
 //!
 //! # Same result on every path
 //!
@@ -16,8 +19,14 @@
 //! and never contracts `a * b + c` into a fused multiply-add — so the AVX2
 //! build and the baseline build of one kernel perform the same IEEE-754
 //! operations in the same order. `f64::mul_add` is correctly rounded whether it
-//! becomes the FMA instruction or the C library's `fma`. The two paths
-//! therefore return bit-identical values; the crate's tests check exactly that.
+//! becomes the FMA instruction or the C library's `fma`, and an eight-lane
+//! operation is the same IEEE-754 operation on each lane whether the lanes sit
+//! in one register or two. Every path therefore returns bit-identical values;
+//! the crate's tests check exactly that, at every level the machine has.
+//!
+//! The AVX-512 level needs Rust 1.89 or later, where its target feature is
+//! stable; built by an older compiler the crate has no such level, and a kernel
+//! that opts in runs at the AVX2 one -- the same bits, at the AVX2 speed.
 //!
 //! On `aarch64`, NEON and FMA are part of the baseline, so kernels already get
 //! them and [`dispatch`] runs them directly.
@@ -31,10 +40,16 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 
 mod avx2;
+// Compiled only when `build.rs` found Rust 1.89 or later, where the AVX-512
+// intrinsics are stable; the workspace MSRV builds the crate without it.
+#[clippy::msrv = "1.89"]
+mod avx512;
 mod portable;
 
 #[cfg(target_arch = "x86_64")]
 pub use avx2::Avx2;
+#[cfg(all(target_arch = "x86_64", wickra_avx512))]
+pub use avx512::Avx512;
 pub use portable::Portable;
 
 /// Four `f64` lanes and the operations the Wickra kernels are built from.
@@ -93,6 +108,34 @@ pub trait Simd: Copy {
     /// The 4×4 transpose of the rows `a`, `b`, `c`, `d`: result `j` is
     /// `[a_j, b_j, c_j, d_j]`. Pure data movement, so no value changes.
     fn transpose4(self, a: Self::V, b: Self::V, c: Self::V, d: Self::V) -> [Self::V; 4];
+
+    /// Eight `f64` lanes for element-wise work: one 512-bit register where the
+    /// CPU has AVX-512 and the kernel opts in ([`Kernel::WIDE`]), two
+    /// four-lane vectors otherwise. Every operation on them is exact per lane,
+    /// so the width never changes a result.
+    type W: Copy;
+
+    /// Eight lanes from an array.
+    fn load8(self, a: &[f64; 8]) -> Self::W;
+    /// Eight lanes into an array.
+    fn store8(self, v: Self::W, a: &mut [f64; 8]);
+    /// All eight lanes `x`.
+    fn splat8(self, x: f64) -> Self::W;
+    /// Lane-wise `a + b` over eight lanes.
+    fn add8(self, a: Self::W, b: Self::W) -> Self::W;
+    /// Lane-wise `a - b` over eight lanes.
+    fn sub8(self, a: Self::W, b: Self::W) -> Self::W;
+    /// Lane-wise `a * b` over eight lanes.
+    fn mul8(self, a: Self::W, b: Self::W) -> Self::W;
+    /// Lane-wise `a / b` over eight lanes.
+    fn div8(self, a: Self::W, b: Self::W) -> Self::W;
+    /// Lane-wise square root over eight lanes.
+    fn sqrt8(self, a: Self::W) -> Self::W;
+    /// Lane-wise `if a > b { a } else { b }` over eight lanes.
+    fn max8(self, a: Self::W, b: Self::W) -> Self::W;
+    /// Lane-wise `if test > 0 { yes } else { no }` over eight lanes (`NaN`
+    /// takes `no`).
+    fn select_positive8(self, test: Self::W, yes: Self::W, no: Self::W) -> Self::W;
 }
 
 /// A unit of work [`dispatch`] can run with the best instruction set available.
@@ -106,6 +149,13 @@ pub trait Kernel {
     /// What the kernel returns.
     type Output;
 
+    /// Whether the kernel runs at the AVX-512 level where the CPU has it. A
+    /// kernel opts in when it does its element-wise work in eight lanes
+    /// ([`Simd::W`]) or its plain loops gain from the compiler widening them;
+    /// any other kernel runs at the AVX2 level on such a CPU, as code the
+    /// compiler vectorizes for AVX-512 is not always faster.
+    const WIDE: bool = false;
+
     /// Execute the kernel with the lanes `simd` provides.
     fn run<S: Simd>(self, simd: S) -> Self::Output;
 }
@@ -117,6 +167,10 @@ pub enum Level {
     Baseline,
     /// `x86_64` with AVX2 and FMA.
     Avx2Fma,
+    /// `x86_64` with AVX2, FMA and AVX-512F: kernels that opt in
+    /// ([`Kernel::WIDE`]) get their eight-lane work in one register. Detected
+    /// only in a build by a Rust that supports AVX-512 (1.89 and later).
+    Avx512,
     /// `aarch64`, whose baseline includes NEON and FMA.
     Neon,
 }
@@ -127,12 +181,14 @@ impl Level {
         match self {
             Self::Baseline => "baseline",
             Self::Avx2Fma => "avx2+fma",
+            Self::Avx512 => "avx512",
             Self::Neon => "neon",
         }
     }
 }
 
-/// Cached detection result: 0 = not yet detected, 1 = baseline, 2 = AVX2+FMA.
+/// Cached detection result: 0 = not yet detected, 1 = baseline, 2 = AVX2+FMA,
+/// 3 = AVX-512.
 static DETECTED: AtomicU8 = AtomicU8::new(0);
 
 /// The instruction set [`dispatch`] runs kernels with on this machine.
@@ -143,12 +199,15 @@ pub fn level() -> Level {
     match DETECTED.load(Ordering::Relaxed) {
         1 => Level::Baseline,
         2 => Level::Avx2Fma,
+        3 => Level::Avx512,
         _ => {
             let level = detect();
-            DETECTED.store(
-                if level == Level::Avx2Fma { 2 } else { 1 },
-                Ordering::Relaxed,
-            );
+            let code = match level {
+                Level::Avx512 => 3,
+                Level::Avx2Fma => 2,
+                Level::Baseline | Level::Neon => 1,
+            };
+            DETECTED.store(code, Ordering::Relaxed);
             level
         }
     }
@@ -157,10 +216,25 @@ pub fn level() -> Level {
 #[cfg(target_arch = "x86_64")]
 fn detect() -> Level {
     if std::arch::is_x86_feature_detected!("avx2") && std::arch::is_x86_feature_detected!("fma") {
-        Level::Avx2Fma
+        if avx512() {
+            Level::Avx512
+        } else {
+            Level::Avx2Fma
+        }
     } else {
         Level::Baseline
     }
+}
+
+/// Whether the CPU has AVX-512F, in a build that can use it.
+#[cfg(all(target_arch = "x86_64", wickra_avx512))]
+fn avx512() -> bool {
+    std::arch::is_x86_feature_detected!("avx512f")
+}
+
+#[cfg(all(target_arch = "x86_64", not(wickra_avx512)))]
+fn avx512() -> bool {
+    false
 }
 
 #[cfg(not(target_arch = "x86_64"))]
@@ -173,11 +247,33 @@ fn detect() -> Level {
 /// Returns bit-for-bit what [`run_baseline`] returns for the same kernel.
 #[inline]
 pub fn dispatch<K: Kernel>(kernel: K) -> K::Output {
-    #[cfg(target_arch = "x86_64")]
-    if level() == Level::Avx2Fma {
-        return avx2::run(kernel);
+    run_level(level(), kernel)
+}
+
+/// `kernel` at `level`, which the caller has checked this CPU supports.
+#[inline]
+fn run_level<K: Kernel>(level: Level, kernel: K) -> K::Output {
+    match level {
+        #[cfg(all(target_arch = "x86_64", wickra_avx512))]
+        Level::Avx512 if K::WIDE => avx512::run(kernel),
+        #[cfg(target_arch = "x86_64")]
+        Level::Avx2Fma | Level::Avx512 => avx2::run(kernel),
+        _ => kernel.run(Portable),
     }
-    kernel.run(Portable)
+}
+
+/// Run `kernel` at `level` if this CPU supports it, `None` otherwise -- for
+/// tests that prove a kernel returns the same bits at every level the machine
+/// has, not only the one [`dispatch`] picks.
+#[doc(hidden)]
+pub fn run_at<K: Kernel>(level: Level, kernel: K) -> Option<K::Output> {
+    let best = self::level();
+    let available = match level {
+        Level::Baseline => true,
+        Level::Avx2Fma => matches!(best, Level::Avx2Fma | Level::Avx512),
+        Level::Avx512 | Level::Neon => best == level,
+    };
+    available.then(|| run_level(level, kernel))
 }
 
 /// Run `kernel` in the baseline build with the [`Portable`] lanes, never
@@ -226,6 +322,7 @@ mod tests {
 
     impl Kernel for AllOps<'_> {
         type Output = Vec<f64>;
+        const WIDE: bool = true;
 
         #[inline(always)]
         fn run<S: Simd>(self, s: S) -> Vec<f64> {
@@ -257,6 +354,25 @@ mod tests {
                 }
                 for v in s.transpose4(x, y, z, s.sub(x, y)) {
                     out.extend_from_slice(&s.to_array(v));
+                }
+            }
+            for (ca, cb) in self.a.chunks_exact(8).zip(self.b.chunks_exact(8)) {
+                let x = s.load8(ca.try_into().unwrap());
+                let y = s.load8(cb.try_into().unwrap());
+                let z = s.splat8(ca[0]);
+                for v in [
+                    s.add8(x, y),
+                    s.sub8(x, y),
+                    s.mul8(x, y),
+                    s.div8(x, y),
+                    s.sqrt8(s.max8(x, z)),
+                    s.max8(x, y),
+                    s.select_positive8(s.sub8(x, y), x, y),
+                    z,
+                ] {
+                    let mut stored = [0.0; 8];
+                    s.store8(v, &mut stored);
+                    out.extend_from_slice(&stored);
                 }
             }
             out
@@ -356,9 +472,10 @@ mod tests {
     fn level_is_stable_and_named() {
         let first = level();
         assert_eq!(level(), first);
-        assert!(["baseline", "avx2+fma", "neon"].contains(&first.name()));
+        assert!(["baseline", "avx2+fma", "avx512", "neon"].contains(&first.name()));
         assert_eq!(Level::Baseline.name(), "baseline");
         assert_eq!(Level::Avx2Fma.name(), "avx2+fma");
+        assert_eq!(Level::Avx512.name(), "avx512");
         assert_eq!(Level::Neon.name(), "neon");
     }
 
@@ -367,6 +484,33 @@ mod tests {
     fn detection_agrees_with_the_standard_library() {
         let both = std::arch::is_x86_feature_detected!("avx2")
             && std::arch::is_x86_feature_detected!("fma");
-        assert_eq!(level() == Level::Avx2Fma, both);
+        assert_eq!(matches!(level(), Level::Avx2Fma | Level::Avx512), both);
+        let wide = cfg!(wickra_avx512) && both && avx512();
+        assert_eq!(level() == Level::Avx512, wide);
+    }
+
+    /// Every level the machine has, and only those, runs a kernel -- with the
+    /// bits of the baseline build.
+    #[test]
+    fn every_available_level_matches_the_baseline() {
+        let a: Vec<f64> = series();
+        let b: Vec<f64> = series().iter().map(|x| x * 0.5 + 1.0).collect();
+        let base = run_baseline(AllOps { a: &a, b: &b });
+        let best = level();
+        for at in [Level::Baseline, Level::Avx2Fma, Level::Avx512, Level::Neon] {
+            let ran = run_at(at, AllOps { a: &a, b: &b });
+            let expected = match at {
+                Level::Baseline => true,
+                Level::Avx2Fma => matches!(best, Level::Avx2Fma | Level::Avx512),
+                Level::Avx512 | Level::Neon => best == at,
+            };
+            assert_eq!(ran.is_some(), expected, "{}", at.name());
+            if let Some(out) = ran {
+                assert!(out
+                    .iter()
+                    .zip(&base)
+                    .all(|(x, y)| x.to_bits() == y.to_bits() || (x.is_nan() && y.is_nan())));
+            }
+        }
     }
 }

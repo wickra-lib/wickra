@@ -299,6 +299,8 @@ struct AllValid<'a> {
 #[allow(clippy::inline_always, clippy::needless_bitwise_bool)]
 impl wickra_simd::Kernel for AllValid<'_> {
     type Output = bool;
+    // The compiler widens the fold to eight lanes where the CPU allows.
+    const WIDE: bool = true;
 
     #[inline(always)]
     fn run<S: wickra_simd::Simd>(self, _simd: S) -> bool {

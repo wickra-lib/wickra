@@ -1,6 +1,6 @@
 [package]
 name = "wickra-simd"
-description = "Runtime SIMD dispatch for the Wickra technical indicators core: runs a kernel with AVX2 and FMA enabled when the CPU has them, with identical results either way."
+description = "Runtime SIMD dispatch for the Wickra technical indicators core: runs a kernel with AVX2 and FMA, or AVX-512, enabled when the CPU has them, with identical results either way."
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

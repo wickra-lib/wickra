@@ -466,7 +466,20 @@ pub(crate) fn replay_tail<I: crate::traits::Indicator<Input = f64>>(
 macro_rules! kernel {
     (
         $(#[$meta:meta])*
+        wide $name:ident { $($field:ident: $ty:ty),* $(,)? } -> $ret:ty = |$simd:ident, $k:ident| $body:block
+    ) => {
+        kernel!(@emit true; $(#[$meta])* $name { $($field: $ty),* } -> $ret = |$simd, $k| $body);
+    };
+    (
+        $(#[$meta:meta])*
         $name:ident { $($field:ident: $ty:ty),* $(,)? } -> $ret:ty = |$simd:ident, $k:ident| $body:block
+    ) => {
+        kernel!(@emit false; $(#[$meta])* $name { $($field: $ty),* } -> $ret = |$simd, $k| $body);
+    };
+    (
+        @emit $wide:literal;
+        $(#[$meta:meta])*
+        $name:ident { $($field:ident: $ty:ty),* } -> $ret:ty = |$simd:ident, $k:ident| $body:block
     ) => {
         $(#[$meta])*
         pub(crate) struct $name<'a> {
@@ -479,6 +492,7 @@ macro_rules! kernel {
         #[allow(clippy::inline_always)]
         impl wickra_simd::Kernel for $name<'_> {
             type Output = $ret;
+            const WIDE: bool = $wide;
 
             #[inline(always)]
             fn run<S: Simd>(self, $simd: S) -> $ret {
@@ -528,7 +542,7 @@ kernel! {
 
 kernel! {
     /// WMA: window sums, then the numerator scan, scaled by `1 / Σ weights`.
-    WmaFast { x: &'a [f64], period: usize, out: &'a mut [f64] } -> () = |simd, kern| {
+    wide WmaFast { x: &'a [f64], period: usize, out: &'a mut [f64] } -> () = |simd, kern| {
         kern.out[..kern.period - 1].fill(f64::NAN);
         wma(simd, kern.x, kern.period, kern.out);
     }
@@ -734,6 +748,13 @@ pub(crate) struct PowerSegment<'s> {
 }
 
 impl PowerSegment<'_> {
+    /// The window sums of power `k` (1-based) of every output of the segment.
+    #[inline(always)]
+    fn row(&self, k: usize) -> &[f64] {
+        let start = (k - 1) * self.stride;
+        &self.sums[start..start + self.outputs.len()]
+    }
+
     /// The window sum of power `k` (1-based) at segment offset `pos`.
     #[inline(always)]
     fn sum(&self, k: usize, pos: usize) -> f64 {
@@ -1038,7 +1059,7 @@ kernel! {
     /// Skewness `m3 / m2^1.5` of the window from shifted first to third power
     /// sums (`m2 · sqrt(m2)` for the power), 0 for a window with no dispersion;
     /// four outputs per step.
-    SkewnessFast {
+    wide SkewnessFast {
         x: &'a [f64],
         period: usize,
         scratch: &'a mut [f64],
@@ -1046,37 +1067,39 @@ kernel! {
     } -> () = |simd, kern| {
         let period = kern.period;
         let inv = 1.0 / period as f64;
-        let (inv_v, zero, three, two) = (simd.splat(inv), simd.splat(0.0), simd.splat(3.0), simd.splat(2.0));
         kern.out[..period - 1].fill(f64::NAN);
         let out = &mut *kern.out;
+        let (inv8, zero8, three8, two8) = (simd.splat8(inv), simd.splat8(0.0), simd.splat8(3.0), simd.splat8(2.0));
         shifted_power_sums::<S, 3>(simd, kern.x, period, kern.scratch, |seg| {
-            let count = seg.outputs.len();
+            // Element-wise: eight outputs at a time in `Simd::W` lanes, every
+            // lane the operations of the scalar form below in its order, so the
+            // width -- one AVX-512 register or two AVX2 ones -- changes no bit.
             let dest = &mut out[seg.outputs.clone()];
-            let mut pos = 0;
-            while pos + 4 <= count {
-                let mean_dev = simd.mul(seg.sum4(simd, 1, pos), inv_v);
-                let second = simd.mul(seg.sum4(simd, 2, pos), inv_v);
-                let third = simd.mul(seg.sum4(simd, 3, pos), inv_v);
-                let m2 = simd.max(simd.sub(second, simd.mul(mean_dev, mean_dev)), zero);
-                let cube = simd.mul(simd.mul(mean_dev, mean_dev), mean_dev);
-                let m3 = simd.add(
-                    simd.sub(third, simd.mul(three, simd.mul(mean_dev, second))),
-                    simd.mul(two, cube),
+            let (first, second, third) = (seg.row(1), seg.row(2), seg.row(3));
+            let whole = dest.len() / 8 * 8;
+            for at in (0..whole).step_by(8) {
+                let load = |row: &[f64]| simd.load8(row[at..at + 8].try_into().expect("eight values"));
+                let mean_dev = simd.mul8(load(first), inv8);
+                let second = simd.mul8(load(second), inv8);
+                let third = simd.mul8(load(third), inv8);
+                let m2 = simd.max8(simd.sub8(second, simd.mul8(mean_dev, mean_dev)), zero8);
+                let cube = simd.mul8(simd.mul8(mean_dev, mean_dev), mean_dev);
+                let m3 = simd.add8(
+                    simd.sub8(third, simd.mul8(three8, simd.mul8(mean_dev, second))),
+                    simd.mul8(two8, cube),
                 );
-                let skew = simd.div(m3, simd.mul(m2, simd.sqrt(m2)));
-                // `m2` is clamped at zero by `max`, which never yields `NaN`, so
-                // "not positive" is exactly the scalar path's `m2 == 0`.
-                simd.store(simd.select_positive(m2, skew, zero), quad_mut(&mut dest[pos..]));
-                pos += 4;
+                let skew = simd.div8(m3, simd.mul8(m2, simd.sqrt8(m2)));
+                // `m2` is clamped at zero by `max`, which never yields `NaN`,
+                // so "not positive" is exactly the scalar form's `m2 == 0`.
+                let slot: &mut [f64; 8] = (&mut dest[at..at + 8]).try_into().expect("eight values");
+                simd.store8(simd.select_positive8(m2, skew, zero8), slot);
             }
-            while pos < count {
-                let mean_dev = seg.sum(1, pos) * inv;
-                let second = seg.sum(2, pos) * inv;
-                let third = seg.sum(3, pos) * inv;
+            let rest = first[whole..].iter().zip(&second[whole..]).zip(&third[whole..]);
+            for (slot, ((&first, &second), &third)) in dest[whole..].iter_mut().zip(rest) {
+                let (mean_dev, second, third) = (first * inv, second * inv, third * inv);
                 let m2 = clamp_at_zero(second - mean_dev * mean_dev);
                 let m3 = third - 3.0 * (mean_dev * second) + 2.0 * (mean_dev * mean_dev * mean_dev);
-                dest[pos] = if m2 == 0.0 { 0.0 } else { m3 / (m2 * m2.sqrt()) };
-                pos += 1;
+                *slot = if m2 == 0.0 { 0.0 } else { m3 / (m2 * m2.sqrt()) };
             }
         });
     }
@@ -1394,7 +1417,7 @@ kernel! {
     /// running sum (a scan with decay 1) and both EMA scans. Resumable: a
     /// series split at multiples of [`BLOCK`] gives the same bits as one call.
     /// Returns the last ADL, fast EMA and slow EMA.
-    ChaikinFast {
+    wide ChaikinFast {
         high: &'a [f64],
         low: &'a [f64],
         close: &'a [f64],
@@ -1549,12 +1572,17 @@ mod tests {
     fn kernels_are_identical_on_every_dispatch_path() {
         let xs = series(3001);
         let n = xs.len();
+        // The dispatched level, the AVX2 one where the machine has it (a wide
+        // kernel dispatches past it on an AVX-512 CPU) and the baseline.
         macro_rules! both {
             ($make:expr) => {{
-                let (mut a, mut b) = (vec![0.0; n], vec![0.0; n]);
+                let (mut a, mut b, mut c) = (vec![0.0; n], vec![0.0; n], vec![0.0; n]);
                 let ra = wickra_simd::dispatch($make(&mut a));
                 let rb = wickra_simd::run_baseline($make(&mut b));
+                let avx2 =
+                    wickra_simd::run_at(wickra_simd::Level::Avx2Fma, $make(&mut c)).is_some();
                 assert_eq!(bits(&a), bits(&b));
+                assert!(!avx2 || bits(&c) == bits(&b));
                 (ra, rb)
             }};
         }
@@ -2014,6 +2042,21 @@ mod tests {
         });
         assert_eq!(bits(&a[..n]), bits(&b[..n]));
         assert_eq!(bits(&[ra.0, ra.1, ra.2]), bits(&[rb.0, rb.1, rb.2]));
+        let rc = wickra_simd::run_at(
+            wickra_simd::Level::Avx2Fma,
+            ChaikinFast {
+                high: &high,
+                low: &low,
+                close: &close,
+                volume: &volume,
+                state: (12.5, 3.0, -1.5),
+                alphas: (0.5, 2.0 / 11.0),
+                out: &mut a[..n],
+                _borrow: PhantomData,
+            },
+        );
+        assert!(rc.is_none_or(|rc| bits(&[rc.0, rc.1, rc.2]) == bits(&[rb.0, rb.1, rb.2])));
+        assert_eq!(bits(&a[..n]), bits(&b[..n]));
     }
 
     /// The multi-output, candle and pair kernels return the same bits through
@@ -2060,6 +2103,17 @@ mod tests {
             _borrow: PhantomData,
         });
         assert_eq!(bits(&a[..n]), bits(&b[..n]));
+        let avx2 = wickra_simd::run_at(
+            wickra_simd::Level::Avx2Fma,
+            SkewnessFast {
+                x: &xs,
+                period: 20,
+                scratch: &mut sa,
+                out: &mut a[..n],
+                _borrow: PhantomData,
+            },
+        );
+        assert!(avx2.is_none() || bits(&a[..n]) == bits(&b[..n]));
         wickra_simd::dispatch(PearsonFast {
             a: &xs,
             b: &close,

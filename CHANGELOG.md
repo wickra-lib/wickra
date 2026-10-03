@@ -55,6 +55,11 @@ definition (see Fixed).
 - **`wickra-simd`,** a new published crate holding the one `unsafe` call runtime
   dispatch needs: a kernel runs in a function compiled with AVX2 and FMA when
   the CPU has both, the portable build otherwise, with the same bits either way.
+  Kernels that opt in also run with AVX-512F where the CPU has it, their
+  element-wise work in one 512-bit register instead of two 256-bit ones -- the
+  same operation on every lane, so again the same bits; the skewness, Chaikin
+  oscillator and WMA kernels and the OHLCV check do. The AVX-512 level needs
+  Rust 1.89, and a build by an older compiler simply has none.
   `wickra-core` stays `#![forbid(unsafe_code)]`.
 - **`Candle::all_valid`** holds a set of OHLCV columns to the rules of
   `Candle::new` in eight branch-free lanes over fixed-size blocks, dispatched
