@@ -5,9 +5,12 @@ import java.io.InputStream;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
+import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
 import java.lang.ref.Cleaner;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Native library resolution and FFM downcall plumbing for the Wickra C ABI.
@@ -42,7 +46,11 @@ public final class WickraNative {
 
     static final Cleaner CLEANER = Cleaner.create();
     private static final Linker LINKER = Linker.nativeLinker();
-    private static final Arena LIB_ARENA = Arena.ofShared();
+    // The global arena, not a shared one: the library is never unloaded either
+    // way, but a downcall into a library of a closeable arena acquires and
+    // releases that arena around every call to keep it loaded -- 6 of the 9 ns
+    // a streaming update took.
+    private static final Arena LIB_ARENA = Arena.global();
     private static final SymbolLookup LOOKUP = loadLibrary();
 
     /** Build a downcall handle for one C function. Internal use by the generated code. */
@@ -50,6 +58,64 @@ public final class WickraNative {
         MemorySegment symbol = LOOKUP.find(name)
                 .orElseThrow(() -> new UnsatisfiedLinkError("wickra: missing symbol " + name));
         return LINKER.downcallHandle(symbol, descriptor);
+    }
+
+    /**
+     * A downcall handle for a per-tick {@code _update} function, linked as
+     * critical: no thread-state transition around the call, which halves its
+     * cost. Valid because an update is short, never calls back into Java and is
+     * passed only native memory; the garbage collector waits for it to return.
+     */
+    public static MethodHandle downcallCritical(String name, FunctionDescriptor descriptor) {
+        MemorySegment symbol = LOOKUP.find(name)
+                .orElseThrow(() -> new UnsatisfiedLinkError("wickra: missing symbol " + name));
+        return LINKER.downcallHandle(symbol, descriptor, Linker.Option.critical(false));
+    }
+
+    private static final ConcurrentHashMap<String, MethodHandle> HEAP_DOWNCALLS = new ConcurrentHashMap<>();
+
+    /**
+     * The batch function {@code name} linked to take heap memory: Java arrays
+     * passed in place through {@link MemorySegment#ofArray}, with no copy into
+     * native memory and none back. Linked critical with heap access -- the
+     * garbage collector waits for the call, which keeps the arrays where they
+     * are -- once per function, on first use, from the signature of its
+     * ordinary handle {@code regular}. Valid because a batch never calls back
+     * into Java.
+     */
+    public static MethodHandle heapDowncall(String name, MethodHandle regular) {
+        return HEAP_DOWNCALLS.computeIfAbsent(name, symbolName -> {
+            MethodType type = regular.type();
+            MemoryLayout[] params = type.parameterList().stream()
+                    .map(WickraNative::layoutOf)
+                    .toArray(MemoryLayout[]::new);
+            FunctionDescriptor descriptor = type.returnType() == void.class
+                    ? FunctionDescriptor.ofVoid(params)
+                    : FunctionDescriptor.of(layoutOf(type.returnType()), params);
+            MemorySegment symbol = LOOKUP.find(symbolName)
+                    .orElseThrow(() -> new UnsatisfiedLinkError("wickra: missing symbol " + symbolName));
+            return LINKER.downcallHandle(symbol, descriptor, Linker.Option.critical(true));
+        });
+    }
+
+    /** The C layout a downcall carries a Java parameter or result type as. */
+    private static MemoryLayout layoutOf(Class<?> carrier) {
+        if (carrier == MemorySegment.class) {
+            return ValueLayout.ADDRESS;
+        }
+        if (carrier == long.class) {
+            return ValueLayout.JAVA_LONG;
+        }
+        if (carrier == double.class) {
+            return ValueLayout.JAVA_DOUBLE;
+        }
+        if (carrier == int.class) {
+            return ValueLayout.JAVA_INT;
+        }
+        if (carrier == byte.class) {
+            return ValueLayout.JAVA_BYTE;
+        }
+        throw new IllegalArgumentException("wickra: no C layout for " + carrier);
     }
 
     /**
@@ -72,6 +138,24 @@ public final class WickraNative {
             bytes[i] = (byte) (flags[i] ? 1 : 0);
         }
         return arena.allocateFrom(java.lang.foreign.ValueLayout.JAVA_BYTE, bytes);
+    }
+
+    /**
+     * Check a caller segment handed straight to a native batch: it must be
+     * native (off-heap) memory, hold exactly {@code n} elements of
+     * {@code layout}, and be aligned for that element type, since the native
+     * side reads it as a typed slice without copying.
+     */
+    public static void checkBatchSegment(MemorySegment segment, ValueLayout layout, long n) {
+        if (!segment.isNative()) {
+            throw new IllegalArgumentException("wickra: batch segments must be native (off-heap) memory");
+        }
+        if (segment.byteSize() != n * layout.byteSize()) {
+            throw new IllegalArgumentException("wickra: every batch segment must hold the same number of elements");
+        }
+        if (segment.address() % layout.byteAlignment() != 0) {
+            throw new IllegalArgumentException("wickra: batch segment is not aligned for its element type");
+        }
     }
 
     /** Re-throw a {@link MethodHandle#invokeExact} {@link Throwable} as an unchecked exception. */

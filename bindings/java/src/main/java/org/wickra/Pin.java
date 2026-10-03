@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class Pin implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_PIN_UPDATE;
 
     public Pin(int window) {
         if (window < 0) {
@@ -35,7 +37,7 @@ public final class Pin implements AutoCloseable {
     /** Push one observation; returns the indicator value (NaN during warmup). */
     public double update(double price, double size, boolean isBuy, long timestamp) {
         try {
-            return (double) NativeMethods.WICKRA_PIN_UPDATE.invokeExact(handle(), price, size, (byte) (isBuy ? 1 : 0), timestamp);
+            return (double) UPDATE.invokeExact(handle(), price, size, (byte) (isBuy ? 1 : 0), timestamp);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {
@@ -43,8 +45,23 @@ public final class Pin implements AutoCloseable {
         }
     }
 
-    /** Vectorized update over a whole series; NaN at warmup positions. */
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     */
     public double[] batch(double[] price, double[] size, boolean[] isBuy, long[] timestamp) {
+        double[] output = new double[price.length];
+        batchInto(price, size, isBuy, timestamp, output);
+        return output;
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Writes into {@code output}, which must be as long as the input.
+     */
+    public void batchInto(double[] price, double[] size, boolean[] isBuy, long[] timestamp, double[] output) {
         int n = price.length;
         if (size.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
@@ -55,16 +72,41 @@ public final class Pin implements AutoCloseable {
         if (timestamp.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
         }
+        if (output.length != n) {
+            throw new IllegalArgumentException("the output array must be as long as the input");
+        }
         try (Arena a = Arena.ofConfined()) {
             MemorySegment priceSeg = a.allocateFrom(JAVA_DOUBLE, price);
             MemorySegment sizeSeg = a.allocateFrom(JAVA_DOUBLE, size);
             MemorySegment isBuySeg = WickraNative.boolSegment(a, isBuy);
             MemorySegment timestampSeg = a.allocateFrom(JAVA_LONG, timestamp);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE.byteSize() * n);
+            MemorySegment outSeg = a.allocate(JAVA_DOUBLE, n);
             NativeMethods.WICKRA_PIN_BATCH.invokeExact(handle(), priceSeg, sizeSeg, isBuySeg, timestampSeg, outSeg, (long) n);
-            double[] out = new double[n];
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, out, 0, n);
-            return out;
+            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, output, 0, n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every segment must be
+     * off-heap, aligned for its element type, and hold the same number of
+     * elements, {@code output} as many doubles. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment price, MemorySegment size, MemorySegment isBuy, MemorySegment timestamp, MemorySegment output) {
+        long n = price.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(price, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(size, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(isBuy, JAVA_BYTE, n);
+        WickraNative.checkBatchSegment(timestamp, JAVA_LONG, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n);
+        try {
+            NativeMethods.WICKRA_PIN_BATCH.invokeExact(handle(), price, size, isBuy, timestamp, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

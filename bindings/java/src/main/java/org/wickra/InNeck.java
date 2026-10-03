@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class InNeck implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_IN_NECK_UPDATE;
 
     public InNeck() {
         MemorySegment h;
@@ -32,7 +34,7 @@ public final class InNeck implements AutoCloseable {
     /** Push one observation; returns the indicator value (NaN during warmup). */
     public double update(double open, double high, double low, double close, double volume, long timestamp) {
         try {
-            return (double) NativeMethods.WICKRA_IN_NECK_UPDATE.invokeExact(handle(), open, high, low, close, volume, timestamp);
+            return (double) UPDATE.invokeExact(handle(), open, high, low, close, volume, timestamp);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {
@@ -40,8 +42,23 @@ public final class InNeck implements AutoCloseable {
         }
     }
 
-    /** Vectorized update over a whole series; NaN at warmup positions. */
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     */
     public double[] batch(double[] open, double[] high, double[] low, double[] close, double[] volume, long[] timestamp) {
+        double[] output = new double[open.length];
+        batchInto(open, high, low, close, volume, timestamp, output);
+        return output;
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Writes into {@code output}, which must be as long as the input.
+     */
+    public void batchInto(double[] open, double[] high, double[] low, double[] close, double[] volume, long[] timestamp, double[] output) {
         int n = open.length;
         if (high.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
@@ -58,18 +75,38 @@ public final class InNeck implements AutoCloseable {
         if (timestamp.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment openSeg = a.allocateFrom(JAVA_DOUBLE, open);
-            MemorySegment highSeg = a.allocateFrom(JAVA_DOUBLE, high);
-            MemorySegment lowSeg = a.allocateFrom(JAVA_DOUBLE, low);
-            MemorySegment closeSeg = a.allocateFrom(JAVA_DOUBLE, close);
-            MemorySegment volumeSeg = a.allocateFrom(JAVA_DOUBLE, volume);
-            MemorySegment timestampSeg = a.allocateFrom(JAVA_LONG, timestamp);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE.byteSize() * n);
-            NativeMethods.WICKRA_IN_NECK_BATCH.invokeExact(handle(), openSeg, highSeg, lowSeg, closeSeg, volumeSeg, timestampSeg, outSeg, (long) n);
-            double[] out = new double[n];
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, out, 0, n);
-            return out;
+        if (output.length != n) {
+            throw new IllegalArgumentException("the output array must be as long as the input");
+        }
+        try {
+            WickraNative.heapDowncall("wickra_in_neck_batch", NativeMethods.WICKRA_IN_NECK_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(open), MemorySegment.ofArray(high), MemorySegment.ofArray(low), MemorySegment.ofArray(close), MemorySegment.ofArray(volume), MemorySegment.ofArray(timestamp), MemorySegment.ofArray(output), (long) n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every segment must be
+     * off-heap, aligned for its element type, and hold the same number of
+     * elements, {@code output} as many doubles. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment open, MemorySegment high, MemorySegment low, MemorySegment close, MemorySegment volume, MemorySegment timestamp, MemorySegment output) {
+        long n = open.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(open, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(high, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(low, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(close, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(volume, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(timestamp, JAVA_LONG, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n);
+        try {
+            NativeMethods.WICKRA_IN_NECK_BATCH.invokeExact(handle(), open, high, low, close, volume, timestamp, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

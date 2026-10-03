@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
 use crate::indicators::rolling_quantile::quantile_sorted;
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Interquartile Range of the last `period` values: `Q3 − Q1`.
@@ -40,7 +41,8 @@ use crate::traits::Indicator;
 pub struct RollingIqr {
     period: usize,
     window: VecDeque<f64>,
-    /// Reusable scratch buffer to avoid allocating per `update`.
+    /// The window's values in `total_cmp` order, kept sorted as it slides:
+    /// bit for bit what sorting a copy of the window would give.
     scratch: Vec<f64>,
 }
 
@@ -81,15 +83,14 @@ impl Indicator for RollingIqr {
             return None;
         }
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            sorted_window::remove(&mut self.scratch, oldest);
         }
         self.window.push_back(value);
+        sorted_window::insert(&mut self.scratch, value);
         if self.window.len() < self.period {
             return None;
         }
-        self.scratch.clear();
-        self.scratch.extend(self.window.iter().copied());
-        self.scratch.sort_by(f64::total_cmp);
         let q1 = quantile_sorted(&self.scratch, 0.25);
         let q3 = quantile_sorted(&self.scratch, 0.75);
         Some(q3 - q1)

@@ -1,18 +1,19 @@
 // Throughput benchmark for the Wickra WebAssembly bindings.
 //
 // Measures how many indicator updates per second the wasm binding sustains,
-// both per-tick (streaming `update`) and bulk (`batch`), over a synthetic
-// OHLCV series. It is the wasm counterpart of the Node `throughput.js` and the
-// Rust criterion benches: it benchmarks Wickra's own O(1) streaming engine
-// across the JS<->wasm boundary (there is no install-free TA library with a
-// comparable surface to compare against), so the headline number is raw
-// per-binding throughput / FFI overhead, not a cross-library ratio.
+// per-tick (streaming `update`), bulk (`batch`) and bulk through the opt-in
+// kernels (`batchFast`), over a synthetic OHLCV series. It is the wasm
+// counterpart of the Node `throughput.js` and the Rust criterion benches: it
+// benchmarks Wickra's own O(1) streaming engine across the JS<->wasm boundary
+// (there is no install-free TA library with a comparable surface to compare
+// against), so the headline number is raw per-binding throughput / FFI
+// overhead, not a cross-library ratio.
 //
 // Three indicators are timed, chosen by FFI call-signature archetype rather
 // than algorithm (the algorithm is identical to the Rust core; only the
 // boundary cost differs): SMA (1-in -> 1-out), ATR (multi-in -> 1-out), and
-// MACD (1-in -> multi-out). Streaming is timed for all three; batch only for
-// the single-output SMA and ATR (multi-output batch is not exposed uniformly).
+// MACD (1-in -> multi-out). All three are timed streaming, batch and fast
+// batch.
 //
 // Build the nodejs-target package first (needs the wasm32-unknown-unknown
 // target, i.e. a rustup toolchain), then run:
@@ -70,58 +71,60 @@ function mupsFromNs(ns) {
   return BARS / (ns / 1e9) / 1e6; // million updates per second
 }
 
+// Run `use` on a fresh indicator and free it.
+function once(make, use) {
+  return () => {
+    const ind = make();
+    use(ind);
+    ind.free();
+  };
+}
+
 // SMA (scalar 1-in/1-out), ATR (multi-in/1-out), MACD (1-in/multi-out).
 const indicators = [
   {
     name: 'SMA(20)',
-    stream: () => {
-      const ind = new SMA(20);
-      for (let i = 0; i < BARS; i++) ind.update(close[i]);
-      ind.free();
-    },
-    batch: () => {
-      const ind = new SMA(20);
-      ind.batch(close);
-      ind.free();
-    },
+    make: () => new SMA(20),
+    step: (ind, i) => ind.update(close[i]),
+    cols: [close],
   },
   {
     name: 'ATR(14)',
-    stream: () => {
-      const ind = new ATR(14);
-      for (let i = 0; i < BARS; i++) ind.update(high[i], low[i], close[i]);
-      ind.free();
-    },
-    batch: () => {
-      const ind = new ATR(14);
-      ind.batch(high, low, close);
-      ind.free();
-    },
+    make: () => new ATR(14),
+    step: (ind, i) => ind.update(high[i], low[i], close[i]),
+    cols: [high, low, close],
   },
   {
     name: 'MACD(12,26,9)',
-    stream: () => {
-      const ind = new MACD(12, 26, 9);
-      for (let i = 0; i < BARS; i++) ind.update(close[i]);
-      ind.free();
-    },
-    batch: null, // multi-output: streaming only
+    make: () => new MACD(12, 26, 9),
+    step: (ind, i) => ind.update(close[i]),
+    cols: [close],
   },
 ];
 
+const header =
+  'Indicator'.padEnd(22) +
+  'streaming (Mupd/s)'.padStart(20) +
+  'batch (Mupd/s)'.padStart(18) +
+  'fast (Mupd/s)'.padStart(18);
 console.log(`Wickra WASM throughput — ${BARS.toLocaleString('en-US')} bars (median of 3 runs)\n`);
-console.log(`${'Indicator'.padEnd(22)}${'streaming (Mupd/s)'.padStart(20)}${'batch (Mupd/s)'.padStart(18)}`);
-console.log('-'.repeat(60));
+console.log(header);
+console.log('-'.repeat(header.length));
 
 for (const ind of indicators) {
-  const streamMups = mupsFromNs(timeNs(ind.stream)).toFixed(1);
-  const batchMups = ind.batch ? mupsFromNs(timeNs(ind.batch)).toFixed(1) : '—';
-  console.log(`${ind.name.padEnd(22)}${streamMups.padStart(20)}${batchMups.padStart(18)}`);
+  const stream = once(ind.make, (inst) => {
+    for (let i = 0; i < BARS; i++) ind.step(inst, i);
+  });
+  const batch = once(ind.make, (inst) => inst.batch(...ind.cols));
+  const fast = once(ind.make, (inst) => inst.batchFast(...ind.cols));
+  const [s, b, f] = [stream, batch, fast].map((run) => mupsFromNs(timeNs(run)).toFixed(1));
+  console.log(`${ind.name.padEnd(22)}${s.padStart(20)}${b.padStart(18)}${f.padStart(18)}`);
 }
 
 console.log(
   '\nMupd/s = million indicator updates per second. Streaming is the per-tick\n' +
     '`update` path crossing the JS<->wasm boundary once per value; batch is the\n' +
-    'bulk array path (one boundary crossing). Higher is better. Numbers are\n' +
-    'machine-dependent — use them for relative comparison, not as a speed claim.',
+    'bulk array path (one boundary crossing); fast is the opt-in batchFast\n' +
+    '(within a few units in the last place of batch). Higher is better. Numbers\n' +
+    'are machine-dependent — use them for relative comparison, not as a speed claim.',
 );

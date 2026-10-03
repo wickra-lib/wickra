@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/wickra-simd",
     "crates/wickra-core",
     "crates/wickra",
     "crates/wickra-data",
@@ -26,6 +27,7 @@ keywords = ["finance", "trading", "indicators", "technical-analysis", "ta"]
 categories = ["finance", "mathematics", "science"]
 
 [workspace.dependencies]
+wickra-simd = { path = "crates/wickra-simd", version = "1.0.6" }
 wickra-core = { path = "crates/wickra-core", version = "1.0.6" }
 wickra-data = { path = "crates/wickra-data", version = "1.0.6" }
 

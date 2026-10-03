@@ -50,6 +50,13 @@ impl Adl {
         }
     }
 
+    /// Continue from an accumulation `total` computed elsewhere (a batch
+    /// kernel), as if every earlier bar had been fed.
+    pub(crate) fn resume_at(&mut self, total: f64) {
+        self.total = total;
+        self.has_emitted = true;
+    }
+
     /// Current cumulative value if at least one candle has been ingested.
     pub const fn value(&self) -> Option<f64> {
         if self.has_emitted {

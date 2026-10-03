@@ -3,6 +3,7 @@
 use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Rolling Conditional Value-at-Risk (Expected Shortfall).
@@ -43,7 +44,8 @@ pub struct ConditionalValueAtRisk {
     period: usize,
     confidence: f64,
     window: VecDeque<f64>,
-    /// Reusable scratch buffer to avoid allocating per `update`.
+    /// The window's values in `total_cmp` order, kept sorted as it slides:
+    /// bit for bit what sorting a copy of the window would give.
     scratch: Vec<f64>,
 }
 
@@ -98,15 +100,14 @@ impl Indicator for ConditionalValueAtRisk {
             return None;
         }
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            sorted_window::remove(&mut self.scratch, oldest);
         }
         self.window.push_back(input);
+        sorted_window::insert(&mut self.scratch, input);
         if self.window.len() < self.period {
             return None;
         }
-        self.scratch.clear();
-        self.scratch.extend(self.window.iter().copied());
-        self.scratch.sort_unstable_by(f64::total_cmp);
         let q = 1.0 - self.confidence;
         let n = self.scratch.len();
         // Number of samples in the tail. Floor, with a min of 1 so the

@@ -60,6 +60,37 @@ foreach (var price in liveFeed)
 values — the equivalence is enforced by the test suite. Multi-output indicators
 (MACD, Bollinger, ADX, …) return a nullable `record struct`, `null` while warming up.
 
+### Reusing a buffer, and the opt-in fast batch
+
+Every `Batch` also has a caller-buffer overload that allocates nothing, and a
+`BatchFast` twin; for a multi-output indicator the buffer holds its records
+(`Span<MacdOutput>`, `Span<BollingerOutput>`, …):
+
+```csharp
+var output = new double[prices.Length];
+using var exact = new Sma(20);
+exact.Batch(prices, output);        // the same bits as new Sma(20).Batch(prices)
+
+using var fast = new Ema(20);
+fast.BatchFast(prices, output);     // or: double[] values = fast.BatchFast(prices);
+```
+
+An indicator keeps its state across calls, so a second batch on the same
+instance continues the series rather than restarting it.
+
+An indicator instance is not thread-safe: use it from one thread at a time, and
+do not `Dispose` it while another thread is still calling it. `Update` passes
+the native handle without reference counting (that bookkeeping cost more than
+the update itself); it still throws `ObjectDisposedException` once disposed.
+
+`BatchFast` runs a SIMD kernel where the indicator has one (moving averages,
+RSI, ATR, MACD, Bollinger, Chaikin, skewness, Pearson and more). The kernel
+reassociates the arithmetic, so each value agrees with `Batch` to within a few
+units in the last place rather than bit for bit; NaN placement and length are
+identical, and the result is the same on every platform. Where there is no
+kernel, `BatchFast` is `Batch` exactly. Use `Batch` when you need reproducible
+bits against streaming; use `BatchFast` for throughput.
+
 ## Benchmark
 
 `benchmarks/` reports streaming and batch updates-per-second for `SMA`, `ATR`

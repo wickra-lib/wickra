@@ -820,8 +820,17 @@ func (ind *AbandonedBaby) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AbandonedBaby) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AbandonedBaby) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -838,11 +847,13 @@ func (ind *AbandonedBaby) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_abandoned_baby_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_abandoned_baby_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -850,7 +861,7 @@ func (ind *AbandonedBaby) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -918,8 +929,17 @@ func (ind *Abcd) Update(open float64, high float64, low float64, close float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Abcd) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Abcd) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -936,11 +956,13 @@ func (ind *Abcd) Batch(open []float64, high []float64, low []float64, close []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_abcd_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_abcd_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -948,7 +970,7 @@ func (ind *Abcd) Batch(open []float64, high []float64, low []float64, close []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -1269,8 +1291,17 @@ func (ind *AcceleratorOscillator) Update(open float64, high float64, low float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AcceleratorOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AcceleratorOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -1287,11 +1318,13 @@ func (ind *AcceleratorOscillator) Batch(open []float64, high []float64, low []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_accelerator_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_accelerator_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -1299,7 +1332,7 @@ func (ind *AcceleratorOscillator) Batch(open []float64, high []float64, low []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -1367,8 +1400,17 @@ func (ind *AdOscillator) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AdOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -1385,11 +1427,13 @@ func (ind *AdOscillator) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ad_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ad_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -1397,7 +1441,7 @@ func (ind *AdOscillator) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -1599,8 +1643,17 @@ func (ind *AdaptiveCci) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AdaptiveCci) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdaptiveCci) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -1617,11 +1670,13 @@ func (ind *AdaptiveCci) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_adaptive_cci_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_adaptive_cci_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -1629,7 +1684,7 @@ func (ind *AdaptiveCci) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -1697,17 +1752,55 @@ func (ind *AdaptiveCycle) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AdaptiveCycle) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdaptiveCycle) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_adaptive_cycle_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_adaptive_cycle_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *AdaptiveCycle) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdaptiveCycle) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_adaptive_cycle_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -1779,17 +1872,55 @@ func (ind *AdaptiveLaguerreFilter) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AdaptiveLaguerreFilter) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdaptiveLaguerreFilter) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_adaptive_laguerre_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_adaptive_laguerre_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *AdaptiveLaguerreFilter) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdaptiveLaguerreFilter) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_adaptive_laguerre_filter_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -1861,17 +1992,55 @@ func (ind *AdaptiveRsi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AdaptiveRsi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdaptiveRsi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_adaptive_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_adaptive_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *AdaptiveRsi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdaptiveRsi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_adaptive_rsi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -1939,8 +2108,17 @@ func (ind *Adl) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Adl) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Adl) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -1957,11 +2135,13 @@ func (ind *Adl) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_adl_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_adl_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -1969,7 +2149,7 @@ func (ind *Adl) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -2037,8 +2217,17 @@ func (ind *AdvanceBlock) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AdvanceBlock) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AdvanceBlock) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -2055,11 +2244,13 @@ func (ind *AdvanceBlock) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_advance_block_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_advance_block_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -2067,7 +2258,7 @@ func (ind *AdvanceBlock) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -2510,8 +2701,17 @@ func (ind *Adxr) Update(open float64, high float64, low float64, close float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Adxr) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Adxr) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -2528,11 +2728,13 @@ func (ind *Adxr) Batch(open []float64, high []float64, low []float64, close []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_adxr_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_adxr_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -2540,7 +2742,7 @@ func (ind *Adxr) Batch(open []float64, high []float64, low []float64, close []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -2731,17 +2933,55 @@ func (ind *Alma) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Alma) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Alma) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_alma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_alma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Alma) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Alma) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_alma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -2813,21 +3053,32 @@ func (ind *Alpha) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Alpha) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Alpha) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_alpha_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_alpha_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -2899,8 +3150,17 @@ func (ind *AmihudIlliquidity) Update(price float64, size float64, isBuy bool, ti
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AmihudIlliquidity) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AmihudIlliquidity) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -2911,17 +3171,19 @@ func (ind *AmihudIlliquidity) Batch(price []float64, size []float64, isBuy []boo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_amihud_illiquidity_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_amihud_illiquidity_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -2989,17 +3251,55 @@ func (ind *AnchoredRsi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AnchoredRsi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AnchoredRsi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_anchored_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_anchored_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *AnchoredRsi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AnchoredRsi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_anchored_rsi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -3067,8 +3367,17 @@ func (ind *AnchoredVwap) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AnchoredVwap) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AnchoredVwap) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -3085,11 +3394,13 @@ func (ind *AnchoredVwap) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_anchored_vwap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_anchored_vwap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -3097,7 +3408,7 @@ func (ind *AnchoredVwap) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -3284,17 +3595,55 @@ func (ind *Apo) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Apo) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Apo) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_apo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_apo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Apo) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Apo) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_apo_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -3477,8 +3826,17 @@ func (ind *AroonOscillator) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AroonOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AroonOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -3495,11 +3853,13 @@ func (ind *AroonOscillator) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_aroon_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_aroon_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -3507,7 +3867,7 @@ func (ind *AroonOscillator) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -3579,8 +3939,17 @@ func (ind *Atr) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Atr) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Atr) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -3597,11 +3966,13 @@ func (ind *Atr) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_atr_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_atr_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -3609,7 +3980,54 @@ func (ind *Atr) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Atr) BatchFast(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchFastInto(out, open, high, low, close, volume, timestamp)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Atr) BatchFastInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
+	n := len(open)
+	if len(high) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(low) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(close) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(volume) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(timestamp) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_atr_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(open)
+	runtime.KeepAlive(high)
+	runtime.KeepAlive(low)
+	runtime.KeepAlive(close)
+	runtime.KeepAlive(volume)
+	runtime.KeepAlive(timestamp)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -3903,8 +4321,17 @@ func (ind *AtrTrailingStop) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AtrTrailingStop) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AtrTrailingStop) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -3921,11 +4348,13 @@ func (ind *AtrTrailingStop) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_atr_trailing_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_atr_trailing_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -3933,7 +4362,7 @@ func (ind *AtrTrailingStop) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4116,17 +4545,55 @@ func (ind *Autocorrelation) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Autocorrelation) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Autocorrelation) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_autocorrelation_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_autocorrelation_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Autocorrelation) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Autocorrelation) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_autocorrelation_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4202,17 +4669,55 @@ func (ind *AutocorrelationPeriodogram) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AutocorrelationPeriodogram) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AutocorrelationPeriodogram) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_autocorrelation_periodogram_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_autocorrelation_periodogram_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *AutocorrelationPeriodogram) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AutocorrelationPeriodogram) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_autocorrelation_periodogram_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4284,8 +4789,17 @@ func (ind *AverageDailyRange) Update(open float64, high float64, low float64, cl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AverageDailyRange) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AverageDailyRange) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -4302,11 +4816,13 @@ func (ind *AverageDailyRange) Batch(open []float64, high []float64, low []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_average_daily_range_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_average_daily_range_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -4314,7 +4830,7 @@ func (ind *AverageDailyRange) Batch(open []float64, high []float64, low []float6
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4386,17 +4902,55 @@ func (ind *AverageDrawdown) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AverageDrawdown) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AverageDrawdown) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_average_drawdown_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_average_drawdown_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *AverageDrawdown) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AverageDrawdown) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_average_drawdown_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4464,8 +5018,17 @@ func (ind *AvgPrice) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AvgPrice) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AvgPrice) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -4482,11 +5045,13 @@ func (ind *AvgPrice) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_avg_price_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_avg_price_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -4494,7 +5059,7 @@ func (ind *AvgPrice) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4570,8 +5135,17 @@ func (ind *AwesomeOscillator) Update(open float64, high float64, low float64, cl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AwesomeOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AwesomeOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -4588,11 +5162,13 @@ func (ind *AwesomeOscillator) Batch(open []float64, high []float64, low []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_awesome_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_awesome_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -4600,7 +5176,7 @@ func (ind *AwesomeOscillator) Batch(open []float64, high []float64, low []float6
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4680,8 +5256,17 @@ func (ind *AwesomeOscillatorHistogram) Update(open float64, high float64, low fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *AwesomeOscillatorHistogram) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *AwesomeOscillatorHistogram) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -4698,11 +5283,13 @@ func (ind *AwesomeOscillatorHistogram) Batch(open []float64, high []float64, low
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_awesome_oscillator_histogram_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_awesome_oscillator_histogram_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -4710,7 +5297,7 @@ func (ind *AwesomeOscillatorHistogram) Batch(open []float64, high []float64, low
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4778,8 +5365,17 @@ func (ind *BalanceOfPower) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BalanceOfPower) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BalanceOfPower) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -4796,11 +5392,13 @@ func (ind *BalanceOfPower) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_balance_of_power_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_balance_of_power_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -4808,7 +5406,7 @@ func (ind *BalanceOfPower) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4880,17 +5478,55 @@ func (ind *BandpassFilter) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BandpassFilter) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BandpassFilter) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_bandpass_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_bandpass_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *BandpassFilter) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BandpassFilter) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_bandpass_filter_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -4958,8 +5594,17 @@ func (ind *Bat) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Bat) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Bat) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -4976,11 +5621,13 @@ func (ind *Bat) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_bat_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_bat_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -4988,7 +5635,7 @@ func (ind *Bat) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -5056,8 +5703,17 @@ func (ind *BeltHold) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BeltHold) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BeltHold) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -5074,11 +5730,13 @@ func (ind *BeltHold) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_belt_hold_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_belt_hold_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -5086,7 +5744,7 @@ func (ind *BeltHold) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -5158,21 +5816,32 @@ func (ind *Beta) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Beta) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Beta) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_beta_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_beta_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -5244,21 +5913,32 @@ func (ind *BetaNeutralSpread) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BetaNeutralSpread) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BetaNeutralSpread) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_beta_neutral_spread_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_beta_neutral_spread_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -5330,8 +6010,17 @@ func (ind *BetterVolume) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BetterVolume) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BetterVolume) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -5348,11 +6037,13 @@ func (ind *BetterVolume) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_better_volume_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_better_volume_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -5360,7 +6051,7 @@ func (ind *BetterVolume) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -5432,17 +6123,55 @@ func (ind *BipowerVariation) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BipowerVariation) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BipowerVariation) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_bipower_variation_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_bipower_variation_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *BipowerVariation) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BipowerVariation) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_bipower_variation_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -5510,8 +6239,17 @@ func (ind *BodySizePct) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BodySizePct) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BodySizePct) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -5528,11 +6266,13 @@ func (ind *BodySizePct) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_body_size_pct_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_body_size_pct_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -5540,7 +6280,7 @@ func (ind *BodySizePct) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -5634,6 +6374,26 @@ func (ind *BollingerBands) Batch(input []float64) []BollingerOutput {
 	return out
 }
 
+// BatchFast is the opt-in fast batch: the SIMD kernel reassociates the
+// arithmetic, so each field agrees with Batch to within a few units in the
+// last place rather than bit for bit; warmup rows and length are
+// identical, and the result is the same on every platform.
+func (ind *BollingerBands) BatchFast(input []float64) []BollingerOutput {
+	n := len(input)
+	out := make([]BollingerOutput, n)
+	if n == 0 {
+		return out
+	}
+	buf := make([]C.struct_WickraBollingerOutput, n)
+	C.wickra_bollinger_bands_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), &buf[0], C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	for i := range buf {
+		out[i] = BollingerOutput{float64(buf[i].upper), float64(buf[i].middle), float64(buf[i].lower), float64(buf[i].stddev)}
+	}
+	return out
+}
+
 // Reset clears all internal state, returning the indicator to warmup.
 func (ind *BollingerBands) Reset() {
 	C.wickra_bollinger_bands_reset(ind.handle)
@@ -5703,17 +6463,55 @@ func (ind *BollingerBandwidth) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BollingerBandwidth) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BollingerBandwidth) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_bollinger_bandwidth_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_bollinger_bandwidth_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *BollingerBandwidth) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BollingerBandwidth) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_bollinger_bandwidth_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -6006,8 +6804,17 @@ func (ind *Breakaway) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Breakaway) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Breakaway) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -6024,11 +6831,13 @@ func (ind *Breakaway) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_breakaway_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_breakaway_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -6036,7 +6845,7 @@ func (ind *Breakaway) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -6238,17 +7047,55 @@ func (ind *BurkeRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *BurkeRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BurkeRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_burke_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_burke_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *BurkeRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *BurkeRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_burke_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -6316,8 +7163,17 @@ func (ind *Butterfly) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Butterfly) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Butterfly) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -6334,11 +7190,13 @@ func (ind *Butterfly) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_butterfly_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_butterfly_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -6346,7 +7204,7 @@ func (ind *Butterfly) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -6414,8 +7272,17 @@ func (ind *CalendarSpread) Update(fundingRate float64, markPrice float64, indexP
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CalendarSpread) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CalendarSpread) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -6450,11 +7317,13 @@ func (ind *CalendarSpread) Batch(fundingRate []float64, markPrice []float64, ind
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_calendar_spread_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_calendar_spread_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -6468,7 +7337,7 @@ func (ind *CalendarSpread) Batch(fundingRate []float64, markPrice []float64, ind
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -6540,17 +7409,55 @@ func (ind *CalmarRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CalmarRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CalmarRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_calmar_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_calmar_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *CalmarRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CalmarRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_calmar_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -6891,8 +7798,17 @@ func (ind *Cci) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Cci) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Cci) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -6909,11 +7825,13 @@ func (ind *Cci) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_cci_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_cci_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -6921,7 +7839,7 @@ func (ind *Cci) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -6993,17 +7911,55 @@ func (ind *CenterOfGravity) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CenterOfGravity) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CenterOfGravity) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_center_of_gravity_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_center_of_gravity_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *CenterOfGravity) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CenterOfGravity) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_center_of_gravity_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -7182,17 +8138,55 @@ func (ind *Cfo) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Cfo) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Cfo) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_cfo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_cfo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Cfo) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Cfo) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_cfo_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -7264,8 +8258,17 @@ func (ind *ChaikinMoneyFlow) Update(open float64, high float64, low float64, clo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ChaikinMoneyFlow) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ChaikinMoneyFlow) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -7282,11 +8285,13 @@ func (ind *ChaikinMoneyFlow) Batch(open []float64, high []float64, low []float64
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_chaikin_money_flow_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_chaikin_money_flow_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -7294,7 +8299,7 @@ func (ind *ChaikinMoneyFlow) Batch(open []float64, high []float64, low []float64
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -7370,8 +8375,17 @@ func (ind *ChaikinOscillator) Update(open float64, high float64, low float64, cl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ChaikinOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ChaikinOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -7388,11 +8402,13 @@ func (ind *ChaikinOscillator) Batch(open []float64, high []float64, low []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_chaikin_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_chaikin_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -7400,7 +8416,54 @@ func (ind *ChaikinOscillator) Batch(open []float64, high []float64, low []float6
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *ChaikinOscillator) BatchFast(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchFastInto(out, open, high, low, close, volume, timestamp)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ChaikinOscillator) BatchFastInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
+	n := len(open)
+	if len(high) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(low) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(close) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(volume) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(timestamp) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_chaikin_oscillator_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(open)
+	runtime.KeepAlive(high)
+	runtime.KeepAlive(low)
+	runtime.KeepAlive(close)
+	runtime.KeepAlive(volume)
+	runtime.KeepAlive(timestamp)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -7476,8 +8539,17 @@ func (ind *ChaikinVolatility) Update(open float64, high float64, low float64, cl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ChaikinVolatility) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ChaikinVolatility) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -7494,11 +8566,13 @@ func (ind *ChaikinVolatility) Batch(open []float64, high []float64, low []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_chaikin_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_chaikin_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -7506,7 +8580,7 @@ func (ind *ChaikinVolatility) Batch(open []float64, high []float64, low []float6
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -7804,8 +8878,17 @@ func (ind *ChoppinessIndex) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ChoppinessIndex) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ChoppinessIndex) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -7822,11 +8905,13 @@ func (ind *ChoppinessIndex) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_choppiness_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_choppiness_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -7834,7 +8919,7 @@ func (ind *ChoppinessIndex) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8009,8 +9094,17 @@ func (ind *CloseVsOpen) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CloseVsOpen) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CloseVsOpen) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -8027,11 +9121,13 @@ func (ind *CloseVsOpen) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_close_vs_open_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_close_vs_open_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -8039,7 +9135,7 @@ func (ind *CloseVsOpen) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8107,8 +9203,17 @@ func (ind *ClosingMarubozu) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ClosingMarubozu) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ClosingMarubozu) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -8125,11 +9230,13 @@ func (ind *ClosingMarubozu) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_closing_marubozu_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_closing_marubozu_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -8137,7 +9244,7 @@ func (ind *ClosingMarubozu) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8209,17 +9316,55 @@ func (ind *Cmo) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Cmo) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Cmo) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_cmo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_cmo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Cmo) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Cmo) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_cmo_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8291,17 +9436,55 @@ func (ind *CoefficientOfVariation) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CoefficientOfVariation) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CoefficientOfVariation) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_coefficient_of_variation_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_coefficient_of_variation_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *CoefficientOfVariation) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CoefficientOfVariation) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_coefficient_of_variation_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8472,17 +9655,55 @@ func (ind *CommonSenseRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CommonSenseRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CommonSenseRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_common_sense_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_common_sense_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *CommonSenseRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CommonSenseRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_common_sense_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8665,8 +9886,17 @@ func (ind *ConcealingBabySwallow) Update(open float64, high float64, low float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ConcealingBabySwallow) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ConcealingBabySwallow) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -8683,11 +9913,13 @@ func (ind *ConcealingBabySwallow) Batch(open []float64, high []float64, low []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_concealing_baby_swallow_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_concealing_baby_swallow_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -8695,7 +9927,7 @@ func (ind *ConcealingBabySwallow) Batch(open []float64, high []float64, low []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8767,17 +9999,55 @@ func (ind *ConditionalValueAtRisk) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ConditionalValueAtRisk) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ConditionalValueAtRisk) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_conditional_value_at_risk_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_conditional_value_at_risk_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *ConditionalValueAtRisk) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ConditionalValueAtRisk) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_conditional_value_at_risk_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8857,17 +10127,55 @@ func (ind *ConnorsRsi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ConnorsRsi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ConnorsRsi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_connors_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_connors_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *ConnorsRsi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ConnorsRsi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_connors_rsi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -8947,17 +10255,55 @@ func (ind *Coppock) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Coppock) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Coppock) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_coppock_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_coppock_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Coppock) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Coppock) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_coppock_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -9029,17 +10375,55 @@ func (ind *CorrelationTrendIndicator) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CorrelationTrendIndicator) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CorrelationTrendIndicator) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_correlation_trend_indicator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_correlation_trend_indicator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *CorrelationTrendIndicator) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CorrelationTrendIndicator) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_correlation_trend_indicator_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -9107,8 +10491,17 @@ func (ind *Counterattack) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Counterattack) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Counterattack) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -9125,11 +10518,13 @@ func (ind *Counterattack) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_counterattack_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_counterattack_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -9137,7 +10532,7 @@ func (ind *Counterattack) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -9205,8 +10600,17 @@ func (ind *Crab) Update(open float64, high float64, low float64, close float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Crab) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Crab) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -9223,11 +10627,13 @@ func (ind *Crab) Batch(open []float64, high []float64, low []float64, close []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_crab_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_crab_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -9235,7 +10641,7 @@ func (ind *Crab) Batch(open []float64, high []float64, low []float64, close []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -9303,8 +10709,17 @@ func (ind *CumulativeVolumeDelta) Update(price float64, size float64, isBuy bool
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CumulativeVolumeDelta) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CumulativeVolumeDelta) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -9315,17 +10730,19 @@ func (ind *CumulativeVolumeDelta) Batch(price []float64, size []float64, isBuy [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_cumulative_volume_delta_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_cumulative_volume_delta_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -9523,8 +10940,17 @@ func (ind *CupAndHandle) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CupAndHandle) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CupAndHandle) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -9541,11 +10967,13 @@ func (ind *CupAndHandle) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_cup_and_handle_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_cup_and_handle_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -9553,7 +10981,7 @@ func (ind *CupAndHandle) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -9625,17 +11053,55 @@ func (ind *CyberneticCycle) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *CyberneticCycle) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CyberneticCycle) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_cybernetic_cycle_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_cybernetic_cycle_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *CyberneticCycle) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *CyberneticCycle) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_cybernetic_cycle_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -9703,8 +11169,17 @@ func (ind *Cypher) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Cypher) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Cypher) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -9721,11 +11196,13 @@ func (ind *Cypher) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_cypher_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_cypher_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -9733,7 +11210,7 @@ func (ind *Cypher) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -9914,17 +11391,55 @@ func (ind *Decycler) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Decycler) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Decycler) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_decycler_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_decycler_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Decycler) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Decycler) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_decycler_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10000,17 +11515,55 @@ func (ind *DecyclerOscillator) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DecyclerOscillator) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DecyclerOscillator) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_decycler_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_decycler_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *DecyclerOscillator) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DecyclerOscillator) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_decycler_oscillator_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10082,17 +11635,55 @@ func (ind *Dema) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Dema) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Dema) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_dema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_dema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Dema) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Dema) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_dema_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10164,8 +11755,17 @@ func (ind *DemandIndex) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DemandIndex) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DemandIndex) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -10182,11 +11782,13 @@ func (ind *DemandIndex) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_demand_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_demand_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -10194,7 +11796,7 @@ func (ind *DemandIndex) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10495,17 +12097,55 @@ func (ind *DerivativeOscillator) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DerivativeOscillator) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DerivativeOscillator) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_derivative_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_derivative_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *DerivativeOscillator) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DerivativeOscillator) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_derivative_oscillator_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10577,17 +12217,55 @@ func (ind *DetrendedStdDev) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DetrendedStdDev) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DetrendedStdDev) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_detrended_std_dev_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_detrended_std_dev_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *DetrendedStdDev) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DetrendedStdDev) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_detrended_std_dev_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10659,17 +12337,55 @@ func (ind *DisparityIndex) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DisparityIndex) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DisparityIndex) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_disparity_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_disparity_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *DisparityIndex) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DisparityIndex) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_disparity_index_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10741,21 +12457,32 @@ func (ind *DistanceSsd) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DistanceSsd) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DistanceSsd) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_distance_ssd_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_distance_ssd_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10823,8 +12550,17 @@ func (ind *Doji) Update(open float64, high float64, low float64, close float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Doji) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Doji) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -10841,11 +12577,13 @@ func (ind *Doji) Batch(open []float64, high []float64, low []float64, close []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_doji_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_doji_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -10853,7 +12591,7 @@ func (ind *Doji) Batch(open []float64, high []float64, low []float64, close []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -10921,8 +12659,17 @@ func (ind *DojiStar) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DojiStar) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DojiStar) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -10939,11 +12686,13 @@ func (ind *DojiStar) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_doji_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_doji_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -10951,7 +12700,7 @@ func (ind *DojiStar) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -11446,8 +13195,17 @@ func (ind *DoubleTopBottom) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DoubleTopBottom) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DoubleTopBottom) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -11464,11 +13222,13 @@ func (ind *DoubleTopBottom) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_double_top_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_double_top_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -11476,7 +13236,7 @@ func (ind *DoubleTopBottom) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -11544,8 +13304,17 @@ func (ind *DownsideGapThreeMethods) Update(open float64, high float64, low float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DownsideGapThreeMethods) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DownsideGapThreeMethods) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -11562,11 +13331,13 @@ func (ind *DownsideGapThreeMethods) Batch(open []float64, high []float64, low []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_downside_gap_three_methods_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_downside_gap_three_methods_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -11574,7 +13345,7 @@ func (ind *DownsideGapThreeMethods) Batch(open []float64, high []float64, low []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -11646,17 +13417,55 @@ func (ind *Dpo) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Dpo) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Dpo) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_dpo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_dpo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Dpo) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Dpo) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_dpo_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -11724,8 +13533,17 @@ func (ind *DragonflyDoji) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DragonflyDoji) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DragonflyDoji) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -11742,11 +13560,13 @@ func (ind *DragonflyDoji) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_dragonfly_doji_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_dragonfly_doji_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -11754,7 +13574,7 @@ func (ind *DragonflyDoji) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -11822,17 +13642,28 @@ func (ind *DrawdownDuration) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DrawdownDuration) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DrawdownDuration) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_drawdown_duration_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_drawdown_duration_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -11904,8 +13735,17 @@ func (ind *DumplingTop) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DumplingTop) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DumplingTop) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -11922,11 +13762,13 @@ func (ind *DumplingTop) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_dumpling_top_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_dumpling_top_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -11934,7 +13776,7 @@ func (ind *DumplingTop) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12006,8 +13848,17 @@ func (ind *Dx) Update(open float64, high float64, low float64, close float64, vo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Dx) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Dx) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -12024,11 +13875,13 @@ func (ind *Dx) Batch(open []float64, high []float64, low []float64, close []floa
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_dx_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_dx_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -12036,7 +13889,7 @@ func (ind *Dx) Batch(open []float64, high []float64, low []float64, close []floa
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12108,17 +13961,55 @@ func (ind *DynamicMomentumIndex) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *DynamicMomentumIndex) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DynamicMomentumIndex) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_dynamic_momentum_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_dynamic_momentum_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *DynamicMomentumIndex) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *DynamicMomentumIndex) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_dynamic_momentum_index_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12190,8 +14081,17 @@ func (ind *EaseOfMovement) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *EaseOfMovement) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EaseOfMovement) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -12208,11 +14108,13 @@ func (ind *EaseOfMovement) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ease_of_movement_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ease_of_movement_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -12220,7 +14122,7 @@ func (ind *EaseOfMovement) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12288,8 +14190,17 @@ func (ind *EffectiveSpread) Update(price float64, size float64, isBuy bool, time
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *EffectiveSpread) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64, mid []float64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp, mid)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EffectiveSpread) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64, mid []float64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -12303,18 +14214,20 @@ func (ind *EffectiveSpread) Batch(price []float64, size []float64, isBuy []bool,
 	if len(mid) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_effective_spread_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&mid[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_effective_spread_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&mid[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
 	runtime.KeepAlive(mid)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12386,17 +14299,55 @@ func (ind *EhlersStochastic) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *EhlersStochastic) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EhlersStochastic) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ehlers_stochastic_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ehlers_stochastic_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *EhlersStochastic) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EhlersStochastic) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ehlers_stochastic_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12468,17 +14419,55 @@ func (ind *Ehma) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Ehma) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Ehma) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ehma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ehma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Ehma) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Ehma) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ehma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12562,17 +14551,55 @@ func (ind *ElderImpulse) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ElderImpulse) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ElderImpulse) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_elder_impulse_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_elder_impulse_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *ElderImpulse) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ElderImpulse) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_elder_impulse_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12866,17 +14893,55 @@ func (ind *Ema) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Ema) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Ema) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Ema) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Ema) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ema_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -12948,17 +15013,55 @@ func (ind *EmpiricalModeDecomposition) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *EmpiricalModeDecomposition) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EmpiricalModeDecomposition) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_empirical_mode_decomposition_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_empirical_mode_decomposition_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *EmpiricalModeDecomposition) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EmpiricalModeDecomposition) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_empirical_mode_decomposition_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13026,8 +15129,17 @@ func (ind *Engulfing) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Engulfing) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Engulfing) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -13044,11 +15156,13 @@ func (ind *Engulfing) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_engulfing_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_engulfing_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -13056,7 +15170,7 @@ func (ind *Engulfing) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13235,8 +15349,17 @@ func (ind *EstimatedLeverageRatio) Update(fundingRate float64, markPrice float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *EstimatedLeverageRatio) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EstimatedLeverageRatio) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -13271,11 +15394,13 @@ func (ind *EstimatedLeverageRatio) Batch(fundingRate []float64, markPrice []floa
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_estimated_leverage_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_estimated_leverage_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -13289,7 +15414,7 @@ func (ind *EstimatedLeverageRatio) Batch(fundingRate []float64, markPrice []floa
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13365,17 +15490,55 @@ func (ind *EvenBetterSinewave) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *EvenBetterSinewave) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EvenBetterSinewave) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_even_better_sinewave_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_even_better_sinewave_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *EvenBetterSinewave) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EvenBetterSinewave) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_even_better_sinewave_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13443,8 +15606,17 @@ func (ind *EveningDojiStar) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *EveningDojiStar) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EveningDojiStar) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -13461,11 +15633,13 @@ func (ind *EveningDojiStar) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_evening_doji_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_evening_doji_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -13473,7 +15647,7 @@ func (ind *EveningDojiStar) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13545,8 +15719,17 @@ func (ind *Evwma) Update(open float64, high float64, low float64, close float64,
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Evwma) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Evwma) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -13563,11 +15746,13 @@ func (ind *Evwma) Batch(open []float64, high []float64, low []float64, close []f
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_evwma_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_evwma_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -13575,7 +15760,7 @@ func (ind *Evwma) Batch(open []float64, high []float64, low []float64, close []f
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13643,17 +15828,55 @@ func (ind *EwmaVolatility) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *EwmaVolatility) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EwmaVolatility) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ewma_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ewma_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *EwmaVolatility) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *EwmaVolatility) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ewma_volatility_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13725,17 +15948,55 @@ func (ind *Expectancy) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Expectancy) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Expectancy) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_expectancy_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_expectancy_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Expectancy) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Expectancy) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_expectancy_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13803,8 +16064,17 @@ func (ind *FallingThreeMethods) Update(open float64, high float64, low float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FallingThreeMethods) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FallingThreeMethods) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -13821,11 +16091,13 @@ func (ind *FallingThreeMethods) Batch(open []float64, high []float64, low []floa
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_falling_three_methods_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_falling_three_methods_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -13833,7 +16105,7 @@ func (ind *FallingThreeMethods) Batch(open []float64, high []float64, low []floa
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -13901,17 +16173,55 @@ func (ind *Fama) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Fama) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Fama) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_fama_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_fama_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Fama) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Fama) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_fama_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -14946,17 +17256,55 @@ func (ind *FisherRsi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FisherRsi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FisherRsi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_fisher_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_fisher_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *FisherRsi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FisherRsi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_fisher_rsi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -15028,17 +17376,55 @@ func (ind *FisherTransform) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FisherTransform) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FisherTransform) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_fisher_transform_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_fisher_transform_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *FisherTransform) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FisherTransform) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_fisher_transform_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -15106,8 +17492,17 @@ func (ind *FlagPennant) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FlagPennant) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FlagPennant) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -15124,11 +17519,13 @@ func (ind *FlagPennant) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_flag_pennant_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_flag_pennant_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -15136,7 +17533,7 @@ func (ind *FlagPennant) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -15330,8 +17727,17 @@ func (ind *ForceIndex) Update(open float64, high float64, low float64, close flo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ForceIndex) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ForceIndex) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -15348,11 +17754,13 @@ func (ind *ForceIndex) Batch(open []float64, high []float64, low []float64, clos
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_force_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_force_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -15360,7 +17768,7 @@ func (ind *ForceIndex) Batch(open []float64, high []float64, low []float64, clos
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -15543,17 +17951,55 @@ func (ind *Frama) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Frama) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Frama) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_frama_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_frama_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Frama) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Frama) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_frama_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -15625,8 +18071,17 @@ func (ind *FryPanBottom) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FryPanBottom) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FryPanBottom) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -15643,11 +18098,13 @@ func (ind *FryPanBottom) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_fry_pan_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_fry_pan_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -15655,7 +18112,7 @@ func (ind *FryPanBottom) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -15723,8 +18180,17 @@ func (ind *FundingBasis) Update(fundingRate float64, markPrice float64, indexPri
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FundingBasis) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FundingBasis) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -15759,11 +18225,13 @@ func (ind *FundingBasis) Batch(fundingRate []float64, markPrice []float64, index
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_funding_basis_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_funding_basis_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -15777,7 +18245,7 @@ func (ind *FundingBasis) Batch(fundingRate []float64, markPrice []float64, index
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -15845,8 +18313,17 @@ func (ind *FundingImpliedApr) Update(fundingRate float64, markPrice float64, ind
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FundingImpliedApr) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FundingImpliedApr) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -15881,11 +18358,13 @@ func (ind *FundingImpliedApr) Batch(fundingRate []float64, markPrice []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_funding_implied_apr_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_funding_implied_apr_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -15899,7 +18378,7 @@ func (ind *FundingImpliedApr) Batch(fundingRate []float64, markPrice []float64, 
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -15967,8 +18446,17 @@ func (ind *FundingRate) Update(fundingRate float64, markPrice float64, indexPric
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FundingRate) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FundingRate) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -16003,11 +18491,13 @@ func (ind *FundingRate) Batch(fundingRate []float64, markPrice []float64, indexP
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_funding_rate_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_funding_rate_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -16021,7 +18511,7 @@ func (ind *FundingRate) Batch(fundingRate []float64, markPrice []float64, indexP
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -16093,8 +18583,17 @@ func (ind *FundingRateMean) Update(fundingRate float64, markPrice float64, index
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FundingRateMean) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FundingRateMean) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -16129,11 +18628,13 @@ func (ind *FundingRateMean) Batch(fundingRate []float64, markPrice []float64, in
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_funding_rate_mean_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_funding_rate_mean_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -16147,7 +18648,7 @@ func (ind *FundingRateMean) Batch(fundingRate []float64, markPrice []float64, in
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -16219,8 +18720,17 @@ func (ind *FundingRateZScore) Update(fundingRate float64, markPrice float64, ind
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *FundingRateZScore) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *FundingRateZScore) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -16255,11 +18765,13 @@ func (ind *FundingRateZScore) Batch(fundingRate []float64, markPrice []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_funding_rate_z_score_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_funding_rate_z_score_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -16273,7 +18785,7 @@ func (ind *FundingRateZScore) Batch(fundingRate []float64, markPrice []float64, 
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -16345,17 +18857,55 @@ func (ind *GainLossRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *GainLossRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GainLossRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_gain_loss_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_gain_loss_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *GainLossRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GainLossRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_gain_loss_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -16427,17 +18977,55 @@ func (ind *GainToPainRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *GainToPainRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GainToPainRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_gain_to_pain_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_gain_to_pain_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *GainToPainRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GainToPainRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_gain_to_pain_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -16505,8 +19093,17 @@ func (ind *GapSideBySideWhite) Update(open float64, high float64, low float64, c
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *GapSideBySideWhite) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GapSideBySideWhite) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -16523,11 +19120,13 @@ func (ind *GapSideBySideWhite) Batch(open []float64, high []float64, low []float
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_gap_side_by_side_white_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_gap_side_by_side_white_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -16535,7 +19134,7 @@ func (ind *GapSideBySideWhite) Batch(open []float64, high []float64, low []float
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -16603,17 +19202,55 @@ func (ind *Garch11) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Garch11) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Garch11) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_garch11_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_garch11_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Garch11) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Garch11) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_garch11_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -16689,8 +19326,17 @@ func (ind *GarmanKlassVolatility) Update(open float64, high float64, low float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *GarmanKlassVolatility) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GarmanKlassVolatility) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -16707,11 +19353,13 @@ func (ind *GarmanKlassVolatility) Batch(open []float64, high []float64, low []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_garman_klass_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_garman_klass_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -16719,7 +19367,7 @@ func (ind *GarmanKlassVolatility) Batch(open []float64, high []float64, low []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -16787,8 +19435,17 @@ func (ind *Gartley) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Gartley) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Gartley) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -16805,11 +19462,13 @@ func (ind *Gartley) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_gartley_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_gartley_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -16817,7 +19476,7 @@ func (ind *Gartley) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17008,17 +19667,55 @@ func (ind *GeneralizedDema) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *GeneralizedDema) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GeneralizedDema) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_generalized_dema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_generalized_dema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *GeneralizedDema) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GeneralizedDema) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_generalized_dema_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17090,17 +19787,55 @@ func (ind *GeometricMa) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *GeometricMa) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GeometricMa) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_geometric_ma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_geometric_ma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *GeometricMa) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GeometricMa) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_geometric_ma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17283,21 +20018,32 @@ func (ind *GrangerCausality) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *GrangerCausality) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GrangerCausality) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_granger_causality_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_granger_causality_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17365,8 +20111,17 @@ func (ind *GravestoneDoji) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *GravestoneDoji) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *GravestoneDoji) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -17383,11 +20138,13 @@ func (ind *GravestoneDoji) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_gravestone_doji_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_gravestone_doji_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -17395,7 +20152,7 @@ func (ind *GravestoneDoji) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17463,8 +20220,17 @@ func (ind *Hammer) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Hammer) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Hammer) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -17481,11 +20247,13 @@ func (ind *Hammer) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hammer_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hammer_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -17493,7 +20261,7 @@ func (ind *Hammer) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17561,8 +20329,17 @@ func (ind *HangingMan) Update(open float64, high float64, low float64, close flo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HangingMan) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HangingMan) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -17579,11 +20356,13 @@ func (ind *HangingMan) Batch(open []float64, high []float64, low []float64, clos
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hanging_man_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hanging_man_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -17591,7 +20370,7 @@ func (ind *HangingMan) Batch(open []float64, high []float64, low []float64, clos
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17659,8 +20438,17 @@ func (ind *Harami) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Harami) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Harami) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -17677,11 +20465,13 @@ func (ind *Harami) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_harami_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_harami_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -17689,7 +20479,7 @@ func (ind *Harami) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17757,8 +20547,17 @@ func (ind *HaramiCross) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HaramiCross) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HaramiCross) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -17775,11 +20574,13 @@ func (ind *HaramiCross) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_harami_cross_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_harami_cross_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -17787,7 +20588,7 @@ func (ind *HaramiCross) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17859,21 +20660,32 @@ func (ind *HasbrouckInformationShare) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HasbrouckInformationShare) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HasbrouckInformationShare) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hasbrouck_information_share_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hasbrouck_information_share_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -17941,8 +20753,17 @@ func (ind *HeadAndShoulders) Update(open float64, high float64, low float64, clo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HeadAndShoulders) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HeadAndShoulders) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -17959,11 +20780,13 @@ func (ind *HeadAndShoulders) Batch(open []float64, high []float64, low []float64
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_head_and_shoulders_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_head_and_shoulders_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -17971,7 +20794,7 @@ func (ind *HeadAndShoulders) Batch(open []float64, high []float64, low []float64
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -18150,8 +20973,17 @@ func (ind *HeikinAshiOscillator) Update(open float64, high float64, low float64,
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HeikinAshiOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HeikinAshiOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -18168,11 +21000,13 @@ func (ind *HeikinAshiOscillator) Batch(open []float64, high []float64, low []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_heikin_ashi_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_heikin_ashi_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -18180,7 +21014,7 @@ func (ind *HeikinAshiOscillator) Batch(open []float64, high []float64, low []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -18252,8 +21086,17 @@ func (ind *HiLoActivator) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HiLoActivator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HiLoActivator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -18270,11 +21113,13 @@ func (ind *HiLoActivator) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hi_lo_activator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hi_lo_activator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -18282,7 +21127,7 @@ func (ind *HiLoActivator) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -18484,8 +21329,17 @@ func (ind *HighLowRange) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HighLowRange) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HighLowRange) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -18502,11 +21356,13 @@ func (ind *HighLowRange) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_high_low_range_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_high_low_range_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -18514,7 +21370,7 @@ func (ind *HighLowRange) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -18697,8 +21553,17 @@ func (ind *HighWave) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HighWave) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HighWave) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -18715,11 +21580,13 @@ func (ind *HighWave) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_high_wave_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_high_wave_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -18727,7 +21594,7 @@ func (ind *HighWave) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -18799,17 +21666,55 @@ func (ind *HighpassFilter) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HighpassFilter) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HighpassFilter) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_highpass_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_highpass_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *HighpassFilter) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HighpassFilter) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_highpass_filter_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -18877,8 +21782,17 @@ func (ind *Hikkake) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Hikkake) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Hikkake) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -18895,11 +21809,13 @@ func (ind *Hikkake) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hikkake_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hikkake_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -18907,7 +21823,7 @@ func (ind *Hikkake) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -18975,8 +21891,17 @@ func (ind *HikkakeModified) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HikkakeModified) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HikkakeModified) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -18993,11 +21918,13 @@ func (ind *HikkakeModified) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hikkake_modified_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hikkake_modified_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -19005,7 +21932,7 @@ func (ind *HikkakeModified) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -19073,17 +22000,55 @@ func (ind *HilbertDominantCycle) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HilbertDominantCycle) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HilbertDominantCycle) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hilbert_dominant_cycle_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hilbert_dominant_cycle_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *HilbertDominantCycle) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HilbertDominantCycle) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_hilbert_dominant_cycle_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -19159,17 +22124,55 @@ func (ind *HistoricalVolatility) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HistoricalVolatility) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HistoricalVolatility) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_historical_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_historical_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *HistoricalVolatility) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HistoricalVolatility) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_historical_volatility_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -19241,17 +22244,55 @@ func (ind *Hma) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Hma) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Hma) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Hma) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Hma) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_hma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -19319,17 +22360,55 @@ func (ind *HoltWinters) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HoltWinters) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HoltWinters) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_holt_winters_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_holt_winters_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *HoltWinters) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HoltWinters) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_holt_winters_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -19397,8 +22476,17 @@ func (ind *HomingPigeon) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HomingPigeon) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HomingPigeon) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -19415,11 +22503,13 @@ func (ind *HomingPigeon) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_homing_pigeon_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_homing_pigeon_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -19427,7 +22517,7 @@ func (ind *HomingPigeon) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -19495,17 +22585,55 @@ func (ind *HtDcPhase) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HtDcPhase) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HtDcPhase) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ht_dc_phase_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ht_dc_phase_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *HtDcPhase) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HtDcPhase) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ht_dc_phase_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -19660,17 +22788,55 @@ func (ind *HtTrendMode) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HtTrendMode) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HtTrendMode) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ht_trend_mode_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ht_trend_mode_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *HtTrendMode) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HtTrendMode) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ht_trend_mode_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -19857,17 +23023,55 @@ func (ind *HurstExponent) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *HurstExponent) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HurstExponent) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_hurst_exponent_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_hurst_exponent_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *HurstExponent) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *HurstExponent) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_hurst_exponent_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -20058,8 +23262,17 @@ func (ind *IdenticalThreeCrows) Update(open float64, high float64, low float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *IdenticalThreeCrows) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *IdenticalThreeCrows) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -20076,11 +23289,13 @@ func (ind *IdenticalThreeCrows) Batch(open []float64, high []float64, low []floa
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_identical_three_crows_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_identical_three_crows_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -20088,7 +23303,7 @@ func (ind *IdenticalThreeCrows) Batch(open []float64, high []float64, low []floa
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -20270,8 +23485,17 @@ func (ind *InNeck) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *InNeck) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *InNeck) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -20288,11 +23512,13 @@ func (ind *InNeck) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_in_neck_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_in_neck_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -20300,7 +23526,7 @@ func (ind *InNeck) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -20376,8 +23602,17 @@ func (ind *Inertia) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Inertia) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Inertia) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -20394,11 +23629,13 @@ func (ind *Inertia) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_inertia_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_inertia_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -20406,7 +23643,7 @@ func (ind *Inertia) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -20478,21 +23715,32 @@ func (ind *InformationRatio) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *InformationRatio) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *InformationRatio) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_information_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_information_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -20675,17 +23923,55 @@ func (ind *InstantaneousTrendline) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *InstantaneousTrendline) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *InstantaneousTrendline) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_instantaneous_trendline_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_instantaneous_trendline_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *InstantaneousTrendline) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *InstantaneousTrendline) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_instantaneous_trendline_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -20753,8 +24039,17 @@ func (ind *IntradayIntensity) Update(open float64, high float64, low float64, cl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *IntradayIntensity) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *IntradayIntensity) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -20771,11 +24066,13 @@ func (ind *IntradayIntensity) Batch(open []float64, high []float64, low []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_intraday_intensity_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_intraday_intensity_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -20783,7 +24080,7 @@ func (ind *IntradayIntensity) Batch(open []float64, high []float64, low []float6
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -20855,8 +24152,17 @@ func (ind *IntradayMomentumIndex) Update(open float64, high float64, low float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *IntradayMomentumIndex) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *IntradayMomentumIndex) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -20873,11 +24179,13 @@ func (ind *IntradayMomentumIndex) Batch(open []float64, high []float64, low []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_intraday_momentum_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_intraday_momentum_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -20885,7 +24193,7 @@ func (ind *IntradayMomentumIndex) Batch(open []float64, high []float64, low []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -21066,17 +24374,55 @@ func (ind *InverseFisherTransform) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *InverseFisherTransform) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *InverseFisherTransform) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_inverse_fisher_transform_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_inverse_fisher_transform_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *InverseFisherTransform) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *InverseFisherTransform) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_inverse_fisher_transform_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -21144,8 +24490,17 @@ func (ind *InvertedHammer) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *InvertedHammer) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *InvertedHammer) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -21162,11 +24517,13 @@ func (ind *InvertedHammer) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_inverted_hammer_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_inverted_hammer_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -21174,7 +24531,7 @@ func (ind *InvertedHammer) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -21246,17 +24603,55 @@ func (ind *JarqueBera) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *JarqueBera) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *JarqueBera) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_jarque_bera_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_jarque_bera_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *JarqueBera) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *JarqueBera) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_jarque_bera_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -21328,17 +24723,55 @@ func (ind *Jma) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Jma) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Jma) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_jma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_jma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Jma) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Jma) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_jma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -21410,17 +24843,55 @@ func (ind *JumpIndicator) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *JumpIndicator) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *JumpIndicator) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_jump_indicator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_jump_indicator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *JumpIndicator) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *JumpIndicator) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_jump_indicator_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -21492,17 +24963,55 @@ func (ind *KRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *KRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *KRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_k_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_k_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *KRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *KRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_k_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -21787,17 +25296,55 @@ func (ind *Kama) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Kama) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Kama) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_kama_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_kama_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Kama) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Kama) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_kama_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -22095,17 +25642,55 @@ func (ind *KellyCriterion) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *KellyCriterion) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *KellyCriterion) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_kelly_criterion_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_kelly_criterion_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *KellyCriterion) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *KellyCriterion) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_kelly_criterion_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -22292,21 +25877,32 @@ func (ind *KendallTau) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *KendallTau) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *KendallTau) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_kendall_tau_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_kendall_tau_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -22374,8 +25970,17 @@ func (ind *Kicking) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Kicking) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Kicking) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -22392,11 +25997,13 @@ func (ind *Kicking) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_kicking_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_kicking_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -22404,7 +26011,7 @@ func (ind *Kicking) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -22472,8 +26079,17 @@ func (ind *KickingByLength) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *KickingByLength) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *KickingByLength) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -22490,11 +26106,13 @@ func (ind *KickingByLength) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_kicking_by_length_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_kicking_by_length_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -22502,7 +26120,7 @@ func (ind *KickingByLength) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -22697,17 +26315,55 @@ func (ind *Kurtosis) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Kurtosis) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Kurtosis) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_kurtosis_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_kurtosis_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Kurtosis) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Kurtosis) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_kurtosis_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -22783,8 +26439,17 @@ func (ind *Kvo) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Kvo) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Kvo) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -22801,11 +26466,13 @@ func (ind *Kvo) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_kvo_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_kvo_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -22813,7 +26480,7 @@ func (ind *Kvo) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -22885,8 +26552,17 @@ func (ind *KylesLambda) Update(price float64, size float64, isBuy bool, timestam
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *KylesLambda) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64, mid []float64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp, mid)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *KylesLambda) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64, mid []float64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -22900,18 +26576,20 @@ func (ind *KylesLambda) Batch(price []float64, size []float64, isBuy []bool, tim
 	if len(mid) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_kyles_lambda_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&mid[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_kyles_lambda_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&mid[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
 	runtime.KeepAlive(mid)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -22979,8 +26657,17 @@ func (ind *LadderBottom) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LadderBottom) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LadderBottom) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -22997,11 +26684,13 @@ func (ind *LadderBottom) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ladder_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ladder_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -23009,7 +26698,7 @@ func (ind *LadderBottom) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -23077,17 +26766,55 @@ func (ind *LaguerreRsi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LaguerreRsi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LaguerreRsi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_laguerre_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_laguerre_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *LaguerreRsi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LaguerreRsi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_laguerre_rsi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -23258,17 +26985,55 @@ func (ind *LinRegAngle) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LinRegAngle) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LinRegAngle) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_lin_reg_angle_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_lin_reg_angle_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *LinRegAngle) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LinRegAngle) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_lin_reg_angle_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -23431,17 +27196,55 @@ func (ind *LinRegIntercept) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LinRegIntercept) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LinRegIntercept) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_lin_reg_intercept_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_lin_reg_intercept_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *LinRegIntercept) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LinRegIntercept) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_lin_reg_intercept_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -23513,17 +27316,55 @@ func (ind *LinRegSlope) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LinRegSlope) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LinRegSlope) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_lin_reg_slope_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_lin_reg_slope_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *LinRegSlope) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LinRegSlope) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_lin_reg_slope_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -23595,17 +27436,55 @@ func (ind *LinearRegression) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LinearRegression) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LinearRegression) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_linear_regression_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_linear_regression_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *LinearRegression) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LinearRegression) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_linear_regression_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -23808,17 +27687,55 @@ func (ind *LogReturn) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LogReturn) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LogReturn) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_log_return_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_log_return_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *LogReturn) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LogReturn) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_log_return_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -23886,8 +27803,17 @@ func (ind *LongLeggedDoji) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LongLeggedDoji) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LongLeggedDoji) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -23904,11 +27830,13 @@ func (ind *LongLeggedDoji) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_long_legged_doji_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_long_legged_doji_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -23916,7 +27844,7 @@ func (ind *LongLeggedDoji) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -23984,8 +27912,17 @@ func (ind *LongLine) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LongLine) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LongLine) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -24002,11 +27939,13 @@ func (ind *LongLine) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_long_line_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_long_line_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -24014,7 +27953,7 @@ func (ind *LongLine) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -24082,8 +28021,17 @@ func (ind *LongShortRatio) Update(fundingRate float64, markPrice float64, indexP
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *LongShortRatio) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *LongShortRatio) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -24118,11 +28066,13 @@ func (ind *LongShortRatio) Batch(fundingRate []float64, markPrice []float64, ind
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_long_short_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_long_short_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -24136,7 +28086,7 @@ func (ind *LongShortRatio) Batch(fundingRate []float64, markPrice []float64, ind
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -24208,17 +28158,55 @@ func (ind *M2Measure) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *M2Measure) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *M2Measure) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_m2_measure_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_m2_measure_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *M2Measure) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *M2Measure) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_m2_measure_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -24579,17 +28567,55 @@ func (ind *MacdHistogram) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MacdHistogram) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MacdHistogram) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_macd_histogram_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_macd_histogram_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *MacdHistogram) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MacdHistogram) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_macd_histogram_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -24683,6 +28709,26 @@ func (ind *MacdIndicator) Batch(input []float64) []MacdOutput {
 	}
 	buf := make([]C.struct_WickraMacdOutput, n)
 	C.wickra_macd_indicator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), &buf[0], C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	for i := range buf {
+		out[i] = MacdOutput{float64(buf[i].macd), float64(buf[i].signal), float64(buf[i].histogram)}
+	}
+	return out
+}
+
+// BatchFast is the opt-in fast batch: the SIMD kernel reassociates the
+// arithmetic, so each field agrees with Batch to within a few units in the
+// last place rather than bit for bit; warmup rows and length are
+// identical, and the result is the same on every platform.
+func (ind *MacdIndicator) BatchFast(input []float64) []MacdOutput {
+	n := len(input)
+	out := make([]MacdOutput, n)
+	if n == 0 {
+		return out
+	}
+	buf := make([]C.struct_WickraMacdOutput, n)
+	C.wickra_macd_indicator_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), &buf[0], C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
 	for i := range buf {
@@ -24843,8 +28889,17 @@ func (ind *MarketFacilitationIndex) Update(open float64, high float64, low float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MarketFacilitationIndex) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MarketFacilitationIndex) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -24861,11 +28916,13 @@ func (ind *MarketFacilitationIndex) Batch(open []float64, high []float64, low []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_market_facilitation_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_market_facilitation_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -24873,7 +28930,7 @@ func (ind *MarketFacilitationIndex) Batch(open []float64, high []float64, low []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -24945,17 +29002,55 @@ func (ind *MartinRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MartinRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MartinRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_martin_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_martin_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *MartinRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MartinRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_martin_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -25023,8 +29118,17 @@ func (ind *Marubozu) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Marubozu) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Marubozu) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -25041,11 +29145,13 @@ func (ind *Marubozu) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_marubozu_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_marubozu_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -25053,7 +29159,7 @@ func (ind *Marubozu) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -25129,8 +29235,17 @@ func (ind *MassIndex) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MassIndex) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MassIndex) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -25147,11 +29262,13 @@ func (ind *MassIndex) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_mass_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_mass_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -25159,7 +29276,7 @@ func (ind *MassIndex) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -25227,8 +29344,17 @@ func (ind *MatHold) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MatHold) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MatHold) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -25245,11 +29371,13 @@ func (ind *MatHold) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_mat_hold_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_mat_hold_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -25257,7 +29385,7 @@ func (ind *MatHold) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -25325,8 +29453,17 @@ func (ind *MatchingLow) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MatchingLow) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MatchingLow) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -25343,11 +29480,13 @@ func (ind *MatchingLow) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_matching_low_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_matching_low_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -25355,7 +29494,7 @@ func (ind *MatchingLow) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -25427,17 +29566,55 @@ func (ind *MaxDrawdown) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MaxDrawdown) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MaxDrawdown) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_max_drawdown_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_max_drawdown_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *MaxDrawdown) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MaxDrawdown) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_max_drawdown_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -25769,17 +29946,55 @@ func (ind *McGinleyDynamic) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *McGinleyDynamic) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *McGinleyDynamic) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_mc_ginley_dynamic_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_mc_ginley_dynamic_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *McGinleyDynamic) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *McGinleyDynamic) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_mc_ginley_dynamic_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -25851,17 +30066,55 @@ func (ind *MedianAbsoluteDeviation) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MedianAbsoluteDeviation) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MedianAbsoluteDeviation) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_median_absolute_deviation_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_median_absolute_deviation_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *MedianAbsoluteDeviation) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MedianAbsoluteDeviation) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_median_absolute_deviation_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26024,17 +30277,55 @@ func (ind *MedianMa) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MedianMa) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MedianMa) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_median_ma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_median_ma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *MedianMa) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MedianMa) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_median_ma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26102,8 +30393,17 @@ func (ind *MedianPrice) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MedianPrice) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MedianPrice) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -26120,11 +30420,13 @@ func (ind *MedianPrice) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_median_price_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_median_price_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -26132,7 +30434,7 @@ func (ind *MedianPrice) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26204,8 +30506,17 @@ func (ind *Mfi) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Mfi) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Mfi) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -26222,11 +30533,13 @@ func (ind *Mfi) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_mfi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_mfi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -26234,7 +30547,7 @@ func (ind *Mfi) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26416,17 +30729,55 @@ func (ind *MidPoint) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MidPoint) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MidPoint) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_mid_point_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_mid_point_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *MidPoint) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MidPoint) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_mid_point_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26498,8 +30849,17 @@ func (ind *MidPrice) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MidPrice) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MidPrice) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -26516,11 +30876,13 @@ func (ind *MidPrice) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_mid_price_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_mid_price_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -26528,7 +30890,7 @@ func (ind *MidPrice) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26600,8 +30962,17 @@ func (ind *MinusDi) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MinusDi) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MinusDi) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -26618,11 +30989,13 @@ func (ind *MinusDi) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_minus_di_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_minus_di_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -26630,7 +31003,7 @@ func (ind *MinusDi) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26702,8 +31075,17 @@ func (ind *MinusDm) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MinusDm) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MinusDm) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -26720,11 +31102,13 @@ func (ind *MinusDm) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_minus_dm_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_minus_dm_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -26732,7 +31116,7 @@ func (ind *MinusDm) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26915,17 +31299,55 @@ func (ind *Mom) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Mom) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Mom) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_mom_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_mom_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Mom) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Mom) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_mom_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -26993,8 +31415,17 @@ func (ind *MorningDojiStar) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MorningDojiStar) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MorningDojiStar) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -27011,11 +31442,13 @@ func (ind *MorningDojiStar) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_morning_doji_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_morning_doji_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -27023,7 +31456,7 @@ func (ind *MorningDojiStar) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -27091,8 +31524,17 @@ func (ind *MorningEveningStar) Update(open float64, high float64, low float64, c
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *MorningEveningStar) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *MorningEveningStar) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -27109,11 +31551,13 @@ func (ind *MorningEveningStar) Batch(open []float64, high []float64, low []float
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_morning_evening_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_morning_evening_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -27121,7 +31565,7 @@ func (ind *MorningEveningStar) Batch(open []float64, high []float64, low []float
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -27308,8 +31752,17 @@ func (ind *NakedPoc) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *NakedPoc) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *NakedPoc) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -27326,11 +31779,13 @@ func (ind *NakedPoc) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_naked_poc_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_naked_poc_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -27338,7 +31793,7 @@ func (ind *NakedPoc) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -27410,8 +31865,17 @@ func (ind *Natr) Update(open float64, high float64, low float64, close float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Natr) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Natr) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -27428,11 +31892,13 @@ func (ind *Natr) Batch(open []float64, high []float64, low []float64, close []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_natr_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_natr_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -27440,7 +31906,7 @@ func (ind *Natr) Batch(open []float64, high []float64, low []float64, close []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -27642,8 +32108,17 @@ func (ind *NewPriceLines) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *NewPriceLines) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *NewPriceLines) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -27660,11 +32135,13 @@ func (ind *NewPriceLines) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_new_price_lines_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_new_price_lines_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -27672,7 +32149,7 @@ func (ind *NewPriceLines) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -27847,8 +32324,17 @@ func (ind *Nvi) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Nvi) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Nvi) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -27865,11 +32351,13 @@ func (ind *Nvi) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_nvi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_nvi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -27877,7 +32365,7 @@ func (ind *Nvi) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -27945,8 +32433,17 @@ func (ind *Obv) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Obv) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Obv) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -27963,11 +32460,13 @@ func (ind *Obv) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_obv_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_obv_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -27975,7 +32474,7 @@ func (ind *Obv) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -28047,8 +32546,17 @@ func (ind *OIPriceDivergence) Update(fundingRate float64, markPrice float64, ind
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OIPriceDivergence) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OIPriceDivergence) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -28083,11 +32591,13 @@ func (ind *OIPriceDivergence) Batch(fundingRate []float64, markPrice []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_oi_price_divergence_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_oi_price_divergence_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -28101,7 +32611,7 @@ func (ind *OIPriceDivergence) Batch(fundingRate []float64, markPrice []float64, 
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -28169,8 +32679,17 @@ func (ind *OiToVolumeRatio) Update(fundingRate float64, markPrice float64, index
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OiToVolumeRatio) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OiToVolumeRatio) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -28205,11 +32724,13 @@ func (ind *OiToVolumeRatio) Batch(fundingRate []float64, markPrice []float64, in
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_oi_to_volume_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_oi_to_volume_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -28223,7 +32744,7 @@ func (ind *OiToVolumeRatio) Batch(fundingRate []float64, markPrice []float64, in
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -28291,8 +32812,17 @@ func (ind *OIWeighted) Update(fundingRate float64, markPrice float64, indexPrice
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OIWeighted) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OIWeighted) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -28327,11 +32857,13 @@ func (ind *OIWeighted) Batch(fundingRate []float64, markPrice []float64, indexPr
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_oi_weighted_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_oi_weighted_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -28345,7 +32877,7 @@ func (ind *OIWeighted) Batch(fundingRate []float64, markPrice []float64, indexPr
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -28417,17 +32949,55 @@ func (ind *OmegaRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OmegaRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OmegaRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_omega_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_omega_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *OmegaRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OmegaRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_omega_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -28495,8 +33065,17 @@ func (ind *OnNeck) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OnNeck) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OnNeck) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -28513,11 +33092,13 @@ func (ind *OnNeck) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_on_neck_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_on_neck_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -28525,7 +33106,7 @@ func (ind *OnNeck) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -28593,8 +33174,17 @@ func (ind *OpenInterestDelta) Update(fundingRate float64, markPrice float64, ind
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OpenInterestDelta) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OpenInterestDelta) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -28629,11 +33219,13 @@ func (ind *OpenInterestDelta) Batch(fundingRate []float64, markPrice []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_open_interest_delta_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_open_interest_delta_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -28647,7 +33239,7 @@ func (ind *OpenInterestDelta) Batch(fundingRate []float64, markPrice []float64, 
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -28719,8 +33311,17 @@ func (ind *OpenInterestMomentum) Update(fundingRate float64, markPrice float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OpenInterestMomentum) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OpenInterestMomentum) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -28755,11 +33356,13 @@ func (ind *OpenInterestMomentum) Batch(fundingRate []float64, markPrice []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_open_interest_momentum_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_open_interest_momentum_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -28773,7 +33376,7 @@ func (ind *OpenInterestMomentum) Batch(fundingRate []float64, markPrice []float6
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -28841,8 +33444,17 @@ func (ind *OpeningMarubozu) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OpeningMarubozu) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OpeningMarubozu) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -28859,11 +33471,13 @@ func (ind *OpeningMarubozu) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_opening_marubozu_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_opening_marubozu_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -28871,7 +33485,7 @@ func (ind *OpeningMarubozu) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -29502,21 +34116,32 @@ func (ind *OuHalfLife) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OuHalfLife) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OuHalfLife) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ou_half_life_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ou_half_life_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -29584,8 +34209,17 @@ func (ind *OvernightGap) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *OvernightGap) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *OvernightGap) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -29602,11 +34236,13 @@ func (ind *OvernightGap) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_overnight_gap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_overnight_gap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -29614,7 +34250,7 @@ func (ind *OvernightGap) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -29793,17 +34429,55 @@ func (ind *PainIndex) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PainIndex) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PainIndex) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pain_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pain_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *PainIndex) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PainIndex) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_pain_index_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -29879,21 +34553,32 @@ func (ind *PairSpreadZScore) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PairSpreadZScore) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PairSpreadZScore) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pair_spread_z_score_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pair_spread_z_score_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -29965,21 +34650,32 @@ func (ind *PairwiseBeta) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PairwiseBeta) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PairwiseBeta) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pairwise_beta_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pairwise_beta_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30055,8 +34751,17 @@ func (ind *ParkinsonVolatility) Update(open float64, high float64, low float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ParkinsonVolatility) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ParkinsonVolatility) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -30073,11 +34778,13 @@ func (ind *ParkinsonVolatility) Batch(open []float64, high []float64, low []floa
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_parkinson_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_parkinson_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -30085,7 +34792,7 @@ func (ind *ParkinsonVolatility) Batch(open []float64, high []float64, low []floa
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30157,21 +34864,63 @@ func (ind *PearsonCorrelation) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PearsonCorrelation) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PearsonCorrelation) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pearson_correlation_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pearson_correlation_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *PearsonCorrelation) BatchFast(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchFastInto(out, x, y)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PearsonCorrelation) BatchFastInto(dst []float64, x []float64, y []float64) {
+	n := len(x)
+	if len(y) != n {
+		panic("wickra: all input slices must have the same length")
+	}
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_pearson_correlation_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(x)
+	runtime.KeepAlive(y)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30373,17 +35122,55 @@ func (ind *PercentB) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PercentB) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PercentB) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_percent_b_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_percent_b_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *PercentB) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PercentB) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_percent_b_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30451,17 +35238,55 @@ func (ind *PercentageTrailingStop) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PercentageTrailingStop) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PercentageTrailingStop) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_percentage_trailing_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_percentage_trailing_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *PercentageTrailingStop) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PercentageTrailingStop) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_percentage_trailing_stop_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30529,8 +35354,17 @@ func (ind *PerpetualPremiumIndex) Update(fundingRate float64, markPrice float64,
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PerpetualPremiumIndex) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PerpetualPremiumIndex) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -30565,11 +35399,13 @@ func (ind *PerpetualPremiumIndex) Batch(fundingRate []float64, markPrice []float
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_perpetual_premium_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_perpetual_premium_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -30583,7 +35419,7 @@ func (ind *PerpetualPremiumIndex) Batch(fundingRate []float64, markPrice []float
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30655,8 +35491,17 @@ func (ind *Pgo) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Pgo) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Pgo) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -30673,11 +35518,13 @@ func (ind *Pgo) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pgo_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pgo_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -30685,7 +35532,7 @@ func (ind *Pgo) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30753,8 +35600,17 @@ func (ind *PiercingDarkCloud) Update(open float64, high float64, low float64, cl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PiercingDarkCloud) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PiercingDarkCloud) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -30771,11 +35627,13 @@ func (ind *PiercingDarkCloud) Batch(open []float64, high []float64, low []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_piercing_dark_cloud_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_piercing_dark_cloud_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -30783,7 +35641,7 @@ func (ind *PiercingDarkCloud) Batch(open []float64, high []float64, low []float6
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30855,8 +35713,17 @@ func (ind *Pin) Update(price float64, size float64, isBuy bool, timestamp int64)
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Pin) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Pin) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -30867,17 +35734,19 @@ func (ind *Pin) Batch(price []float64, size []float64, isBuy []bool, timestamp [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pin_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pin_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -30953,8 +35822,17 @@ func (ind *PivotReversal) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PivotReversal) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PivotReversal) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -30971,11 +35849,13 @@ func (ind *PivotReversal) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pivot_reversal_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pivot_reversal_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -30983,7 +35863,7 @@ func (ind *PivotReversal) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -31055,8 +35935,17 @@ func (ind *PlusDi) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PlusDi) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PlusDi) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -31073,11 +35962,13 @@ func (ind *PlusDi) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_plus_di_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_plus_di_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -31085,7 +35976,7 @@ func (ind *PlusDi) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -31157,8 +36048,17 @@ func (ind *PlusDm) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PlusDm) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PlusDm) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -31175,11 +36075,13 @@ func (ind *PlusDm) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_plus_dm_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_plus_dm_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -31187,7 +36089,7 @@ func (ind *PlusDm) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -31263,17 +36165,55 @@ func (ind *Pmo) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Pmo) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Pmo) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pmo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pmo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Pmo) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Pmo) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_pmo_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -31467,17 +36407,55 @@ func (ind *PolarizedFractalEfficiency) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PolarizedFractalEfficiency) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PolarizedFractalEfficiency) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_polarized_fractal_efficiency_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_polarized_fractal_efficiency_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *PolarizedFractalEfficiency) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PolarizedFractalEfficiency) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_polarized_fractal_efficiency_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -31553,17 +36531,55 @@ func (ind *Ppo) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Ppo) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Ppo) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ppo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ppo_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Ppo) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Ppo) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ppo_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -31643,17 +36659,55 @@ func (ind *PpoHistogram) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *PpoHistogram) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PpoHistogram) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ppo_histogram_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ppo_histogram_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *PpoHistogram) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *PpoHistogram) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ppo_histogram_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -31729,8 +36783,17 @@ func (ind *ProfileShape) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ProfileShape) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ProfileShape) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -31747,11 +36810,13 @@ func (ind *ProfileShape) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_profile_shape_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_profile_shape_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -31759,7 +36824,7 @@ func (ind *ProfileShape) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -31831,17 +36896,55 @@ func (ind *ProfitFactor) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ProfitFactor) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ProfitFactor) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_profit_factor_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_profit_factor_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *ProfitFactor) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ProfitFactor) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_profit_factor_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -32024,8 +37127,17 @@ func (ind *ProjectionOscillator) Update(open float64, high float64, low float64,
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ProjectionOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ProjectionOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -32042,11 +37154,13 @@ func (ind *ProjectionOscillator) Batch(open []float64, high []float64, low []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_projection_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_projection_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -32054,7 +37168,7 @@ func (ind *ProjectionOscillator) Batch(open []float64, high []float64, low []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -32122,8 +37236,17 @@ func (ind *Psar) Update(open float64, high float64, low float64, close float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Psar) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Psar) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -32140,11 +37263,13 @@ func (ind *Psar) Batch(open []float64, high []float64, low []float64, close []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_psar_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_psar_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -32152,7 +37277,7 @@ func (ind *Psar) Batch(open []float64, high []float64, low []float64, close []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -32220,8 +37345,17 @@ func (ind *Pvi) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Pvi) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Pvi) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -32238,11 +37372,13 @@ func (ind *Pvi) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_pvi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_pvi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -32250,7 +37386,7 @@ func (ind *Pvi) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -32417,8 +37553,17 @@ func (ind *Qstick) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Qstick) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Qstick) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -32435,11 +37580,13 @@ func (ind *Qstick) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_qstick_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_qstick_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -32447,7 +37594,7 @@ func (ind *Qstick) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -32720,17 +37867,55 @@ func (ind *RSquared) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RSquared) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RSquared) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_r_squared_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_r_squared_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RSquared) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RSquared) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_r_squared_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -32916,8 +38101,17 @@ func (ind *RealizedSpread) Update(price float64, size float64, isBuy bool, times
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RealizedSpread) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64, mid []float64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp, mid)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RealizedSpread) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64, mid []float64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -32931,18 +38125,20 @@ func (ind *RealizedSpread) Batch(price []float64, size []float64, isBuy []bool, 
 	if len(mid) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_realized_spread_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&mid[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_realized_spread_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&mid[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
 	runtime.KeepAlive(mid)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33014,17 +38210,55 @@ func (ind *RealizedVolatility) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RealizedVolatility) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RealizedVolatility) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_realized_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_realized_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RealizedVolatility) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RealizedVolatility) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_realized_volatility_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33092,17 +38326,55 @@ func (ind *RecoveryFactor) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RecoveryFactor) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RecoveryFactor) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_recovery_factor_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_recovery_factor_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RecoveryFactor) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RecoveryFactor) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_recovery_factor_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33170,8 +38442,17 @@ func (ind *RectangleRange) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RectangleRange) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RectangleRange) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -33188,11 +38469,13 @@ func (ind *RectangleRange) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rectangle_range_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rectangle_range_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -33200,7 +38483,7 @@ func (ind *RectangleRange) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33272,17 +38555,55 @@ func (ind *Reflex) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Reflex) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Reflex) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_reflex_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_reflex_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Reflex) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Reflex) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_reflex_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33358,17 +38679,55 @@ func (ind *RegimeLabel) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RegimeLabel) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RegimeLabel) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_regime_label_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_regime_label_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RegimeLabel) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RegimeLabel) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_regime_label_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33649,17 +39008,55 @@ func (ind *RenkoTrailingStop) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RenkoTrailingStop) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RenkoTrailingStop) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_renko_trailing_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_renko_trailing_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RenkoTrailingStop) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RenkoTrailingStop) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_renko_trailing_stop_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33783,8 +39180,17 @@ func (ind *RickshawMan) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RickshawMan) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RickshawMan) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -33801,11 +39207,13 @@ func (ind *RickshawMan) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rickshaw_man_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rickshaw_man_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -33813,7 +39221,7 @@ func (ind *RickshawMan) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33881,8 +39289,17 @@ func (ind *RisingThreeMethods) Update(open float64, high float64, low float64, c
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RisingThreeMethods) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RisingThreeMethods) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -33899,11 +39316,13 @@ func (ind *RisingThreeMethods) Batch(open []float64, high []float64, low []float
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rising_three_methods_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rising_three_methods_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -33911,7 +39330,7 @@ func (ind *RisingThreeMethods) Batch(open []float64, high []float64, low []float
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -33987,17 +39406,55 @@ func (ind *Rmi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Rmi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rmi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rmi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rmi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Rmi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rmi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rmi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34069,17 +39526,55 @@ func (ind *Roc) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Roc) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Roc) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_roc_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_roc_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Roc) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Roc) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_roc_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34151,17 +39646,55 @@ func (ind *Rocp) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Rocp) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rocp) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rocp_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rocp_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Rocp) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rocp) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rocp_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34233,17 +39766,55 @@ func (ind *Rocr) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Rocr) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rocr) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rocr_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rocr_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Rocr) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rocr) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rocr_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34315,17 +39886,55 @@ func (ind *Rocr100) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Rocr100) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rocr100) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rocr100_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rocr100_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Rocr100) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rocr100) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rocr100_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34401,8 +40010,17 @@ func (ind *RogersSatchellVolatility) Update(open float64, high float64, low floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RogersSatchellVolatility) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RogersSatchellVolatility) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -34419,11 +40037,13 @@ func (ind *RogersSatchellVolatility) Batch(open []float64, high []float64, low [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rogers_satchell_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rogers_satchell_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -34431,7 +40051,7 @@ func (ind *RogersSatchellVolatility) Batch(open []float64, high []float64, low [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34503,8 +40123,17 @@ func (ind *RollMeasure) Update(price float64, size float64, isBuy bool, timestam
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RollMeasure) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollMeasure) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -34515,17 +40144,19 @@ func (ind *RollMeasure) Batch(price []float64, size []float64, isBuy []bool, tim
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_roll_measure_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_roll_measure_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34597,21 +40228,32 @@ func (ind *RollingCorrelation) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RollingCorrelation) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingCorrelation) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rolling_correlation_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_correlation_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34683,21 +40325,32 @@ func (ind *RollingCovariance) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RollingCovariance) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingCovariance) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rolling_covariance_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_covariance_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34769,17 +40422,55 @@ func (ind *RollingIqr) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RollingIqr) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingIqr) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rolling_iqr_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_iqr_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RollingIqr) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingIqr) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_iqr_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34851,17 +40542,55 @@ func (ind *RollingMinMaxScaler) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RollingMinMaxScaler) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingMinMaxScaler) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rolling_min_max_scaler_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_min_max_scaler_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RollingMinMaxScaler) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingMinMaxScaler) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_min_max_scaler_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -34933,17 +40662,55 @@ func (ind *RollingPercentileRank) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RollingPercentileRank) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingPercentileRank) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rolling_percentile_rank_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_percentile_rank_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RollingPercentileRank) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingPercentileRank) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_percentile_rank_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35015,17 +40782,55 @@ func (ind *RollingQuantile) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RollingQuantile) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingQuantile) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rolling_quantile_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_quantile_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RollingQuantile) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingQuantile) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_quantile_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35097,8 +40902,17 @@ func (ind *RollingVwap) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RollingVwap) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RollingVwap) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -35115,11 +40929,13 @@ func (ind *RollingVwap) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rolling_vwap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rolling_vwap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -35127,7 +40943,7 @@ func (ind *RollingVwap) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35203,17 +41019,55 @@ func (ind *RoofingFilter) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RoofingFilter) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RoofingFilter) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_roofing_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_roofing_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RoofingFilter) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RoofingFilter) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_roofing_filter_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35285,17 +41139,55 @@ func (ind *Rsi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Rsi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rsi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Rsi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rsi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rsi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35367,17 +41259,55 @@ func (ind *Rsx) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Rsx) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rsx) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rsx_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rsx_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Rsx) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rsx) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rsx_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35567,8 +41497,17 @@ func (ind *Rvi) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Rvi) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Rvi) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -35585,11 +41524,13 @@ func (ind *Rvi) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rvi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rvi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -35597,7 +41538,7 @@ func (ind *Rvi) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35669,17 +41610,55 @@ func (ind *RviVolatility) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *RviVolatility) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RviVolatility) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_rvi_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_rvi_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RviVolatility) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RviVolatility) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_rvi_volatility_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35866,17 +41845,55 @@ func (ind *SampleEntropy) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SampleEntropy) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SampleEntropy) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_sample_entropy_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_sample_entropy_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *SampleEntropy) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SampleEntropy) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_sample_entropy_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -35944,8 +41961,17 @@ func (ind *SarExt) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SarExt) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SarExt) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -35962,11 +41988,13 @@ func (ind *SarExt) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_sar_ext_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_sar_ext_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -35974,7 +42002,7 @@ func (ind *SarExt) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -36042,8 +42070,17 @@ func (ind *SeasonalZScore) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SeasonalZScore) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SeasonalZScore) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -36060,11 +42097,13 @@ func (ind *SeasonalZScore) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_seasonal_z_score_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_seasonal_z_score_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -36072,7 +42111,7 @@ func (ind *SeasonalZScore) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -36140,8 +42179,17 @@ func (ind *SeparatingLines) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SeparatingLines) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SeparatingLines) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -36158,11 +42206,13 @@ func (ind *SeparatingLines) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_separating_lines_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_separating_lines_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -36170,7 +42220,7 @@ func (ind *SeparatingLines) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -36452,8 +42502,17 @@ func (ind *SessionVwap) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SessionVwap) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SessionVwap) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -36470,11 +42529,13 @@ func (ind *SessionVwap) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_session_vwap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_session_vwap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -36482,7 +42543,7 @@ func (ind *SessionVwap) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -36558,17 +42619,55 @@ func (ind *ShannonEntropy) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ShannonEntropy) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ShannonEntropy) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_shannon_entropy_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_shannon_entropy_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *ShannonEntropy) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ShannonEntropy) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_shannon_entropy_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -36636,8 +42735,17 @@ func (ind *Shark) Update(open float64, high float64, low float64, close float64,
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Shark) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Shark) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -36654,11 +42762,13 @@ func (ind *Shark) Batch(open []float64, high []float64, low []float64, close []f
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_shark_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_shark_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -36666,7 +42776,7 @@ func (ind *Shark) Batch(open []float64, high []float64, low []float64, close []f
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -36738,17 +42848,55 @@ func (ind *SharpeRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SharpeRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SharpeRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_sharpe_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_sharpe_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *SharpeRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SharpeRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_sharpe_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -36816,8 +42964,17 @@ func (ind *ShootingStar) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ShootingStar) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ShootingStar) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -36834,11 +42991,13 @@ func (ind *ShootingStar) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_shooting_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_shooting_star_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -36846,7 +43005,7 @@ func (ind *ShootingStar) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -36914,8 +43073,17 @@ func (ind *ShortLine) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ShortLine) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ShortLine) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -36932,11 +43100,13 @@ func (ind *ShortLine) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_short_line_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_short_line_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -36944,7 +43114,7 @@ func (ind *ShortLine) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37012,8 +43182,17 @@ func (ind *SignedVolume) Update(price float64, size float64, isBuy bool, timesta
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SignedVolume) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SignedVolume) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -37024,17 +43203,19 @@ func (ind *SignedVolume) Batch(price []float64, size []float64, isBuy []bool, ti
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_signed_volume_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_signed_volume_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37102,17 +43283,55 @@ func (ind *SineWave) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SineWave) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SineWave) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_sine_wave_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_sine_wave_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *SineWave) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SineWave) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_sine_wave_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37184,17 +43403,55 @@ func (ind *SineWeightedMa) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SineWeightedMa) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SineWeightedMa) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_sine_weighted_ma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_sine_weighted_ma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *SineWeightedMa) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SineWeightedMa) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_sine_weighted_ma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37270,8 +43527,17 @@ func (ind *SinglePrints) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SinglePrints) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SinglePrints) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -37288,11 +43554,13 @@ func (ind *SinglePrints) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_single_prints_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_single_prints_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -37300,7 +43568,7 @@ func (ind *SinglePrints) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37372,17 +43640,55 @@ func (ind *Skewness) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Skewness) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Skewness) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_skewness_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_skewness_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Skewness) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Skewness) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_skewness_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37454,17 +43760,55 @@ func (ind *Sma) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Sma) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Sma) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_sma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_sma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Sma) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Sma) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_sma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37544,8 +43888,17 @@ func (ind *Smi) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Smi) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Smi) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -37562,11 +43915,13 @@ func (ind *Smi) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_smi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_smi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -37574,7 +43929,7 @@ func (ind *Smi) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37646,17 +44001,55 @@ func (ind *Smma) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Smma) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Smma) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_smma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_smma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Smma) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Smma) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_smma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37839,17 +44232,55 @@ func (ind *SortinoRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SortinoRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SortinoRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_sortino_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_sortino_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *SortinoRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SortinoRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_sortino_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -37921,21 +44352,32 @@ func (ind *SpearmanCorrelation) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SpearmanCorrelation) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SpearmanCorrelation) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_spearman_correlation_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_spearman_correlation_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -38003,8 +44445,17 @@ func (ind *SpinningTop) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SpinningTop) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SpinningTop) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -38021,11 +44472,13 @@ func (ind *SpinningTop) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_spinning_top_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_spinning_top_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -38033,7 +44486,7 @@ func (ind *SpinningTop) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -38105,21 +44558,32 @@ func (ind *SpreadAr1Coefficient) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SpreadAr1Coefficient) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SpreadAr1Coefficient) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_spread_ar1_coefficient_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_spread_ar1_coefficient_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -38286,21 +44750,32 @@ func (ind *SpreadHurst) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SpreadHurst) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SpreadHurst) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_spread_hurst_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_spread_hurst_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -38368,8 +44843,17 @@ func (ind *StalledPattern) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *StalledPattern) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StalledPattern) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -38386,11 +44870,13 @@ func (ind *StalledPattern) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_stalled_pattern_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_stalled_pattern_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -38398,7 +44884,7 @@ func (ind *StalledPattern) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -38470,17 +44956,55 @@ func (ind *StandardError) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *StandardError) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StandardError) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_standard_error_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_standard_error_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *StandardError) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StandardError) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_standard_error_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -38766,17 +45290,55 @@ func (ind *Stc) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Stc) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Stc) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_stc_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_stc_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Stc) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Stc) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_stc_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -38848,17 +45410,55 @@ func (ind *StdDev) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *StdDev) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StdDev) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_std_dev_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_std_dev_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *StdDev) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StdDev) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_std_dev_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -38926,17 +45526,55 @@ func (ind *StepTrailingStop) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *StepTrailingStop) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StepTrailingStop) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_step_trailing_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_step_trailing_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *StepTrailingStop) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StepTrailingStop) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_step_trailing_stop_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39008,17 +45646,55 @@ func (ind *SterlingRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SterlingRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SterlingRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_sterling_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_sterling_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *SterlingRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SterlingRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_sterling_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39086,8 +45762,17 @@ func (ind *StickSandwich) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *StickSandwich) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StickSandwich) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -39104,11 +45789,13 @@ func (ind *StickSandwich) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_stick_sandwich_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_stick_sandwich_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -39116,7 +45803,7 @@ func (ind *StickSandwich) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39192,17 +45879,55 @@ func (ind *StochRsi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *StochRsi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StochRsi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_stoch_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_stoch_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *StochRsi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StochRsi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_stoch_rsi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39389,8 +46114,17 @@ func (ind *StochasticCci) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *StochasticCci) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *StochasticCci) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -39407,11 +46141,13 @@ func (ind *StochasticCci) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_stochastic_cci_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_stochastic_cci_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -39419,7 +46155,7 @@ func (ind *StochasticCci) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39491,17 +46227,55 @@ func (ind *SuperSmoother) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *SuperSmoother) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SuperSmoother) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_super_smoother_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_super_smoother_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *SuperSmoother) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *SuperSmoother) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_super_smoother_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39684,17 +46458,55 @@ func (ind *T3) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *T3) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *T3) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_t3_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_t3_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *T3) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *T3) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_t3_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39766,17 +46578,55 @@ func (ind *TailRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TailRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TailRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tail_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tail_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *TailRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TailRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_tail_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39844,8 +46694,17 @@ func (ind *TakerBuySellRatio) Update(fundingRate float64, markPrice float64, ind
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TakerBuySellRatio) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TakerBuySellRatio) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -39880,11 +46739,13 @@ func (ind *TakerBuySellRatio) Batch(fundingRate []float64, markPrice []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_taker_buy_sell_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_taker_buy_sell_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -39898,7 +46759,7 @@ func (ind *TakerBuySellRatio) Batch(fundingRate []float64, markPrice []float64, 
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -39966,8 +46827,17 @@ func (ind *Takuri) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Takuri) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Takuri) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -39984,11 +46854,13 @@ func (ind *Takuri) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_takuri_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_takuri_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -39996,7 +46868,7 @@ func (ind *Takuri) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40064,8 +46936,17 @@ func (ind *TasukiGap) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TasukiGap) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TasukiGap) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40082,11 +46963,13 @@ func (ind *TasukiGap) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tasuki_gap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tasuki_gap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40094,7 +46977,7 @@ func (ind *TasukiGap) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40162,8 +47045,17 @@ func (ind *TdCamouflage) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdCamouflage) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdCamouflage) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40180,11 +47072,13 @@ func (ind *TdCamouflage) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_camouflage_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_camouflage_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40192,7 +47086,7 @@ func (ind *TdCamouflage) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40260,8 +47154,17 @@ func (ind *TdClop) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdClop) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdClop) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40278,11 +47181,13 @@ func (ind *TdClop) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_clop_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_clop_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40290,7 +47195,7 @@ func (ind *TdClop) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40358,8 +47263,17 @@ func (ind *TdClopwin) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdClopwin) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdClopwin) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40376,11 +47290,13 @@ func (ind *TdClopwin) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_clopwin_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_clopwin_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40388,7 +47304,7 @@ func (ind *TdClopwin) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40472,8 +47388,17 @@ func (ind *TdCombo) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdCombo) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdCombo) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40490,11 +47415,13 @@ func (ind *TdCombo) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_combo_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_combo_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40502,7 +47429,7 @@ func (ind *TdCombo) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40586,8 +47513,17 @@ func (ind *TdCountdown) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdCountdown) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdCountdown) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40604,11 +47540,13 @@ func (ind *TdCountdown) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_countdown_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_countdown_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40616,7 +47554,7 @@ func (ind *TdCountdown) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40688,8 +47626,17 @@ func (ind *TdDWave) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdDWave) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdDWave) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40706,11 +47653,13 @@ func (ind *TdDWave) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_d_wave_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_d_wave_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40718,7 +47667,7 @@ func (ind *TdDWave) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40790,8 +47739,17 @@ func (ind *TdDeMarker) Update(open float64, high float64, low float64, close flo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdDeMarker) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdDeMarker) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40808,11 +47766,13 @@ func (ind *TdDeMarker) Batch(open []float64, high []float64, low []float64, clos
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_de_marker_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_de_marker_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40820,7 +47780,7 @@ func (ind *TdDeMarker) Batch(open []float64, high []float64, low []float64, clos
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -40888,8 +47848,17 @@ func (ind *TdDifferential) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdDifferential) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdDifferential) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -40906,11 +47875,13 @@ func (ind *TdDifferential) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_differential_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_differential_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -40918,7 +47889,7 @@ func (ind *TdDifferential) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -41216,8 +48187,17 @@ func (ind *TdOpen) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdOpen) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdOpen) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -41234,11 +48214,13 @@ func (ind *TdOpen) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_open_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_open_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -41246,7 +48228,7 @@ func (ind *TdOpen) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -41318,8 +48300,17 @@ func (ind *TdPressure) Update(open float64, high float64, low float64, close flo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdPressure) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdPressure) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -41336,11 +48327,13 @@ func (ind *TdPressure) Batch(open []float64, high []float64, low []float64, clos
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_pressure_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_pressure_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -41348,7 +48341,7 @@ func (ind *TdPressure) Batch(open []float64, high []float64, low []float64, clos
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -41416,8 +48409,17 @@ func (ind *TdPropulsion) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdPropulsion) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdPropulsion) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -41434,11 +48436,13 @@ func (ind *TdPropulsion) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_propulsion_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_propulsion_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -41446,7 +48450,7 @@ func (ind *TdPropulsion) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -41625,8 +48629,17 @@ func (ind *TdRei) Update(open float64, high float64, low float64, close float64,
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdRei) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdRei) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -41643,11 +48656,13 @@ func (ind *TdRei) Batch(open []float64, high []float64, low []float64, close []f
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_rei_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_rei_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -41655,7 +48670,7 @@ func (ind *TdRei) Batch(open []float64, high []float64, low []float64, close []f
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -41969,8 +48984,17 @@ func (ind *TdSetup) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdSetup) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdSetup) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -41987,11 +49011,13 @@ func (ind *TdSetup) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_setup_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_setup_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -41999,7 +49025,7 @@ func (ind *TdSetup) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42067,8 +49093,17 @@ func (ind *TdTrap) Update(open float64, high float64, low float64, close float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TdTrap) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TdTrap) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -42085,11 +49120,13 @@ func (ind *TdTrap) Batch(open []float64, high []float64, low []float64, close []
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_td_trap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_td_trap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -42097,7 +49134,7 @@ func (ind *TdTrap) Batch(open []float64, high []float64, low []float64, close []
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42169,17 +49206,55 @@ func (ind *Tema) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Tema) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tema) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Tema) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tema) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_tema_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42247,8 +49322,17 @@ func (ind *TermStructureBasis) Update(fundingRate float64, markPrice float64, in
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TermStructureBasis) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(fundingRate))
+	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TermStructureBasis) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
 	n := len(fundingRate)
 	if len(markPrice) != n {
 		panic("wickra: all input slices must have the same length")
@@ -42283,11 +49367,13 @@ func (ind *TermStructureBasis) Batch(fundingRate []float64, markPrice []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_term_structure_basis_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_term_structure_basis_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(fundingRate)
 	runtime.KeepAlive(markPrice)
@@ -42301,7 +49387,7 @@ func (ind *TermStructureBasis) Batch(fundingRate []float64, markPrice []float64,
 	runtime.KeepAlive(longLiquidation)
 	runtime.KeepAlive(shortLiquidation)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42369,8 +49455,17 @@ func (ind *ThreeDrives) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ThreeDrives) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ThreeDrives) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -42387,11 +49482,13 @@ func (ind *ThreeDrives) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_three_drives_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_three_drives_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -42399,7 +49496,7 @@ func (ind *ThreeDrives) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42467,8 +49564,17 @@ func (ind *ThreeInside) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ThreeInside) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ThreeInside) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -42485,11 +49591,13 @@ func (ind *ThreeInside) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_three_inside_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_three_inside_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -42497,7 +49605,7 @@ func (ind *ThreeInside) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42569,8 +49677,17 @@ func (ind *ThreeLineBreak) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ThreeLineBreak) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ThreeLineBreak) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -42587,11 +49704,13 @@ func (ind *ThreeLineBreak) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_three_line_break_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_three_line_break_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -42599,7 +49718,7 @@ func (ind *ThreeLineBreak) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42785,8 +49904,17 @@ func (ind *ThreeLineStrike) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ThreeLineStrike) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ThreeLineStrike) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -42803,11 +49931,13 @@ func (ind *ThreeLineStrike) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_three_line_strike_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_three_line_strike_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -42815,7 +49945,7 @@ func (ind *ThreeLineStrike) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42883,8 +50013,17 @@ func (ind *ThreeOutside) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ThreeOutside) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ThreeOutside) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -42901,11 +50040,13 @@ func (ind *ThreeOutside) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_three_outside_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_three_outside_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -42913,7 +50054,7 @@ func (ind *ThreeOutside) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -42981,8 +50122,17 @@ func (ind *ThreeSoldiersOrCrows) Update(open float64, high float64, low float64,
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ThreeSoldiersOrCrows) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ThreeSoldiersOrCrows) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -42999,11 +50149,13 @@ func (ind *ThreeSoldiersOrCrows) Batch(open []float64, high []float64, low []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_three_soldiers_or_crows_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_three_soldiers_or_crows_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -43011,7 +50163,7 @@ func (ind *ThreeSoldiersOrCrows) Batch(open []float64, high []float64, low []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -43079,8 +50231,17 @@ func (ind *ThreeStarsInSouth) Update(open float64, high float64, low float64, cl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ThreeStarsInSouth) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ThreeStarsInSouth) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -43097,11 +50258,13 @@ func (ind *ThreeStarsInSouth) Batch(open []float64, high []float64, low []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_three_stars_in_south_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_three_stars_in_south_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -43109,7 +50272,7 @@ func (ind *ThreeStarsInSouth) Batch(open []float64, high []float64, low []float6
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -43177,8 +50340,17 @@ func (ind *Thrusting) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Thrusting) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Thrusting) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -43195,11 +50367,13 @@ func (ind *Thrusting) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_thrusting_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_thrusting_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -43207,7 +50381,7 @@ func (ind *Thrusting) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -43576,17 +50750,55 @@ func (ind *Tii) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Tii) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tii) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tii_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tii_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Tii) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tii) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_tii_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -43658,8 +50870,17 @@ func (ind *TimeBasedStop) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TimeBasedStop) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TimeBasedStop) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -43676,11 +50897,13 @@ func (ind *TimeBasedStop) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_time_based_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_time_based_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -43688,7 +50911,7 @@ func (ind *TimeBasedStop) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -43869,8 +51092,17 @@ func (ind *TowerTopBottom) Update(open float64, high float64, low float64, close
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TowerTopBottom) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TowerTopBottom) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -43887,11 +51119,13 @@ func (ind *TowerTopBottom) Batch(open []float64, high []float64, low []float64, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tower_top_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tower_top_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -43899,7 +51133,7 @@ func (ind *TowerTopBottom) Batch(open []float64, high []float64, low []float64, 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44090,8 +51324,17 @@ func (ind *TradeImbalance) Update(price float64, size float64, isBuy bool, times
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TradeImbalance) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TradeImbalance) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -44102,17 +51345,19 @@ func (ind *TradeImbalance) Batch(price []float64, size []float64, isBuy []bool, 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_trade_imbalance_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_trade_imbalance_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44184,8 +51429,17 @@ func (ind *TradeSignAutocorrelation) Update(price float64, size float64, isBuy b
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TradeSignAutocorrelation) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TradeSignAutocorrelation) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -44196,17 +51450,19 @@ func (ind *TradeSignAutocorrelation) Batch(price []float64, size []float64, isBu
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_trade_sign_autocorrelation_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_trade_sign_autocorrelation_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44274,8 +51530,17 @@ func (ind *TradeVolumeIndex) Update(open float64, high float64, low float64, clo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TradeVolumeIndex) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TradeVolumeIndex) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -44292,11 +51557,13 @@ func (ind *TradeVolumeIndex) Batch(open []float64, high []float64, low []float64
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_trade_volume_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_trade_volume_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -44304,7 +51571,7 @@ func (ind *TradeVolumeIndex) Batch(open []float64, high []float64, low []float64
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44376,17 +51643,55 @@ func (ind *TrendLabel) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TrendLabel) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TrendLabel) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_trend_label_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_trend_label_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *TrendLabel) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TrendLabel) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_trend_label_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44458,17 +51763,55 @@ func (ind *TrendStrengthIndex) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TrendStrengthIndex) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TrendStrengthIndex) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_trend_strength_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_trend_strength_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *TrendStrengthIndex) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TrendStrengthIndex) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_trend_strength_index_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44540,17 +51883,55 @@ func (ind *Trendflex) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Trendflex) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Trendflex) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_trendflex_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_trendflex_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Trendflex) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Trendflex) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_trendflex_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44622,21 +52003,32 @@ func (ind *TreynorRatio) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TreynorRatio) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TreynorRatio) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_treynor_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_treynor_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44704,8 +52096,17 @@ func (ind *Triangle) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Triangle) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Triangle) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -44722,11 +52123,13 @@ func (ind *Triangle) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_triangle_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_triangle_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -44734,7 +52137,7 @@ func (ind *Triangle) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -44806,17 +52209,55 @@ func (ind *Trima) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Trima) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Trima) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_trima_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_trima_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Trima) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Trima) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_trima_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45014,8 +52455,17 @@ func (ind *TripleTopBottom) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TripleTopBottom) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TripleTopBottom) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -45032,11 +52482,13 @@ func (ind *TripleTopBottom) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_triple_top_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_triple_top_bottom_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -45044,7 +52496,7 @@ func (ind *TripleTopBottom) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45112,8 +52564,17 @@ func (ind *Tristar) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Tristar) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tristar) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -45130,11 +52591,13 @@ func (ind *Tristar) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tristar_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tristar_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -45142,7 +52605,7 @@ func (ind *Tristar) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45214,17 +52677,55 @@ func (ind *Trix) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Trix) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Trix) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_trix_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_trix_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Trix) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Trix) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_trix_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45292,8 +52793,17 @@ func (ind *TrueRange) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TrueRange) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TrueRange) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -45310,11 +52820,13 @@ func (ind *TrueRange) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_true_range_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_true_range_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -45322,7 +52834,7 @@ func (ind *TrueRange) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45394,17 +52906,55 @@ func (ind *Tsf) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Tsf) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tsf) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tsf_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tsf_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Tsf) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tsf) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_tsf_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45476,17 +53026,55 @@ func (ind *TsfOscillator) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TsfOscillator) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TsfOscillator) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tsf_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tsf_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *TsfOscillator) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TsfOscillator) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_tsf_oscillator_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45562,17 +53150,55 @@ func (ind *Tsi) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Tsi) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tsi) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Tsi) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tsi) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_tsi_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45644,8 +53270,17 @@ func (ind *Tsv) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Tsv) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tsv) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -45662,11 +53297,13 @@ func (ind *Tsv) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tsv_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tsv_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -45674,7 +53311,7 @@ func (ind *Tsv) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45857,8 +53494,17 @@ func (ind *TtmTrend) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TtmTrend) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TtmTrend) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -45875,11 +53521,13 @@ func (ind *TtmTrend) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ttm_trend_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ttm_trend_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -45887,7 +53535,7 @@ func (ind *TtmTrend) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -45955,8 +53603,17 @@ func (ind *TurnOfMonth) Update(open float64, high float64, low float64, close fl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TurnOfMonth) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TurnOfMonth) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -45973,11 +53630,13 @@ func (ind *TurnOfMonth) Batch(open []float64, high []float64, low []float64, clo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_turn_of_month_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_turn_of_month_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -45985,7 +53644,7 @@ func (ind *TurnOfMonth) Batch(open []float64, high []float64, low []float64, clo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46053,8 +53712,17 @@ func (ind *Tweezer) Update(open float64, high float64, low float64, close float6
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Tweezer) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Tweezer) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -46071,11 +53739,13 @@ func (ind *Tweezer) Batch(open []float64, high []float64, low []float64, close [
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_tweezer_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_tweezer_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -46083,7 +53753,7 @@ func (ind *Tweezer) Batch(open []float64, high []float64, low []float64, close [
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46155,8 +53825,17 @@ func (ind *TwiggsMoneyFlow) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TwiggsMoneyFlow) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TwiggsMoneyFlow) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -46173,11 +53852,13 @@ func (ind *TwiggsMoneyFlow) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_twiggs_money_flow_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_twiggs_money_flow_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -46185,7 +53866,7 @@ func (ind *TwiggsMoneyFlow) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46253,8 +53934,17 @@ func (ind *TwoCrows) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TwoCrows) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TwoCrows) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -46271,11 +53961,13 @@ func (ind *TwoCrows) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_two_crows_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_two_crows_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -46283,7 +53975,7 @@ func (ind *TwoCrows) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46351,8 +54043,17 @@ func (ind *TypicalPrice) Update(open float64, high float64, low float64, close f
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *TypicalPrice) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *TypicalPrice) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -46369,11 +54070,13 @@ func (ind *TypicalPrice) Batch(open []float64, high []float64, low []float64, cl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_typical_price_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_typical_price_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -46381,7 +54084,7 @@ func (ind *TypicalPrice) Batch(open []float64, high []float64, low []float64, cl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46453,17 +54156,55 @@ func (ind *UlcerIndex) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *UlcerIndex) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UlcerIndex) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ulcer_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ulcer_index_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *UlcerIndex) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UlcerIndex) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_ulcer_index_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46543,8 +54284,17 @@ func (ind *UltimateOscillator) Update(open float64, high float64, low float64, c
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *UltimateOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UltimateOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -46561,11 +54311,13 @@ func (ind *UltimateOscillator) Batch(open []float64, high []float64, low []float
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_ultimate_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_ultimate_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -46573,7 +54325,7 @@ func (ind *UltimateOscillator) Batch(open []float64, high []float64, low []float
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46641,8 +54393,17 @@ func (ind *UniqueThreeRiver) Update(open float64, high float64, low float64, clo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *UniqueThreeRiver) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UniqueThreeRiver) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -46659,11 +54420,13 @@ func (ind *UniqueThreeRiver) Batch(open []float64, high []float64, low []float64
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_unique_three_river_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_unique_three_river_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -46671,7 +54434,7 @@ func (ind *UniqueThreeRiver) Batch(open []float64, high []float64, low []float64
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46743,17 +54506,55 @@ func (ind *UniversalOscillator) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *UniversalOscillator) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UniversalOscillator) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_universal_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_universal_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *UniversalOscillator) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UniversalOscillator) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_universal_oscillator_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -46951,8 +54752,17 @@ func (ind *UpsideGapThreeMethods) Update(open float64, high float64, low float64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *UpsideGapThreeMethods) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UpsideGapThreeMethods) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -46969,11 +54779,13 @@ func (ind *UpsideGapThreeMethods) Batch(open []float64, high []float64, low []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_upside_gap_three_methods_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_upside_gap_three_methods_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -46981,7 +54793,7 @@ func (ind *UpsideGapThreeMethods) Batch(open []float64, high []float64, low []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47049,8 +54861,17 @@ func (ind *UpsideGapTwoCrows) Update(open float64, high float64, low float64, cl
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *UpsideGapTwoCrows) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UpsideGapTwoCrows) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -47067,11 +54888,13 @@ func (ind *UpsideGapTwoCrows) Batch(open []float64, high []float64, low []float6
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_upside_gap_two_crows_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_upside_gap_two_crows_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -47079,7 +54902,7 @@ func (ind *UpsideGapTwoCrows) Batch(open []float64, high []float64, low []float6
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47151,17 +54974,55 @@ func (ind *UpsidePotentialRatio) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *UpsidePotentialRatio) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UpsidePotentialRatio) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_upside_potential_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_upside_potential_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *UpsidePotentialRatio) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *UpsidePotentialRatio) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_upside_potential_ratio_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47348,17 +55209,55 @@ func (ind *ValueAtRisk) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ValueAtRisk) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ValueAtRisk) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_value_at_risk_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_value_at_risk_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *ValueAtRisk) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ValueAtRisk) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_value_at_risk_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47430,17 +55329,55 @@ func (ind *Variance) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Variance) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Variance) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_variance_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_variance_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Variance) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Variance) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_variance_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47516,21 +55453,32 @@ func (ind *VarianceRatio) Update(x float64, y float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *VarianceRatio) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VarianceRatio) BatchInto(dst []float64, x []float64, y []float64) {
 	n := len(x)
 	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_variance_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_variance_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(x)
 	runtime.KeepAlive(y)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47602,17 +55550,55 @@ func (ind *VerticalHorizontalFilter) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *VerticalHorizontalFilter) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VerticalHorizontalFilter) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_vertical_horizontal_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_vertical_horizontal_filter_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *VerticalHorizontalFilter) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VerticalHorizontalFilter) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_vertical_horizontal_filter_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47688,17 +55674,55 @@ func (ind *Vidya) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Vidya) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Vidya) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_vidya_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_vidya_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Vidya) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Vidya) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_vidya_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47889,17 +55913,55 @@ func (ind *VolatilityOfVolatility) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *VolatilityOfVolatility) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VolatilityOfVolatility) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_volatility_of_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_volatility_of_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *VolatilityOfVolatility) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VolatilityOfVolatility) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_volatility_of_volatility_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -47971,8 +56033,17 @@ func (ind *VolatilityRatio) Update(open float64, high float64, low float64, clos
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *VolatilityRatio) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VolatilityRatio) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -47989,11 +56060,13 @@ func (ind *VolatilityRatio) Batch(open []float64, high []float64, low []float64,
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_volatility_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_volatility_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -48001,7 +56074,7 @@ func (ind *VolatilityRatio) Batch(open []float64, high []float64, low []float64,
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -48073,8 +56146,17 @@ func (ind *VoltyStop) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *VoltyStop) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VoltyStop) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -48091,11 +56173,13 @@ func (ind *VoltyStop) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_volty_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_volty_stop_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -48103,7 +56187,7 @@ func (ind *VoltyStop) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -48406,8 +56490,17 @@ func (ind *VolumeOscillator) Update(open float64, high float64, low float64, clo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *VolumeOscillator) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VolumeOscillator) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -48424,11 +56517,13 @@ func (ind *VolumeOscillator) Batch(open []float64, high []float64, low []float64
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_volume_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_volume_oscillator_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -48436,7 +56531,7 @@ func (ind *VolumeOscillator) Batch(open []float64, high []float64, low []float64
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -48504,8 +56599,17 @@ func (ind *VolumePriceTrend) Update(open float64, high float64, low float64, clo
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *VolumePriceTrend) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VolumePriceTrend) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -48522,11 +56626,13 @@ func (ind *VolumePriceTrend) Batch(open []float64, high []float64, low []float64
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_volume_price_trend_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_volume_price_trend_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -48534,7 +56640,7 @@ func (ind *VolumePriceTrend) Batch(open []float64, high []float64, low []float64
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -48725,8 +56831,17 @@ func (ind *VolumeRsi) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *VolumeRsi) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *VolumeRsi) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -48743,11 +56858,13 @@ func (ind *VolumeRsi) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_volume_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_volume_rsi_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -48755,7 +56872,7 @@ func (ind *VolumeRsi) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -49168,8 +57285,17 @@ func (ind *Vpin) Update(price float64, size float64, isBuy bool, timestamp int64
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Vpin) Batch(price []float64, size []float64, isBuy []bool, timestamp []int64) []float64 {
+	out := make([]float64, len(price))
+	ind.BatchInto(out, price, size, isBuy, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Vpin) BatchInto(dst []float64, price []float64, size []float64, isBuy []bool, timestamp []int64) {
 	n := len(price)
 	if len(size) != n {
 		panic("wickra: all input slices must have the same length")
@@ -49180,17 +57306,19 @@ func (ind *Vpin) Batch(price []float64, size []float64, isBuy []bool, timestamp 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_vpin_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_vpin_batch(ind.handle, (*C.double)(unsafe.Pointer(&price[0])), (*C.double)(unsafe.Pointer(&size[0])), (*C.bool)(unsafe.Pointer(&isBuy[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(price)
 	runtime.KeepAlive(size)
 	runtime.KeepAlive(isBuy)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -49258,8 +57386,17 @@ func (ind *Vwap) Update(open float64, high float64, low float64, close float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Vwap) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Vwap) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -49276,11 +57413,13 @@ func (ind *Vwap) Batch(open []float64, high []float64, low []float64, close []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_vwap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_vwap_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -49288,7 +57427,7 @@ func (ind *Vwap) Batch(open []float64, high []float64, low []float64, close []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -49467,8 +57606,17 @@ func (ind *Vwma) Update(open float64, high float64, low float64, close float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Vwma) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Vwma) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -49485,11 +57633,13 @@ func (ind *Vwma) Batch(open []float64, high []float64, low []float64, close []fl
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_vwma_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_vwma_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -49497,7 +57647,7 @@ func (ind *Vwma) Batch(open []float64, high []float64, low []float64, close []fl
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -49569,8 +57719,17 @@ func (ind *Vzo) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Vzo) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Vzo) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -49587,11 +57746,13 @@ func (ind *Vzo) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_vzo_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_vzo_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -49599,7 +57760,7 @@ func (ind *Vzo) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -49667,8 +57828,17 @@ func (ind *Wad) Update(open float64, high float64, low float64, close float64, v
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Wad) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Wad) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -49685,11 +57855,13 @@ func (ind *Wad) Batch(open []float64, high []float64, low []float64, close []flo
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_wad_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_wad_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -49697,7 +57869,7 @@ func (ind *Wad) Batch(open []float64, high []float64, low []float64, close []flo
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -49773,17 +57945,55 @@ func (ind *WavePm) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *WavePm) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *WavePm) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_wave_pm_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_wave_pm_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *WavePm) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *WavePm) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_wave_pm_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -49970,8 +58180,17 @@ func (ind *Wedge) Update(open float64, high float64, low float64, close float64,
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Wedge) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Wedge) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -49988,11 +58207,13 @@ func (ind *Wedge) Batch(open []float64, high []float64, low []float64, close []f
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_wedge_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_wedge_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -50000,7 +58221,7 @@ func (ind *Wedge) Batch(open []float64, high []float64, low []float64, close []f
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -50068,8 +58289,17 @@ func (ind *WeightedClose) Update(open float64, high float64, low float64, close 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *WeightedClose) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *WeightedClose) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -50086,11 +58316,13 @@ func (ind *WeightedClose) Batch(open []float64, high []float64, low []float64, c
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_weighted_close_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_weighted_close_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -50098,7 +58330,7 @@ func (ind *WeightedClose) Batch(open []float64, high []float64, low []float64, c
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -50166,8 +58398,17 @@ func (ind *WickRatio) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *WickRatio) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *WickRatio) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -50184,11 +58425,13 @@ func (ind *WickRatio) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_wick_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_wick_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -50196,7 +58439,7 @@ func (ind *WickRatio) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -50375,8 +58618,17 @@ func (ind *WilliamsR) Update(open float64, high float64, low float64, close floa
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *WilliamsR) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *WilliamsR) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -50393,11 +58645,13 @@ func (ind *WilliamsR) Batch(open []float64, high []float64, low []float64, close
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_williams_r_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_williams_r_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -50405,7 +58659,7 @@ func (ind *WilliamsR) Batch(open []float64, high []float64, low []float64, close
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -50477,17 +58731,55 @@ func (ind *WinRate) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *WinRate) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *WinRate) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_win_rate_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_win_rate_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *WinRate) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *WinRate) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_win_rate_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -50559,17 +58851,55 @@ func (ind *Wma) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Wma) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Wma) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_wma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_wma_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Wma) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Wma) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_wma_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -50752,8 +59082,17 @@ func (ind *YangZhangVolatility) Update(open float64, high float64, low float64, 
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *YangZhangVolatility) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *YangZhangVolatility) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -50770,11 +59109,13 @@ func (ind *YangZhangVolatility) Batch(open []float64, high []float64, low []floa
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_yang_zhang_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_yang_zhang_volatility_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -50782,7 +59123,7 @@ func (ind *YangZhangVolatility) Batch(open []float64, high []float64, low []floa
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -50854,8 +59195,17 @@ func (ind *YoyoExit) Update(open float64, high float64, low float64, close float
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *YoyoExit) Batch(open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) []float64 {
+	out := make([]float64, len(open))
+	ind.BatchInto(out, open, high, low, close, volume, timestamp)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *YoyoExit) BatchInto(dst []float64, open []float64, high []float64, low []float64, close []float64, volume []float64, timestamp []int64) {
 	n := len(open)
 	if len(high) != n {
 		panic("wickra: all input slices must have the same length")
@@ -50872,11 +59222,13 @@ func (ind *YoyoExit) Batch(open []float64, high []float64, low []float64, close 
 	if len(timestamp) != n {
 		panic("wickra: all input slices must have the same length")
 	}
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_yoyo_exit_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_yoyo_exit_batch(ind.handle, (*C.double)(unsafe.Pointer(&open[0])), (*C.double)(unsafe.Pointer(&high[0])), (*C.double)(unsafe.Pointer(&low[0])), (*C.double)(unsafe.Pointer(&close[0])), (*C.double)(unsafe.Pointer(&volume[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(open)
 	runtime.KeepAlive(high)
@@ -50884,7 +59236,7 @@ func (ind *YoyoExit) Batch(open []float64, high []float64, low []float64, close 
 	runtime.KeepAlive(close)
 	runtime.KeepAlive(volume)
 	runtime.KeepAlive(timestamp)
-	return out
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -50956,17 +59308,55 @@ func (ind *ZScore) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *ZScore) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ZScore) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_z_score_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_z_score_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *ZScore) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *ZScore) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_z_score_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.
@@ -51244,17 +59634,55 @@ func (ind *Zlema) Update(value float64) float64 {
 }
 
 // Batch runs the indicator over a whole slice in one FFI call and
-// returns the per-element output (NaN during warmup).
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
 func (ind *Zlema) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Zlema) BatchInto(dst []float64, input []float64) {
 	n := len(input)
-	out := make([]float64, n)
-	if n == 0 {
-		return out
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
 	}
-	C.wickra_zlema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&out[0])), C.uintptr_t(n))
+	if n == 0 {
+		return
+	}
+	C.wickra_zlema_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *Zlema) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
 	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *Zlema) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_zlema_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
 }
 
 // Reset clears all internal state, returning the indicator to warmup.

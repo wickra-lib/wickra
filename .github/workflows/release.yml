@@ -32,7 +32,7 @@ env:
 
 jobs:
   # --------------------------------------------------------------------------
-  # crates.io: three crates in dependency order
+  # crates.io: four crates in dependency order
   # --------------------------------------------------------------------------
   # Nothing reaches a registry until every artefact exists and the tagged commit
   # is known to have been green. Before this job, cargo-publish and wasm-publish
@@ -168,6 +168,27 @@ jobs:
 
       # Idempotent publishing: if the version is already on crates.io we
       # treat that as success so re-runs of the workflow don't fail.
+      # wickra-simd first: wickra-core depends on it, and crates.io rejects a
+      # crate whose dependency version it does not know yet.
+      - name: Publish wickra-simd (idempotent)
+        run: |
+          # if/then rather than `A && B || C`: that form runs C when B fails, not
+          # only when A does, so a failing echo would read as a failed publish
+          # (shellcheck SC2015).
+          if out=$(cargo publish -p wickra-simd --token "$CARGO_REGISTRY_TOKEN" 2>&1); then
+            echo "$out"
+          elif printf '%s' "$out" | grep -q "already uploaded\|already exists"; then
+            echo "skip: already published"
+          else
+            echo "$out"
+            exit 1
+          fi
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io index to refresh
+        run: sleep 45
+
       - name: Publish wickra-core (idempotent)
         run: |
           # if/then rather than `A && B || C`: that form runs C when B fails, not
@@ -232,6 +253,7 @@ jobs:
       # actually builds before it is attached to the release.
       - name: Build .crate files for release attachment
         run: |
+          cargo package -p wickra-simd
           cargo package -p wickra-core
           cargo package -p wickra-data
           cargo package -p wickra
@@ -256,10 +278,11 @@ jobs:
         run: |
           # cargo-cyclonedx walks the whole workspace in a single pass and
           # writes a <package>.cdx.json next to each member's Cargo.toml; it
-          # has no -p/--package selector. Collect the three crates.io crates
+          # has no -p/--package selector. Collect the four crates.io crates
           # (the .crate files published by this job) into the upload dir.
           cargo cyclonedx --format json --top-level
           mkdir -p sboms
+          cp crates/wickra-simd/wickra-simd.cdx.json sboms/
           cp crates/wickra-core/wickra-core.cdx.json sboms/
           cp crates/wickra-data/wickra-data.cdx.json sboms/
           cp crates/wickra/wickra.cdx.json sboms/
@@ -798,6 +821,11 @@ jobs:
             pkg.license = 'MIT OR Apache-2.0';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
+
+      - name: List the inline_js snippets in the package files
+        # wasm-pack leaves snippets/ out of `files`; without it the packed
+        # module fails to load. CI loads the packed tarball to prove the fix.
+        run: node bindings/wasm/scripts/package-files.mjs bindings/wasm/pkg
 
       - name: Pack wickra-wasm for release attachment
         working-directory: bindings/wasm/pkg
@@ -1431,7 +1459,7 @@ jobs:
             - `wickra.*.node` — native Node.js bindings (linux-x64-gnu, darwin-x64,
               darwin-arm64, win32-x64-msvc)
             - `wickra-*.tgz` — npm-pack tarballs (main package + per-platform subpackages + WASM)
-            - `*.crate` — cargo source crates (wickra-core, wickra-data, wickra)
+            - `*.crate` — cargo source crates (wickra-simd, wickra-core, wickra-data, wickra)
             - `wickra-c-<target>.tar.gz` — C ABI: `include/wickra.h` + `wickra.hpp`
               and the cdylib/staticlib per target (linux/macos/windows × x64/arm64),
               the hub for C, C++, C#, Go, Java and R

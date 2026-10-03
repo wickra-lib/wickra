@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,9 @@ public final class WoodiePivots implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_WOODIE_PIVOTS_UPDATE;
+    /** Where update receives its result, allocated once. */
+    private final MemorySegment updateOut = Arena.ofAuto().allocate(40L);
 
     public WoodiePivots() {
         MemorySegment h;
@@ -31,9 +35,9 @@ public final class WoodiePivots implements AutoCloseable {
 
     /** Push one observation; returns the result, or null during warmup. */
     public WoodiePivotsOutput update(double open, double high, double low, double close, double volume, long timestamp) {
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment out = a.allocate(40L);
-            byte ok = (byte) NativeMethods.WICKRA_WOODIE_PIVOTS_UPDATE.invokeExact(handle(), open, high, low, close, volume, timestamp, out);
+        try {
+            MemorySegment out = updateOut;
+            byte ok = (byte) UPDATE.invokeExact(handle(), open, high, low, close, volume, timestamp, out);
             if (ok == 0) {
                 return null;
             }
@@ -91,6 +95,70 @@ public final class WoodiePivots implements AutoCloseable {
                         outSeg.get(JAVA_DOUBLE, i * 40L + 32L));
             }
             return out;
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * The batch into a flat buffer of
+     * 5 doubles per input, one row per input in the order of {@link WoodiePivotsOutput}'s
+     * components (NaN rows during warmup), without allocating the records.
+     * 
+     * <p>{@code output} must hold 5 values per input.
+     */
+    public void batchInto(double[] open, double[] high, double[] low, double[] close, double[] volume, long[] timestamp, double[] output) {
+        int n = open.length;
+        if (high.length != n) {
+            throw new IllegalArgumentException("all input arrays must have the same length");
+        }
+        if (low.length != n) {
+            throw new IllegalArgumentException("all input arrays must have the same length");
+        }
+        if (close.length != n) {
+            throw new IllegalArgumentException("all input arrays must have the same length");
+        }
+        if (volume.length != n) {
+            throw new IllegalArgumentException("all input arrays must have the same length");
+        }
+        if (timestamp.length != n) {
+            throw new IllegalArgumentException("all input arrays must have the same length");
+        }
+        if (output.length != (long) n * 5) {
+            throw new IllegalArgumentException("the output array must hold 5 values per input");
+        }
+        try {
+            WickraNative.heapDowncall("wickra_woodie_pivots_batch", NativeMethods.WICKRA_WOODIE_PIVOTS_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(open), MemorySegment.ofArray(high), MemorySegment.ofArray(low), MemorySegment.ofArray(close), MemorySegment.ofArray(volume), MemorySegment.ofArray(timestamp), MemorySegment.ofArray(output), (long) n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * The batch into a flat buffer of
+     * 5 doubles per input, one row per input in the order of {@link WoodiePivotsOutput}'s
+     * components (NaN rows during warmup), without allocating the records.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every input segment must be
+     * off-heap, aligned for its element type and hold the same number of elements,
+     * {@code output} 5 doubles per input. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment open, MemorySegment high, MemorySegment low, MemorySegment close, MemorySegment volume, MemorySegment timestamp, MemorySegment output) {
+        long n = open.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(open, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(high, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(low, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(close, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(volume, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(timestamp, JAVA_LONG, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n * 5);
+        try {
+            NativeMethods.WICKRA_WOODIE_PIVOTS_BATCH.invokeExact(handle(), open, high, low, close, volume, timestamp, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
 use crate::indicators::rolling_moments::ShiftedMoments;
+use crate::indicators::sorted_window;
 use crate::ohlcv::Candle;
 use crate::traits::Indicator;
 
@@ -73,7 +74,8 @@ pub struct VolatilityCone {
     ret_moments: ShiftedMoments,
     /// Rolling window of realized-volatility readings (the cone envelope).
     vols: VecDeque<f64>,
-    /// Reusable scratch buffer to avoid allocating per `update`.
+    /// The window's values in `total_cmp` order, kept sorted as it slides:
+    /// bit for bit what sorting a copy of the window would give.
     scratch: Vec<f64>,
     last: Option<VolatilityConeOutput>,
 }
@@ -156,16 +158,15 @@ impl Indicator for VolatilityCone {
 
         // Stage two: maintain the lookback envelope of volatility readings.
         if self.vols.len() == self.lookback {
-            self.vols.pop_front();
+            let oldest = self.vols.pop_front().expect("window is full");
+            sorted_window::remove(&mut self.scratch, oldest);
         }
         self.vols.push_back(current);
+        sorted_window::insert(&mut self.scratch, current);
         if self.vols.len() < self.lookback {
             return None;
         }
 
-        self.scratch.clear();
-        self.scratch.extend(self.vols.iter().copied());
-        self.scratch.sort_unstable_by(f64::total_cmp);
         let min = self.scratch[0];
         let max = self.scratch[self.lookback - 1];
         let mid = self.lookback / 2;

@@ -32,7 +32,9 @@ pip install wickra
 Pre-built wheels ship for Linux, macOS, and Windows — there is nothing to
 compile and no C library to track down. `pip install wickra` pulls **zero**
 third-party packages; NumPy is an optional extra (`pip install wickra[numpy]`)
-for zero-copy interop.
+for zero-copy interop. A contiguous `float64` NumPy array or `array.array('d')`
+of 8,192 values or more is read in place, without a copy, and from Python 3.11
+a batch writes its result straight into the `array.array('d')` it returns.
 
 ## Quick start
 
@@ -55,6 +57,24 @@ for price in live_feed:
 
 `batch(prices)` and feeding the same prices through `update()` produce
 identical values — the equivalence is enforced by the test suite.
+
+### The opt-in fast batch
+
+Every single-output indicator (and MACD, Bollinger Bands, ATR, the Chaikin
+oscillator and Pearson correlation) also has `batch_fast`, with the same
+arguments and the same return shape:
+
+```python
+values = ta.EMA(20).batch_fast(prices)
+```
+
+It runs a SIMD kernel where the indicator has one (moving averages, RSI, ATR,
+MACD, Bollinger, Chaikin, skewness, Pearson and more). The kernel reassociates
+the arithmetic, so each value agrees with `batch` to within a few units in the
+last place rather than bit for bit; NaN placement and length are identical, and
+the result is the same on every platform. Where there is no kernel,
+`batch_fast` is `batch` exactly. Use `batch` when you need reproducible bits
+against streaming; use `batch_fast` for throughput.
 
 ## Benchmark
 

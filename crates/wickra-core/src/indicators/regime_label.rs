@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use crate::error::{Error, Result};
 use crate::indicators::rolling_moments::ShiftedMoments;
 use crate::indicators::rolling_quantile::quantile_sorted;
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Regime Label — a discrete `{−1, 0, +1}` classification of the current
@@ -55,7 +56,8 @@ pub struct RegimeLabel {
     ret_moments: ShiftedMoments,
     /// Trailing window of the last `lookback` volatility readings.
     vol_window: VecDeque<f64>,
-    /// Reusable scratch buffer for the quantile sort.
+    /// The window's values in `total_cmp` order, kept sorted as it slides:
+    /// bit for bit what sorting a copy of the window would give.
     scratch: Vec<f64>,
     last: Option<f64>,
 }
@@ -139,16 +141,15 @@ impl Indicator for RegimeLabel {
         let vol = self.ret_moments.sample_variance(self.vol_period).sqrt();
         // Roll the volatility window.
         if self.vol_window.len() == self.lookback {
-            self.vol_window.pop_front();
+            let oldest = self.vol_window.pop_front().expect("window is full");
+            sorted_window::remove(&mut self.scratch, oldest);
         }
         self.vol_window.push_back(vol);
+        sorted_window::insert(&mut self.scratch, vol);
         if self.vol_window.len() < self.lookback {
             return None;
         }
         // Classify the latest volatility against the quartiles of the window.
-        self.scratch.clear();
-        self.scratch.extend(self.vol_window.iter().copied());
-        self.scratch.sort_by(f64::total_cmp);
         let q1 = quantile_sorted(&self.scratch, 0.25);
         let q3 = quantile_sorted(&self.scratch, 0.75);
         let label = if vol < q1 {

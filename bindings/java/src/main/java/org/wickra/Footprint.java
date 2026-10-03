@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class Footprint implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_FOOTPRINT_UPDATE;
 
     public Footprint(double tickSize) {
         MemorySegment h;
@@ -34,7 +36,7 @@ public final class Footprint implements AutoCloseable {
         final long cap = 64L;
         try (Arena a = Arena.ofConfined()) {
             MemorySegment out = a.allocate(24L * cap);
-            long n = (long) NativeMethods.WICKRA_FOOTPRINT_UPDATE.invokeExact(handle(), price, size, (byte) (isBuy ? 1 : 0), timestamp, out, cap);
+            long n = (long) UPDATE.invokeExact(handle(), price, size, (byte) (isBuy ? 1 : 0), timestamp, out, cap);
             if (n <= 0) {
                 return new FootprintLevel[0];
             }

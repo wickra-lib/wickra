@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Cross-library benchmark for .NET: Wickra against QuanTAlib, TA-Lib
+       (TALib.NETCore), Skender.Stock.Indicators and OoplesFinance, on
+       QuanTAlib's own setup (500,000 GBM bars, period 220, BenchmarkDotNet
+       ShortRun). See README.md. net10.0 because QuanTAlib 0.8.12 ships for
+       .NET 10 (and .NET Framework 4.8) only. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Wickra.CrossLibrary</AssemblyName>
+    <RootNamespace>Wickra.CrossLibrary</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- This checkout's binding; the native library comes from target/release. -->
+    <ProjectReference Include="..\Wickra\Wickra.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QuanTAlib" Version="0.8.12" />
+    <PackageReference Include="TALib.NETCore" Version="0.5.0" />
+    <PackageReference Include="Skender.Stock.Indicators" Version="2.6.1" />
+    <PackageReference Include="OoplesFinance.StockIndicators" Version="1.1.0" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.3" />
+  </ItemGroup>
+
+</Project>

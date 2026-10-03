@@ -76,6 +76,37 @@ impl Indicator for Dema {
     fn name(&self) -> &'static str {
         "DEMA"
     }
+
+    /// SIMD kernel: the warmup runs the exact EMA recurrence until both EMAs
+    /// are seeded (those values match the exact batch to the bit), then both
+    /// EMAs run as chained linear-recurrence scans over stack blocks. Agrees
+    /// with the exact batch to within a few units in the last place; warmup
+    /// `NaN`s and length are identical. Afterwards both EMAs continue
+    /// streaming from the kernel's last values.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        if !(self.ema1.is_fresh() && self.ema2.is_fresh())
+            || inputs.len() < 2 * p - 1
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        let (e1, e2) = wickra_simd::dispatch(crate::fast::DemaFast {
+            x: inputs,
+            period: p,
+            alpha: self.ema1.alpha(),
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        self.ema1.seed_to(e1);
+        self.ema2.seed_to(e2);
+    }
 }
 
 #[cfg(test)]

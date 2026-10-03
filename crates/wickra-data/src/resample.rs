@@ -209,10 +209,10 @@ mod tests {
     #[test]
     fn rejects_out_of_order_candle() {
         let mut r = Resampler::new(Timeframe::new(5).unwrap());
-        assert!(r
-            .push(c(10, 10.0, 11.0, 9.0, 10.5, 1.0))
-            .unwrap()
-            .is_empty());
+        assert_eq!(
+            r.push(c(10, 10.0, 11.0, 9.0, 10.5, 1.0)).unwrap(),
+            Vec::new()
+        );
         // A candle in an earlier bucket than the open bar is rejected.
         let err = r.push(c(2, 10.0, 11.0, 9.0, 10.5, 1.0)).unwrap_err();
         assert!(matches!(err, Error::Malformed(_)));
@@ -221,11 +221,14 @@ mod tests {
     #[test]
     fn same_bucket_candles_aggregate() {
         let mut r = Resampler::new(Timeframe::new(5).unwrap());
-        assert!(r.push(c(0, 10.0, 11.0, 9.0, 10.5, 1.0)).unwrap().is_empty());
-        assert!(r
-            .push(c(3, 10.5, 12.0, 10.0, 11.0, 1.0))
-            .unwrap()
-            .is_empty());
+        assert_eq!(
+            r.push(c(0, 10.0, 11.0, 9.0, 10.5, 1.0)).unwrap(),
+            Vec::new()
+        );
+        assert_eq!(
+            r.push(c(3, 10.5, 12.0, 10.0, 11.0, 1.0)).unwrap(),
+            Vec::new()
+        );
         let bar = r.flush().unwrap().unwrap();
         assert_eq!(bar.high, 12.0);
         assert_eq!(bar.low, 9.0);
@@ -249,14 +252,14 @@ mod tests {
     fn flushes_a_non_finite_volume_as_an_error() {
         let mut r = Resampler::new(Timeframe::new(5).unwrap());
         // Two near-max volumes in the same bucket sum to +inf.
-        assert!(r
-            .push(c(0, 10.0, 11.0, 9.0, 10.5, f64::MAX))
-            .unwrap()
-            .is_empty());
-        assert!(r
-            .push(c(1, 10.0, 11.0, 9.0, 10.5, f64::MAX))
-            .unwrap()
-            .is_empty());
+        assert_eq!(
+            r.push(c(0, 10.0, 11.0, 9.0, 10.5, f64::MAX)).unwrap(),
+            Vec::new()
+        );
+        assert_eq!(
+            r.push(c(1, 10.0, 11.0, 9.0, 10.5, f64::MAX)).unwrap(),
+            Vec::new()
+        );
         let err = r.flush().unwrap_err();
         assert!(matches!(err, Error::Core(_)));
     }

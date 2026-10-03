@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class PearsonCorrelation implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_PEARSON_CORRELATION_UPDATE;
 
     public PearsonCorrelation(int period) {
         if (period < 0) {
@@ -35,7 +37,7 @@ public final class PearsonCorrelation implements AutoCloseable {
     /** Push one observation; returns the indicator value (NaN during warmup). */
     public double update(double x, double y) {
         try {
-            return (double) NativeMethods.WICKRA_PEARSON_CORRELATION_UPDATE.invokeExact(handle(), x, y);
+            return (double) UPDATE.invokeExact(handle(), x, y);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {
@@ -43,20 +45,120 @@ public final class PearsonCorrelation implements AutoCloseable {
         }
     }
 
-    /** Vectorized update over a whole series; NaN at warmup positions. */
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     */
     public double[] batch(double[] x, double[] y) {
+        double[] output = new double[x.length];
+        batchInto(x, y, output);
+        return output;
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Writes into {@code output}, which must be as long as the input.
+     */
+    public void batchInto(double[] x, double[] y, double[] output) {
         int n = x.length;
         if (y.length != n) {
             throw new IllegalArgumentException("all input arrays must have the same length");
         }
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment xSeg = a.allocateFrom(JAVA_DOUBLE, x);
-            MemorySegment ySeg = a.allocateFrom(JAVA_DOUBLE, y);
-            MemorySegment outSeg = a.allocate(JAVA_DOUBLE.byteSize() * n);
-            NativeMethods.WICKRA_PEARSON_CORRELATION_BATCH.invokeExact(handle(), xSeg, ySeg, outSeg, (long) n);
-            double[] out = new double[n];
-            MemorySegment.copy(outSeg, JAVA_DOUBLE, 0L, out, 0, n);
-            return out;
+        if (output.length != n) {
+            throw new IllegalArgumentException("the output array must be as long as the input");
+        }
+        try {
+            WickraNative.heapDowncall("wickra_pearson_correlation_batch", NativeMethods.WICKRA_PEARSON_CORRELATION_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(x), MemorySegment.ofArray(y), MemorySegment.ofArray(output), (long) n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Vectorized update over a whole series; NaN at warmup positions, bit for
+     * bit what feeding the values one by one through {@code update} gives.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every segment must be
+     * off-heap, aligned for its element type, and hold the same number of
+     * elements, {@code output} as many doubles. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment x, MemorySegment y, MemorySegment output) {
+        long n = x.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(x, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(y, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n);
+        try {
+            NativeMethods.WICKRA_PEARSON_CORRELATION_BATCH.invokeExact(handle(), x, y, output, n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each
+     * value agrees with {@code batch} to within a few units in the last place
+     * rather than bit for bit; NaN placement and length are identical, and the
+     * result is the same on every platform. Without a kernel it is exactly
+     * {@code batch}.
+     */
+    public double[] batchFast(double[] x, double[] y) {
+        double[] output = new double[x.length];
+        batchFastInto(x, y, output);
+        return output;
+    }
+
+    /**
+     * Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each
+     * value agrees with {@code batch} to within a few units in the last place
+     * rather than bit for bit; NaN placement and length are identical, and the
+     * result is the same on every platform. Without a kernel it is exactly
+     * {@code batch}.
+     * 
+     * <p>Writes into {@code output}, which must be as long as the input.
+     */
+    public void batchFastInto(double[] x, double[] y, double[] output) {
+        int n = x.length;
+        if (y.length != n) {
+            throw new IllegalArgumentException("all input arrays must have the same length");
+        }
+        if (output.length != n) {
+            throw new IllegalArgumentException("the output array must be as long as the input");
+        }
+        try {
+            WickraNative.heapDowncall("wickra_pearson_correlation_batch_fast", NativeMethods.WICKRA_PEARSON_CORRELATION_BATCH_FAST)
+                    .invokeExact(handle(), MemorySegment.ofArray(x), MemorySegment.ofArray(y), MemorySegment.ofArray(output), (long) n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each
+     * value agrees with {@code batch} to within a few units in the last place
+     * rather than bit for bit; NaN placement and length are identical, and the
+     * result is the same on every platform. Without a kernel it is exactly
+     * {@code batch}.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every segment must be
+     * off-heap, aligned for its element type, and hold the same number of
+     * elements, {@code output} as many doubles. Nothing is copied or allocated.
+     */
+    public void batchFastInto(MemorySegment x, MemorySegment y, MemorySegment output) {
+        long n = x.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(x, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(y, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n);
+        try {
+            NativeMethods.WICKRA_PEARSON_CORRELATION_BATCH_FAST.invokeExact(handle(), x, y, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

@@ -54,6 +54,29 @@ Constructors mirror the other bindings (`new SMA(20)`, `new MACD(12, 26, 9)`,
 `new BollingerBands(20, 2.0)`, …); `update()` returns the latest value or
 `null` while the indicator is still warming up.
 
+### Batch, caller buffers, and the opt-in fast batch
+
+`batch(prices)` runs a whole `Float64Array` in one call and returns a
+`Float64Array`, `NaN` during warmup — bit for bit what `update()` gives. The
+single-output indicators (and MACD, Bollinger Bands, ATR, the Chaikin
+oscillator and Pearson correlation) add three methods:
+
+```js
+const out = new Float64Array(prices.length);
+new SMA(20).batchInto(prices, out);              // batch() into a reused buffer
+const fast = new EMA(20).batchFast(prices);      // the opt-in fast batch
+new EMA(20).batchFastInto(prices, out);
+```
+
+`batchFast` runs a kernel where the indicator has one (moving averages, RSI,
+ATR, MACD, Bollinger, Chaikin, skewness, Pearson and more). The kernel
+reassociates the arithmetic, so each value agrees with `batch` to within a few
+units in the last place rather than bit for bit; NaN placement and length are
+identical, and the result is the same on every platform. Where there is no
+kernel, `batchFast` is `batch` exactly. MACD and Bollinger Bands write flat rows
+(`n * 3` and `n * 4` values), as their `batch` does, and a buffer of the wrong
+length is refused before anything is consumed.
+
 ## Benchmark
 
 `benchmarks/throughput.mjs` reports streaming and batch updates-per-second for

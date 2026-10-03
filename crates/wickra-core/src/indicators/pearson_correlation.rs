@@ -1,7 +1,5 @@
 //! Rolling Pearson correlation between two synchronised series.
 
-use std::collections::VecDeque;
-
 use crate::error::{Error, Result};
 use crate::indicators::rolling_moments::ShiftedPairMoments;
 use crate::traits::Indicator;
@@ -47,7 +45,12 @@ use crate::traits::Indicator;
 #[derive(Debug, Clone)]
 pub struct PearsonCorrelation {
     period: usize,
-    window: VecDeque<(f64, f64)>,
+    /// Ring buffer of the last `period` pairs; `head` is the next slot to write
+    /// and, once full, the oldest pair.
+    buf: Box<[(f64, f64)]>,
+    head: usize,
+    /// Pairs held, saturating at `period`.
+    count: usize,
     moments: ShiftedPairMoments,
 }
 
@@ -70,7 +73,9 @@ impl PearsonCorrelation {
         }
         Ok(Self {
             period,
-            window: VecDeque::with_capacity(period),
+            buf: vec![(0.0, 0.0); period].into_boxed_slice(),
+            head: 0,
+            count: 0,
             moments: ShiftedPairMoments::new(),
         })
     }
@@ -78,6 +83,65 @@ impl PearsonCorrelation {
     /// Configured period.
     pub const fn period(&self) -> usize {
         self.period
+    }
+}
+
+impl PearsonCorrelation {
+    /// Exact batch over two columns: one output per pair (`NaN` during warmup),
+    /// bit for bit what replaying `update` gives, written into `out`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `a`, `b` and `out` differ in length.
+    pub fn batch_pairs_into(&mut self, a: &[f64], b: &[f64], out: &mut [f64]) {
+        assert!(
+            a.len() == b.len() && out.len() == a.len(),
+            "both series and the output must be equal length"
+        );
+        for ((slot, &x), &y) in out.iter_mut().zip(a).zip(b) {
+            *slot = self.update((x, y)).unwrap_or(f64::NAN);
+        }
+    }
+
+    /// Opt-in fast variant of [`batch_pairs_into`](Self::batch_pairs_into):
+    /// the shifted sums of `a`, `b`, `a²`, `b²` and `a·b` run as SIMD
+    /// prefix scans, re-centred every window like the exact accumulator, and
+    /// the correlation is finished lane-parallel. Every value
+    /// agrees with the exact batch to within a few units in the last place;
+    /// warmup `NaN`s and length are identical, and the result is the same on
+    /// every platform. Only a fresh indicator over finite values within
+    /// `1e100`, at least one window long, takes the kernel; anything else is
+    /// the exact batch. The correlation only remembers its last `period` pairs,
+    /// so afterwards the state is rebuilt exactly by replaying them.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `a`, `b` and `out` differ in length.
+    pub fn batch_pairs_fast_into(&mut self, a: &[f64], b: &[f64], out: &mut [f64]) {
+        assert!(
+            a.len() == b.len() && out.len() == a.len(),
+            "both series and the output must be equal length"
+        );
+        let p = self.period;
+        let n = a.len();
+        if self.count != 0 || n < p || !crate::fast::in_range(a) || !crate::fast::in_range(b) {
+            self.batch_pairs_into(a, b, out);
+            return;
+        }
+        crate::fast::with_scratch(crate::fast::power_scratch_len(5, p), |scratch| {
+            wickra_simd::dispatch(crate::fast::PearsonFast {
+                a,
+                b,
+                period: p,
+                scratch,
+                out,
+                _borrow: std::marker::PhantomData,
+            });
+        });
+        self.reset();
+        for (&x, &y) in a[n - p..].iter().zip(&b[n - p..]) {
+            let _ = self.update((x, y));
+        }
     }
 }
 
@@ -91,16 +155,31 @@ impl Indicator for PearsonCorrelation {
         if !x.is_finite() || !y.is_finite() {
             return None;
         }
-        if self.window.len() == self.period {
-            let (ox, oy) = self.window.pop_front().expect("non-empty");
+        // One indexed slot for both the evicted pair and the new one.
+        let slot = &mut self.buf[self.head];
+        if self.count == self.period {
+            let (ox, oy) = std::mem::replace(slot, (x, y));
             self.moments.evict(ox, oy);
+        } else {
+            *slot = (x, y);
+            self.count += 1;
         }
-        self.window.push_back((x, y));
+        self.head += 1;
+        if self.head == self.period {
+            self.head = 0;
+        }
         self.moments.push(x, y);
         if self.moments.needs_reseed(self.period) {
-            self.moments.reseed(self.window.iter().copied());
+            // Chronological order: oldest at `head` once full, `buf[..count]`
+            // while still warming up.
+            let (older, newer) = if self.count == self.period {
+                (&self.buf[self.head..], &self.buf[..self.head])
+            } else {
+                (&self.buf[..self.count], &self.buf[..0])
+            };
+            self.moments.reseed(older.iter().chain(newer).copied());
         }
-        if self.window.len() < self.period {
+        if self.count < self.period {
             return None;
         }
         let var_x = self.moments.var_a(self.period);
@@ -115,7 +194,8 @@ impl Indicator for PearsonCorrelation {
     }
 
     fn reset(&mut self) {
-        self.window.clear();
+        self.head = 0;
+        self.count = 0;
         self.moments.reset();
     }
 
@@ -126,7 +206,7 @@ impl Indicator for PearsonCorrelation {
 
     #[inline]
     fn is_ready(&self) -> bool {
-        self.window.len() == self.period
+        self.count == self.period
     }
 
     #[inline]

@@ -68,6 +68,21 @@ indicators take the OHLCV fields plus a timestamp, e.g.
 `update(atr, open, high, low, close, volume, timestamp)`. The native handle is
 freed automatically when the object is garbage-collected.
 
+### The opt-in fast batch
+
+`batch_fast()` takes the same arguments as `batch()` and returns the same shape:
+
+```r
+values <- batch_fast(Ema(20), prices)
+```
+
+It runs a SIMD kernel where the indicator has one (moving averages, RSI, ATR,
+MACD, Bollinger, Chaikin, skewness, Pearson and more). The kernel reassociates
+the arithmetic, so each value agrees with `batch()` to within a few units in the
+last place rather than bit for bit; `NA` placement and the shape are identical,
+and the result is the same on every platform. Where there is no kernel,
+`batch_fast()` is `batch()` exactly.
+
 ## Benchmark
 
 `benchmarks/throughput.R` reports streaming and batch updates-per-second for

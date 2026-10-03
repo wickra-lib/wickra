@@ -60,3 +60,6 @@ bindings/wasm/pkg-node/
 # Python venv
 .venv/
 venv/
+
+# BenchmarkDotNet reports (bindings/csharp/cross-library)
+BenchmarkDotNet.Artifacts/

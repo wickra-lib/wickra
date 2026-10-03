@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,7 @@ public final class DayOfWeekProfile implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_DAY_OF_WEEK_PROFILE_UPDATE;
     private final int valuesCapacity;
 
     public DayOfWeekProfile(int utcOffsetMinutes) {
@@ -40,7 +42,7 @@ public final class DayOfWeekProfile implements AutoCloseable {
         long cap = valuesCapacity;
         try (Arena a = Arena.ofConfined()) {
             MemorySegment values = a.allocate(JAVA_DOUBLE.byteSize() * cap);
-            long len = (long) NativeMethods.WICKRA_DAY_OF_WEEK_PROFILE_UPDATE.invokeExact(handle(), open, high, low, close, volume, timestamp, values, cap);
+            long len = (long) UPDATE.invokeExact(handle(), open, high, low, close, volume, timestamp, values, cap);
             if (len < 0) {
                 return null;
             }

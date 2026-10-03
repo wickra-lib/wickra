@@ -58,9 +58,41 @@ fn sign(a: f64, b: f64) -> i32 {
 pub struct KendallTau {
     period: usize,
     window: VecDeque<(f64, f64)>,
-    /// Reusable scratch buffer to avoid allocating per `update`.
-    scratch: Vec<(f64, f64)>,
+    /// Pair counts over the live window, kept as pairs enter and leave: each
+    /// entering or leaving pair meets every other once, so a step costs
+    /// `O(period)` instead of recounting all `period²/2` pairs. Whole numbers,
+    /// so the result is exactly the recount's.
+    counts: PairCounts,
     last: Option<f64>,
+}
+
+/// Concordant, discordant and tied pairs among a window's pairs.
+#[derive(Debug, Clone, Copy, Default)]
+struct PairCounts {
+    concordant: i64,
+    discordant: i64,
+    tie_x: i64,
+    tie_y: i64,
+}
+
+impl PairCounts {
+    /// Add (`step = 1`) or remove (`step = -1`) the pair `(a, b)`.
+    fn apply(&mut self, a: (f64, f64), b: (f64, f64), step: i64) {
+        let sx = sign(b.0, a.0);
+        let sy = sign(b.1, a.1);
+        if sx == 0 {
+            self.tie_x += step;
+        }
+        if sy == 0 {
+            self.tie_y += step;
+        }
+        let prod = sx * sy;
+        if prod > 0 {
+            self.concordant += step;
+        } else if prod < 0 {
+            self.discordant += step;
+        }
+    }
 }
 
 impl KendallTau {
@@ -84,7 +116,7 @@ impl KendallTau {
         Ok(Self {
             period,
             window: VecDeque::with_capacity(period),
-            scratch: Vec::with_capacity(period),
+            counts: PairCounts::default(),
             last: None,
         })
     }
@@ -99,33 +131,14 @@ impl KendallTau {
         self.last
     }
 
-    fn compute(&mut self) -> f64 {
-        self.scratch.clear();
-        self.scratch.extend(self.window.iter().copied());
-        let pairs = &self.scratch;
-        let len = pairs.len();
-        let mut concordant: i64 = 0;
-        let mut discordant: i64 = 0;
-        let mut tie_x: i64 = 0;
-        let mut tie_y: i64 = 0;
-        for i in 0..len {
-            for j in (i + 1)..len {
-                let sx = sign(pairs[j].0, pairs[i].0);
-                let sy = sign(pairs[j].1, pairs[i].1);
-                if sx == 0 {
-                    tie_x += 1;
-                }
-                if sy == 0 {
-                    tie_y += 1;
-                }
-                let prod = sx * sy;
-                if prod > 0 {
-                    concordant += 1;
-                } else if prod < 0 {
-                    discordant += 1;
-                }
-            }
-        }
+    fn compute(&self) -> f64 {
+        let len = self.window.len();
+        let PairCounts {
+            concordant,
+            discordant,
+            tie_x,
+            tie_y,
+        } = self.counts;
         let n0 = (len * (len - 1) / 2) as f64;
         let denom = ((n0 - tie_x as f64) * (n0 - tie_y as f64)).sqrt();
         if denom == 0.0 {
@@ -145,7 +158,13 @@ impl Indicator for KendallTau {
             return None;
         }
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            for &other in &self.window {
+                self.counts.apply(oldest, other, -1);
+            }
+        }
+        for &other in &self.window {
+            self.counts.apply(other, input, 1);
         }
         self.window.push_back(input);
         if self.window.len() < self.period {
@@ -158,7 +177,7 @@ impl Indicator for KendallTau {
 
     fn reset(&mut self) {
         self.window.clear();
-        self.scratch.clear();
+        self.counts = PairCounts::default();
         self.last = None;
     }
 

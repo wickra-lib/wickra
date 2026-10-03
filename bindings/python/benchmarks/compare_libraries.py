@@ -622,6 +622,34 @@ def finta_bollinger_streaming(seed, live):
     return _finta_recompute_streaming(seed, live, lambda df: FINTA.TA.BBANDS(df, period=20, std_multiplier=2.0))
 
 
+# The opt-in fast batch: SIMD kernels that reassociate the arithmetic, so the
+# values agree with `batch` to a few units in the last place, not bit for bit.
+
+
+def wickra_fast_sma_batch(prices: np.ndarray) -> Callable[[], None]:
+    return lambda: WICKRA.SMA(20).batch_fast(prices)
+
+
+def wickra_fast_ema_batch(prices: np.ndarray) -> Callable[[], None]:
+    return lambda: WICKRA.EMA(20).batch_fast(prices)
+
+
+def wickra_fast_rsi_batch(prices: np.ndarray) -> Callable[[], None]:
+    return lambda: WICKRA.RSI(14).batch_fast(prices)
+
+
+def wickra_fast_macd_batch(prices: np.ndarray) -> Callable[[], None]:
+    return lambda: WICKRA.MACD().batch_fast(prices)
+
+
+def wickra_fast_bollinger_batch(prices: np.ndarray) -> Callable[[], None]:
+    return lambda: WICKRA.BollingerBands(20, 2.0).batch_fast(prices)
+
+
+def wickra_fast_atr_batch(high: np.ndarray, low: np.ndarray, close: np.ndarray) -> Callable[[], None]:
+    return lambda: WICKRA.ATR(14).batch_fast(high, low, close)
+
+
 # --------------------------------------------------------------------------- #
 # Runner
 # --------------------------------------------------------------------------- #
@@ -630,6 +658,7 @@ def finta_bollinger_streaming(seed, live):
 BATCH_INDICATORS = [
     ("SMA(20)", [
         ("Wickra", wickra_sma_batch),
+        ("Wickra (fast)", wickra_fast_sma_batch),
         ("TA-Lib", talib_sma_batch),
         ("pandas-ta", pandas_ta_sma_batch),
         ("tulipy", tulipy_sma_batch),
@@ -638,6 +667,7 @@ BATCH_INDICATORS = [
     ]),
     ("EMA(20)", [
         ("Wickra", wickra_ema_batch),
+        ("Wickra (fast)", wickra_fast_ema_batch),
         ("TA-Lib", talib_ema_batch),
         ("pandas-ta", pandas_ta_ema_batch),
         ("tulipy", tulipy_ema_batch),
@@ -646,6 +676,7 @@ BATCH_INDICATORS = [
     ]),
     ("RSI(14)", [
         ("Wickra", wickra_rsi_batch),
+        ("Wickra (fast)", wickra_fast_rsi_batch),
         ("TA-Lib", talib_rsi_batch),
         ("pandas-ta", pandas_ta_rsi_batch),
         ("tulipy", tulipy_rsi_batch),
@@ -654,6 +685,7 @@ BATCH_INDICATORS = [
     ]),
     ("MACD(12, 26, 9)", [
         ("Wickra", wickra_macd_batch),
+        ("Wickra (fast)", wickra_fast_macd_batch),
         ("TA-Lib", talib_macd_batch),
         ("pandas-ta", pandas_ta_macd_batch),
         ("tulipy", tulipy_macd_batch),
@@ -662,6 +694,7 @@ BATCH_INDICATORS = [
     ]),
     ("Bollinger(20, 2.0)", [
         ("Wickra", wickra_bollinger_batch),
+        ("Wickra (fast)", wickra_fast_bollinger_batch),
         ("TA-Lib", talib_bollinger_batch),
         ("pandas-ta", pandas_ta_bollinger_batch),
         ("tulipy", tulipy_bollinger_batch),
@@ -673,6 +706,7 @@ BATCH_INDICATORS = [
 OHLC_INDICATORS = [
     ("ATR(14)", [
         ("Wickra", wickra_atr_batch),
+        ("Wickra (fast)", wickra_fast_atr_batch),
         ("TA-Lib", talib_atr_batch),
         ("tulipy", tulipy_atr_batch),
         ("finta", finta_atr_batch),

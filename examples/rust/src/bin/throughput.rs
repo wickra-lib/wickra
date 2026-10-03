@@ -1,10 +1,11 @@
 //! Throughput benchmark for the Wickra Rust core — the zero-FFI baseline.
 //!
-//! Reports streaming (`update`) and batch updates-per-second over a synthetic
-//! OHLCV series, in the same format as every binding's `throughput` benchmark.
-//! Rust has no FFI boundary — it calls the core directly — so these numbers are
-//! the ceiling the per-binding benchmarks are measured against, and the value
-//! their `batch` paths converge towards. See the repository BENCHMARKS.md §3.
+//! Reports streaming (`update`), batch and opt-in fast-batch (`batch_fast`)
+//! updates-per-second over a synthetic OHLCV series, in the same format as
+//! every binding's `throughput` benchmark. Rust has no FFI boundary — it calls
+//! the core directly — so these numbers are the ceiling the per-binding
+//! benchmarks are measured against, and the value their `batch` paths converge
+//! towards. See the repository BENCHMARKS.md §3.
 //!
 //! For per-update latency and the cross-library comparison, use the criterion
 //! harnesses instead: `cargo bench -p wickra` and `cargo bench -p wickra-bench`.
@@ -68,9 +69,11 @@ fn main() {
         })
         .collect();
 
-    let mups = |ns: u128| bars as f64 / (ns as f64 / 1e9) / 1e6;
-
     // SMA (scalar 1-in/1-out), ATR (multi-in/1-out), MACD (1-in/multi-out).
+    // Every batch writes into a buffer reused across runs, as the C ABI's
+    // callers do, so the table is the ceiling rather than an allocator test.
+    let mut out = vec![0.0; bars];
+    let mut rows = vec![0.0; bars * 3];
     let sma_stream = time_ns(|| {
         let mut ind = Sma::new(20).unwrap();
         for &price in &close {
@@ -79,7 +82,13 @@ fn main() {
     });
     let sma_batch = time_ns(|| {
         let mut ind = Sma::new(20).unwrap();
-        black_box(ind.batch_nan(&close));
+        ind.batch_nan_into(&close, &mut out);
+        black_box(&out);
+    });
+    let sma_fast = time_ns(|| {
+        let mut ind = Sma::new(20).unwrap();
+        ind.batch_fast_into(&close, &mut out);
+        black_box(&out);
     });
     let atr_stream = time_ns(|| {
         let mut ind = Atr::new(14).unwrap();
@@ -89,7 +98,13 @@ fn main() {
     });
     let atr_batch = time_ns(|| {
         let mut ind = Atr::new(14).unwrap();
-        black_box(ind.batch_atr(&high, &low, &close));
+        ind.batch_atr_into(&high, &low, &close, &mut out);
+        black_box(&out);
+    });
+    let atr_fast = time_ns(|| {
+        let mut ind = Atr::new(14).unwrap();
+        ind.batch_atr_fast_into(&high, &low, &close, &mut out);
+        black_box(&out);
     });
     let macd_stream = time_ns(|| {
         let mut ind = MacdIndicator::new(12, 26, 9).unwrap();
@@ -97,36 +112,51 @@ fn main() {
             black_box(ind.update(price));
         }
     });
+    let macd_batch = time_ns(|| {
+        let mut ind = MacdIndicator::new(12, 26, 9).unwrap();
+        ind.batch_macd_into(&close, &mut rows);
+        black_box(&rows);
+    });
+    let macd_fast = time_ns(|| {
+        let mut ind = MacdIndicator::new(12, 26, 9).unwrap();
+        ind.batch_macd_fast_into(&close, &mut rows);
+        black_box(&rows);
+    });
 
+    report(
+        bars,
+        &[
+            ("SMA(20)", sma_stream, sma_batch, sma_fast),
+            ("ATR(14)", atr_stream, atr_batch, atr_fast),
+            ("MACD(12,26,9)", macd_stream, macd_batch, macd_fast),
+        ],
+    );
+}
+
+/// Print the table: per row the streaming, batch and fast-batch timings in ns.
+fn report(bars: usize, rows: &[(&str, u128, u128, u128)]) {
+    let mups = |ns: u128| bars as f64 / (ns as f64 / 1e9) / 1e6;
     println!("Wickra Rust core throughput - {bars} bars (median of 3 runs)\n");
     println!(
-        "{:<22}{:>20}{:>18}",
-        "Indicator", "streaming (Mupd/s)", "batch (Mupd/s)"
+        "{:<22}{:>20}{:>18}{:>18}",
+        "Indicator", "streaming (Mupd/s)", "batch (Mupd/s)", "fast (Mupd/s)"
     );
-    println!("{}", "-".repeat(60));
-    println!(
-        "{:<22}{:>20.1}{:>18.1}",
-        "SMA(20)",
-        mups(sma_stream),
-        mups(sma_batch)
-    );
-    println!(
-        "{:<22}{:>20.1}{:>18.1}",
-        "ATR(14)",
-        mups(atr_stream),
-        mups(atr_batch)
-    );
-    println!(
-        "{:<22}{:>20.1}{:>18}",
-        "MACD(12,26,9)",
-        mups(macd_stream),
-        "-"
-    );
-
+    println!("{}", "-".repeat(78));
+    for &(name, stream, batch, fast) in rows {
+        println!(
+            "{:<22}{:>20.1}{:>18.1}{:>18.1}",
+            name,
+            mups(stream),
+            mups(batch),
+            mups(fast)
+        );
+    }
     println!(
         "\nMupd/s = million indicator updates per second. This is the Rust core with\n\
          no FFI boundary, so it is the ceiling for the per-binding benchmarks and\n\
-         the value their batch paths converge towards. Numbers are machine-dependent\n\
-         - use them for relative comparison, not as a speed claim."
+         the value their batch paths converge towards. \"fast\" is the opt-in\n\
+         batch_fast: SIMD kernels within a few units in the last place of batch.\n\
+         Numbers are machine-dependent - use them for relative comparison, not as\n\
+         a speed claim."
     );
 }

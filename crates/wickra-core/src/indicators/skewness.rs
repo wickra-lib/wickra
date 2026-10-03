@@ -103,7 +103,10 @@ impl Indicator for Skewness {
             // A window with no dispersion has no defined shape; return 0.
             return Some(0.0);
         }
-        Some(m3 / m2.powf(1.5))
+        // `m2^1.5` as `m2 * sqrt(m2)`: `sqrt` is correctly rounded on every
+        // platform, where `powf` is the platform libm's and differs in the last
+        // bit between them -- and costs most of an update.
+        Some(m3 / (m2 * m2.sqrt()))
     }
 
     fn reset(&mut self) {
@@ -124,6 +127,36 @@ impl Indicator for Skewness {
     #[inline]
     fn name(&self) -> &'static str {
         "Skewness"
+    }
+
+    /// SIMD kernel: shifted first to third power sums of the window as
+    /// window-sum scans, re-anchored every `16 · period` values like the exact
+    /// accumulator, finished lane-parallel with `m2 · sqrt(m2)` for the
+    /// power. Agrees with the exact batch to within a few units in the last
+    /// place relative to the moments involved; warmup `NaN`s and length are
+    /// identical. Skewness only remembers its last `period` inputs, so
+    /// afterwards the state is rebuilt exactly by replaying them.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        if !self.window.is_empty() || inputs.len() < p || !crate::fast::in_range(inputs) {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        crate::fast::with_scratch(crate::fast::power_scratch_len(3, p), |scratch| {
+            wickra_simd::dispatch(crate::fast::SkewnessFast {
+                x: inputs,
+                period: p,
+                scratch,
+                out,
+                _borrow: std::marker::PhantomData,
+            });
+        });
+        crate::fast::replay_tail(self, &inputs[inputs.len() - p..]);
     }
 }
 

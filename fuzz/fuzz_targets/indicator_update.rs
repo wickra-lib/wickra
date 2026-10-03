@@ -10,11 +10,15 @@
 //! agreement is structural — but exercising both paths surfaces any
 //! state-mutation bugs in `update` that would only manifest mid-batch).
 //!
+//! It also runs `batch_nan`, whose fused paths must reproduce the streaming
+//! result bit for bit on any input, and `batch_fast`, which must keep the
+//! exact batch's length and `NaN` placement.
+//!
 //! Audit finding R9: the previous version covered only `Rsi(14)` and
 //! `Ema(20)`. This target now covers every scalar indicator in the catalogue.
 
 use libfuzzer_sys::fuzz_target;
-use wickra_core::{AdaptiveCycle, AdaptiveLaguerreFilter, AdaptiveRsi, Alma, AnchoredRsi, Apo, Autocorrelation, AutocorrelationPeriodogram, AverageDrawdown, BandpassFilter, BatchExt, Beta, BipowerVariation, BollingerBands, BollingerBandwidth, BomarBands, BurkeRatio, CalmarRatio, CenterOfGravity, Cfo, Cmo, CoefficientOfVariation, CommonSenseRatio, ConditionalValueAtRisk, ConnorsRsi, Coppock, CorrelationTrendIndicator, CyberneticCycle, Decycler, DecyclerOscillator, Dema, DerivativeOscillator, DetrendedStdDev, DisparityIndex, DoubleBollinger, Dpo, DrawdownDuration, DynamicMomentumIndex, EhlersStochastic, Ehma, ElderImpulse, Ema, EmpiricalModeDecomposition, EvenBetterSinewave, EwmaVolatility, Expectancy, Fama, FisherRsi, FisherTransform, Frama, GainLossRatio, GainToPainRatio, Garch11, GeneralizedDema, GeometricMa, HighpassFilter, HilbertDominantCycle, HistoricalVolatility, Hma, HoltWinters, HtDcPhase, HtPhasor, HtTrendMode, HurstExponent, Indicator, InstantaneousTrendline, InverseFisherTransform, JarqueBera, Jma, JumpIndicator, KRatio, Kama, KellyCriterion, Kst, Kurtosis, LaguerreRsi, LinRegAngle, LinRegChannel, LinRegIntercept, LinRegSlope, LinearRegression, LogReturn, M2Measure, MaEnvelope, MaType, MacdExt, MacdFix, MacdHistogram, MacdIndicator, Mama, MartinRatio, MaxDrawdown, McGinleyDynamic, MedianAbsoluteDeviation, MedianChannel, MedianMa, MidPoint, Mom, OmegaRatio, PainIndex, PearsonCorrelation, PercentB, PercentageTrailingStop, Pmo, PolarizedFractalEfficiency, Ppo, PpoHistogram, ProfitFactor, Qqe, QuartileBands, RSquared, RealizedVolatility, RecoveryFactor, Reflex, RegimeLabel, RenkoTrailingStop, Rmi, Roc, Rocp, Rocr, Rocr100, RollingIqr, RollingMinMaxScaler, RollingPercentileRank, RollingQuantile, RoofingFilter, Rsi, Rsx, RviVolatility, SampleEntropy, ShannonEntropy, SharpeRatio, SineWave, SineWeightedMa, Skewness, Sma, Smma, SortinoRatio, SpearmanCorrelation, StandardError, StandardErrorBands, Stc, StdDev, StepTrailingStop, SterlingRatio, StochRsi, SuperSmoother, TailRatio, Tema, Tii, TrendLabel, TrendStrengthIndex, Trendflex, Trima, Trix, Tsf, TsfOscillator, Tsi, UlcerIndex, UniversalOscillator, UpsidePotentialRatio, ValueAtRisk, Variance, VerticalHorizontalFilter, Vidya, VolatilityOfVolatility, WavePm, WinRate, Wma, ZScore, ZeroLagMacd, Zlema, T3};
+use wickra_core::{AdaptiveCycle, BatchNanExt, AdaptiveLaguerreFilter, AdaptiveRsi, Alma, AnchoredRsi, Apo, Autocorrelation, AutocorrelationPeriodogram, AverageDrawdown, BandpassFilter, BatchExt, Beta, BipowerVariation, BollingerBands, BollingerBandwidth, BomarBands, BurkeRatio, CalmarRatio, CenterOfGravity, Cfo, Cmo, CoefficientOfVariation, CommonSenseRatio, ConditionalValueAtRisk, ConnorsRsi, Coppock, CorrelationTrendIndicator, CyberneticCycle, Decycler, DecyclerOscillator, Dema, DerivativeOscillator, DetrendedStdDev, DisparityIndex, DoubleBollinger, Dpo, DrawdownDuration, DynamicMomentumIndex, EhlersStochastic, Ehma, ElderImpulse, Ema, EmpiricalModeDecomposition, EvenBetterSinewave, EwmaVolatility, Expectancy, Fama, FisherRsi, FisherTransform, Frama, GainLossRatio, GainToPainRatio, Garch11, GeneralizedDema, GeometricMa, HighpassFilter, HilbertDominantCycle, HistoricalVolatility, Hma, HoltWinters, HtDcPhase, HtPhasor, HtTrendMode, HurstExponent, Indicator, InstantaneousTrendline, InverseFisherTransform, JarqueBera, Jma, JumpIndicator, KRatio, Kama, KellyCriterion, Kst, Kurtosis, LaguerreRsi, LinRegAngle, LinRegChannel, LinRegIntercept, LinRegSlope, LinearRegression, LogReturn, M2Measure, MaEnvelope, MaType, MacdExt, MacdFix, MacdHistogram, MacdIndicator, Mama, MartinRatio, MaxDrawdown, McGinleyDynamic, MedianAbsoluteDeviation, MedianChannel, MedianMa, MidPoint, Mom, OmegaRatio, PainIndex, PearsonCorrelation, PercentB, PercentageTrailingStop, Pmo, PolarizedFractalEfficiency, Ppo, PpoHistogram, ProfitFactor, Qqe, QuartileBands, RSquared, RealizedVolatility, RecoveryFactor, Reflex, RegimeLabel, RenkoTrailingStop, Rmi, Roc, Rocp, Rocr, Rocr100, RollingIqr, RollingMinMaxScaler, RollingPercentileRank, RollingQuantile, RoofingFilter, Rsi, Rsx, RviVolatility, SampleEntropy, ShannonEntropy, SharpeRatio, SineWave, SineWeightedMa, Skewness, Sma, Smma, SortinoRatio, SpearmanCorrelation, StandardError, StandardErrorBands, Stc, StdDev, StepTrailingStop, SterlingRatio, StochRsi, SuperSmoother, TailRatio, Tema, Tii, TrendLabel, TrendStrengthIndex, Trendflex, Trima, Trix, Tsf, TsfOscillator, Tsi, UlcerIndex, UniversalOscillator, UpsidePotentialRatio, ValueAtRisk, Variance, VerticalHorizontalFilter, Vidya, VolatilityOfVolatility, WavePm, WinRate, Wma, ZScore, ZeroLagMacd, Zlema, T3};
 
 /// Drive a single streaming + batch run through one scalar indicator. Marked
 /// `#[inline(never)]` so a panic backtrace pin-points the specific indicator.
@@ -24,10 +28,20 @@ where
     I: Indicator<Input = f64, Output = f64> + BatchExt,
 {
     let mut streaming = make();
-    for &x in data {
-        let _ = streaming.update(x);
-    }
+    let streamed: Vec<u64> = data
+        .iter()
+        .map(|&x| streaming.update(x).unwrap_or(f64::NAN).to_bits())
+        .collect();
     let _ = make().batch(data);
+    // The exact batch is streaming bit for bit; the fast batch keeps its length
+    // and NaN placement on any input (its value tolerance is a property of
+    // well-conditioned data, not of arbitrary bytes).
+    let exact = make().batch_nan(data);
+    let exact_bits: Vec<u64> = exact.iter().map(|v| v.to_bits()).collect();
+    assert_eq!(exact_bits, streamed);
+    let fast = make().batch_fast(data);
+    assert_eq!(fast.len(), exact.len());
+    assert!(exact.iter().zip(&fast).all(|(x, y)| x.is_nan() == y.is_nan()));
 }
 
 fuzz_target!(|data: Vec<f64>| {

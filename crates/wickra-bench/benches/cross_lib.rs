@@ -13,9 +13,14 @@
 //!   timed closure). yata only appears for SMA/EMA — its RSI/MACD/Bollinger/ATR are
 //!   exposed through a heavier signal-oriented indicator API, not a raw-value method,
 //!   so they are intentionally left out rather than compared unfairly.
-//! * **Batch** (`*/batch`): the whole series at once. Only Wickra (`BatchExt::batch`)
-//!   and `kand` (TA-Lib-style fill-the-output-slice functions) have a real batch API;
-//!   ta-rs and yata are streaming-only and are deliberately absent from this arena.
+//! * **Batch** (`*/batch`): the whole series at once, into an output buffer
+//!   allocated outside the timed loop. Only Wickra (the exact `*_into` batches,
+//!   bit for bit the streaming result) and `kand` (TA-Lib-style
+//!   fill-the-output-slice functions) have a real batch API; ta-rs and yata are
+//!   streaming-only and are deliberately absent from this arena.
+//! * **Fast batch** (`wickra/fast`): Wickra's opt-in `batch_fast` SIMD kernels,
+//!   within a few units in the last place of the exact batch, into the same
+//!   kind of buffer.
 //!
 //! Run: `cargo bench -p wickra-bench`
 
@@ -80,9 +85,25 @@ fn sma_group(crit: &mut Criterion, closes: &[f64]) {
             BenchmarkId::new("wickra/batch", len),
             &series,
             |bencher, &series| {
+                // Into a buffer allocated outside the timed loop, as kand's arm
+                // fills the caller's output slice.
+                let mut out = vec![0.0; series.len()];
                 bencher.iter(|| {
                     let mut ind = Sma::new(SMA_PERIOD).unwrap();
-                    black_box(ind.batch_nan(series));
+                    ind.batch_nan_into(series, &mut out);
+                    black_box(&out);
+                });
+            },
+        );
+        group.bench_with_input(
+            BenchmarkId::new("wickra/fast", len),
+            &series,
+            |bencher, &series| {
+                let mut out = vec![0.0; series.len()];
+                bencher.iter(|| {
+                    let mut ind = Sma::new(SMA_PERIOD).unwrap();
+                    ind.batch_fast_into(series, &mut out);
+                    black_box(&out);
                 });
             },
         );
@@ -168,9 +189,25 @@ fn ema_group(crit: &mut Criterion, closes: &[f64]) {
             BenchmarkId::new("wickra/batch", len),
             &series,
             |bencher, &series| {
+                // Into a buffer allocated outside the timed loop, as kand's arm
+                // fills the caller's output slice.
+                let mut out = vec![0.0; series.len()];
                 bencher.iter(|| {
                     let mut ind = Ema::new(EMA_PERIOD).unwrap();
-                    black_box(ind.batch_nan(series));
+                    ind.batch_nan_into(series, &mut out);
+                    black_box(&out);
+                });
+            },
+        );
+        group.bench_with_input(
+            BenchmarkId::new("wickra/fast", len),
+            &series,
+            |bencher, &series| {
+                let mut out = vec![0.0; series.len()];
+                bencher.iter(|| {
+                    let mut ind = Ema::new(EMA_PERIOD).unwrap();
+                    ind.batch_fast_into(series, &mut out);
+                    black_box(&out);
                 });
             },
         );
@@ -251,9 +288,25 @@ fn rsi_group(crit: &mut Criterion, closes: &[f64]) {
             BenchmarkId::new("wickra/batch", len),
             &series,
             |bencher, &series| {
+                // Into a buffer allocated outside the timed loop, as kand's arm
+                // fills the caller's output slice.
+                let mut out = vec![0.0; series.len()];
                 bencher.iter(|| {
                     let mut ind = Rsi::new(RSI_PERIOD).unwrap();
-                    black_box(ind.batch_nan(series));
+                    ind.batch_nan_into(series, &mut out);
+                    black_box(&out);
+                });
+            },
+        );
+        group.bench_with_input(
+            BenchmarkId::new("wickra/fast", len),
+            &series,
+            |bencher, &series| {
+                let mut out = vec![0.0; series.len()];
+                bencher.iter(|| {
+                    let mut ind = Rsi::new(RSI_PERIOD).unwrap();
+                    ind.batch_fast_into(series, &mut out);
+                    black_box(&out);
                 });
             },
         );
@@ -350,9 +403,25 @@ fn macd_group(crit: &mut Criterion, closes: &[f64]) {
             BenchmarkId::new("wickra/batch", len),
             &series,
             |bencher, &series| {
+                // Into a buffer allocated outside the timed loop, as kand's arm
+                // fills the caller's output slice.
+                let mut out = vec![0.0; series.len() * 3];
                 bencher.iter(|| {
                     let mut ind = MacdIndicator::classic();
-                    black_box(ind.batch_macd(series));
+                    ind.batch_macd_into(series, &mut out);
+                    black_box(&out);
+                });
+            },
+        );
+        group.bench_with_input(
+            BenchmarkId::new("wickra/fast", len),
+            &series,
+            |bencher, &series| {
+                let mut out = vec![0.0; series.len() * 3];
+                bencher.iter(|| {
+                    let mut ind = MacdIndicator::classic();
+                    ind.batch_macd_fast_into(series, &mut out);
+                    black_box(&out);
                 });
             },
         );
@@ -476,9 +545,25 @@ fn bbands_group(crit: &mut Criterion, closes: &[f64]) {
             BenchmarkId::new("wickra/batch", len),
             &series,
             |bencher, &series| {
+                // Into a buffer allocated outside the timed loop, as kand's arm
+                // fills the caller's output slice.
+                let mut out = vec![0.0; series.len() * 4];
                 bencher.iter(|| {
                     let mut ind = BollingerBands::new(BB_PERIOD, BB_DEV).unwrap();
-                    black_box(ind.batch_bands(series));
+                    ind.batch_bands_into(series, &mut out);
+                    black_box(&out);
+                });
+            },
+        );
+        group.bench_with_input(
+            BenchmarkId::new("wickra/fast", len),
+            &series,
+            |bencher, &series| {
+                let mut out = vec![0.0; series.len() * 4];
+                bencher.iter(|| {
+                    let mut ind = BollingerBands::new(BB_PERIOD, BB_DEV).unwrap();
+                    ind.batch_bands_fast_into(series, &mut out);
+                    black_box(&out);
                 });
             },
         );
@@ -608,9 +693,26 @@ fn atr_group(crit: &mut Criterion, candles: &[Candle]) {
                 let high: Vec<f64> = series.iter().map(|candle| candle.high).collect();
                 let low: Vec<f64> = series.iter().map(|candle| candle.low).collect();
                 let close: Vec<f64> = series.iter().map(|candle| candle.close).collect();
+                let mut out = vec![0.0; series.len()];
                 bencher.iter(|| {
                     let mut ind = Atr::new(ATR_PERIOD).unwrap();
-                    black_box(ind.batch_atr(&high, &low, &close));
+                    ind.batch_atr_into(&high, &low, &close, &mut out);
+                    black_box(&out);
+                });
+            },
+        );
+        group.bench_with_input(
+            BenchmarkId::new("wickra/fast", len),
+            &series,
+            |bencher, &series| {
+                let high: Vec<f64> = series.iter().map(|candle| candle.high).collect();
+                let low: Vec<f64> = series.iter().map(|candle| candle.low).collect();
+                let close: Vec<f64> = series.iter().map(|candle| candle.close).collect();
+                let mut out = vec![0.0; series.len()];
+                bencher.iter(|| {
+                    let mut ind = Atr::new(ATR_PERIOD).unwrap();
+                    ind.batch_atr_fast_into(&high, &low, &close, &mut out);
+                    black_box(&out);
                 });
             },
         );

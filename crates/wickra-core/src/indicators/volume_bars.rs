@@ -171,7 +171,10 @@ mod tests {
     #[test]
     fn closes_when_threshold_reached() {
         let mut bars = VolumeBars::new(100.0).unwrap();
-        assert!(bars.update(candle(10.0, 10.0, 10.0, 10.0, 60.0)).is_empty());
+        assert_eq!(
+            bars.update(candle(10.0, 10.0, 10.0, 10.0, 60.0)),
+            Vec::new()
+        );
         let out = bars.update(candle(10.5, 10.5, 10.5, 10.5, 60.0));
         assert_eq!(out.len(), 1);
         assert_relative_eq!(out[0].volume, 120.0, epsilon = 1e-12);
@@ -201,7 +204,10 @@ mod tests {
         bars.update(candle(10.0, 10.0, 10.0, 10.0, 60.0));
         bars.reset();
         assert_relative_eq!(bars.accumulated(), 0.0, epsilon = 1e-12);
-        assert!(bars.update(candle(20.0, 20.0, 20.0, 20.0, 60.0)).is_empty());
+        assert_eq!(
+            bars.update(candle(20.0, 20.0, 20.0, 20.0, 60.0)),
+            Vec::new()
+        );
     }
 
     #[test]

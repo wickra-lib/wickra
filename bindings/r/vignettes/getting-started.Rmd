@@ -41,6 +41,15 @@ sma_values <- batch(sma, sample_ohlcv$close)
 tail(sma_values)
 ```
 
+`batch_fast()` is the opt-in fast form: a SIMD kernel may reassociate the
+arithmetic, so it agrees with `batch()` to within a few units in the last place
+rather than bit for bit, with `NA` in the same places.
+
+```{r}
+fast_values <- batch_fast(Sma(20), sample_ohlcv$close)
+max(abs(fast_values - sma_values), na.rm = TRUE) < 1e-9
+```
+
 ## Streaming: one observation at a time
 
 The same indicator fed tick-by-tick with `update()` returns the identical

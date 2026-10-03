@@ -112,6 +112,40 @@ impl Indicator for Smma {
     fn name(&self) -> &'static str {
         "SMMA"
     }
+
+    /// SIMD kernel: the same seed mean, then Wilder's smoothing
+    /// `y = ((period − 1) / period) · y + x / period` as a linear-recurrence
+    /// scan. Agrees with the exact batch to within a few units in the last
+    /// place (the division per step becomes two multiplies, and the scan
+    /// reassociates the recurrence); warmup `NaN`s and length are identical.
+    /// Afterwards the SMMA continues streaming from the kernel's last value.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        if !self.seed.is_empty()
+            || self.current.is_some()
+            || inputs.len() < p
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        let seed_sum = inputs[..p].iter().fold(0.0, |acc, &x| acc + x);
+        let last = wickra_simd::dispatch(crate::fast::SmmaFast {
+            x: inputs,
+            period: p,
+            seed_sum,
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        self.seed.extend(&inputs[..p]);
+        self.seed_sum = seed_sum;
+        self.current = Some(last);
+    }
 }
 
 #[cfg(test)]

@@ -1,0 +1,44 @@
+[package]
+name = "wickra-simd"
+description = "Runtime SIMD dispatch for the Wickra technical indicators core: runs a kernel with AVX2 and FMA, or AVX-512, enabled when the CPU has them, with identical results either way."
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+keywords.workspace = true
+categories.workspace = true
+documentation = "https://docs.rs/wickra-simd"
+
+# Render the docs on docs.rs with every feature enabled, as the other crates do.
+[package.metadata.docs.rs]
+all-features = true
+
+# Dispatching to code compiled for a CPU feature the build target does not
+# assume is `unsafe` in Rust: the caller vouches that the feature is present.
+# The workspace forbids `unsafe_code`, so this crate cannot inherit
+# `workspace = true`; it mirrors every workspace lint and relaxes
+# `unsafe_code` to `deny`, with the one justified block allowed in place. The
+# Rust core stays `unsafe`-forbidden — like the C ABI shim, this is a small,
+# separate crate where the unavoidable `unsafe` lives.
+[lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_must_use = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+similar_names = "allow"
+float_cmp = "allow"

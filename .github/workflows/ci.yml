@@ -83,13 +83,13 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy (workspace, all targets)
-        run: cargo clippy -p wickra-core -p wickra -p wickra-data -p wickra-wasm --all-targets -- -D warnings
+        run: cargo clippy -p wickra-simd -p wickra-core -p wickra -p wickra-data -p wickra-wasm --all-targets -- -D warnings
 
       - name: Build
-        run: cargo build -p wickra-core -p wickra -p wickra-data --verbose
+        run: cargo build -p wickra-simd -p wickra-core -p wickra -p wickra-data --verbose
 
       - name: Tests (default features)
-        run: cargo test -p wickra-core -p wickra -p wickra-data --verbose
+        run: cargo test -p wickra-simd -p wickra-core -p wickra -p wickra-data --verbose
 
       - name: Tests (live-binance feature)
         run: cargo test -p wickra-data --features live-binance --verbose
@@ -340,7 +340,7 @@ jobs:
         include:
           - name: MSRV workspace (Rust 1.86)
             toolchain: "1.86"
-            packages: "-p wickra-core -p wickra -p wickra-data"
+            packages: "-p wickra-simd -p wickra-core -p wickra -p wickra-data"
           - name: MSRV node binding (Rust 1.88)
             toolchain: "1.88"
             packages: "-p wickra-node"
@@ -507,7 +507,9 @@ jobs:
 
       # Named explicitly rather than --workspace: wickra-bench and the binding
       # crates are not published, so they have no baseline to compare against and
-      # nothing to promise.
+      # nothing to promise. wickra-simd is published but has no release on
+      # crates.io to compare against until the one that introduces it; it is an
+      # implementation detail of wickra-core and joins this list after that.
       - name: Check the published crates
         run: |
           cargo semver-checks check-release             -p wickra-core             -p wickra-data             -p wickra
@@ -735,6 +737,25 @@ jobs:
       # tests/harness.js is shared driving code rather than a suite.
       - name: WASM suite — golden parity, batch parity, data layer, completeness
         run: node --test bindings/wasm/tests/*.test.js
+
+      # The suite above loads pkg/ as a directory; a consumer gets the packed
+      # tarball, which holds only what package.json's `files` lists. wasm-pack
+      # leaves `snippets/` (the inline_js helpers) out of that list, so load the
+      # module from the tarball the way npm would ship it.
+      - name: Load the WASM package from its packed tarball
+        shell: bash
+        run: |
+          node bindings/wasm/scripts/package-files.mjs bindings/wasm/pkg
+          tarball=$(cd bindings/wasm/pkg && npm pack --silent)
+          mkdir -p "$RUNNER_TEMP/wasm-packed"
+          tar -xzf "bindings/wasm/pkg/$tarball" -C "$RUNNER_TEMP/wasm-packed"
+          node -e "
+            const w = require(process.argv[1]);
+            const macd = new w.MACD(12, 26, 9);
+            let v = null;
+            for (let i = 0; i < 40; i++) v = macd.update(100 + Math.sin(i));
+            if (!v || typeof v.signal !== 'number') throw new Error('MACD update returned no object');
+          " "$RUNNER_TEMP/wasm-packed/package"
 
   node:
     name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
@@ -1014,6 +1035,42 @@ jobs:
                    strategy_rsi_mean_reversion strategy_macd_adx strategy_bollinger_squeeze; do
             dotnet run --project "examples/csharp/$d" -c Release --no-build
           done
+
+      # The cross-library benchmark (bindings/csharp/cross-library) targets .NET
+      # 10, as QuanTAlib does. Build it so it cannot rot, and run its numerical
+      # cross-check, which fails when Wickra disagrees with TA-Lib or a two-pass
+      # reference. Linux only: the check is the same on every OS. Last in the
+      # job, so the extra SDK touches none of the steps above.
+      - name: Set up .NET 10 for the cross-library harness
+        if: runner.os == 'Linux'
+        id: setup_dotnet
+        continue-on-error: true
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Wait before .NET retry
+        if: runner.os == 'Linux' && steps.setup_dotnet.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::setup-dotnet failed (likely CDN flake), waiting 30s before retry..."
+          sleep 30
+
+      - name: Set up .NET 10 (retry)
+        if: runner.os == 'Linux' && steps.setup_dotnet.outcome == 'failure'
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cross-library harness — build and verify against the other libraries
+        if: runner.os == 'Linux'
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 15
+          max_attempts: 2
+          retry_wait_seconds: 20
+          command: dotnet run -c Release --project bindings/csharp/cross-library -- verify
+          shell: bash
 
   go:
     name: Go ${{ matrix.go }} on ${{ matrix.os }}

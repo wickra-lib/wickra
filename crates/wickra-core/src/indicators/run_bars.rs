@@ -243,7 +243,7 @@ mod tests {
         bars.update(flat(11.0));
         bars.reset();
         assert_eq!(bars.run(), 0);
-        assert!(bars.update(flat(50.0)).is_empty());
+        assert_eq!(bars.update(flat(50.0)), Vec::new());
     }
 
     #[test]

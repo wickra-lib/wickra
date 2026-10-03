@@ -5,6 +5,7 @@ import org.wickra.internal.NativeMethods;
 import org.wickra.internal.WickraNative;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.invoke.MethodHandle;
 import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import static java.lang.foreign.ValueLayout.*;
@@ -14,6 +15,9 @@ public final class Cointegration implements AutoCloseable {
     private final MemorySegment handle;
     private final Cleaner.Cleanable cleanable;
     private boolean closed;
+    private static final MethodHandle UPDATE = NativeMethods.WICKRA_COINTEGRATION_UPDATE;
+    /** Where update receives its result, allocated once. */
+    private final MemorySegment updateOut = Arena.ofAuto().allocate(24L);
 
     public Cointegration(int period, int adfLags) {
         if (period < 0) {
@@ -37,9 +41,9 @@ public final class Cointegration implements AutoCloseable {
 
     /** Push one observation; returns the result, or null during warmup. */
     public CointegrationOutput update(double x, double y) {
-        try (Arena a = Arena.ofConfined()) {
-            MemorySegment out = a.allocate(24L);
-            byte ok = (byte) NativeMethods.WICKRA_COINTEGRATION_UPDATE.invokeExact(handle(), x, y, out);
+        try {
+            MemorySegment out = updateOut;
+            byte ok = (byte) UPDATE.invokeExact(handle(), x, y, out);
             if (ok == 0) {
                 return null;
             }
@@ -77,6 +81,54 @@ public final class Cointegration implements AutoCloseable {
                         outSeg.get(JAVA_DOUBLE, i * 24L + 16L));
             }
             return out;
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * The batch into a flat buffer of
+     * 3 doubles per input, one row per input in the order of {@link CointegrationOutput}'s
+     * components (NaN rows during warmup), without allocating the records.
+     * 
+     * <p>{@code output} must hold 3 values per input.
+     */
+    public void batchInto(double[] x, double[] y, double[] output) {
+        int n = x.length;
+        if (y.length != n) {
+            throw new IllegalArgumentException("all input arrays must have the same length");
+        }
+        if (output.length != (long) n * 3) {
+            throw new IllegalArgumentException("the output array must hold 3 values per input");
+        }
+        try {
+            WickraNative.heapDowncall("wickra_cointegration_batch", NativeMethods.WICKRA_COINTEGRATION_BATCH)
+                    .invokeExact(handle(), MemorySegment.ofArray(x), MemorySegment.ofArray(y), MemorySegment.ofArray(output), (long) n);
+        } catch (Throwable t) {
+            throw WickraNative.rethrow(t);
+        } finally {
+            Reference.reachabilityFence(this);
+        }
+    }
+
+    /**
+     * The batch into a flat buffer of
+     * 3 doubles per input, one row per input in the order of {@link CointegrationOutput}'s
+     * components (NaN rows during warmup), without allocating the records.
+     * 
+     * <p>Zero-copy form over caller-owned native memory: every input segment must be
+     * off-heap, aligned for its element type and hold the same number of elements,
+     * {@code output} 3 doubles per input. Nothing is copied or allocated.
+     */
+    public void batchInto(MemorySegment x, MemorySegment y, MemorySegment output) {
+        long n = x.byteSize() / JAVA_DOUBLE.byteSize();
+        WickraNative.checkBatchSegment(x, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(y, JAVA_DOUBLE, n);
+        WickraNative.checkBatchSegment(output, JAVA_DOUBLE, n * 3);
+        try {
+            NativeMethods.WICKRA_COINTEGRATION_BATCH.invokeExact(handle(), x, y, output, n);
         } catch (Throwable t) {
             throw WickraNative.rethrow(t);
         } finally {

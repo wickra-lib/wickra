@@ -12,11 +12,12 @@
 #![allow(clippy::unused_self)]
 #![allow(clippy::missing_const_for_fn)]
 
+use napi::bindgen_prelude::{Float64Array, FromNapiValue, TypeName, ValidateNapiValue};
 use napi::Error as NapiError;
 use napi::Status;
 use napi_derive::napi;
 use wickra_core as wc;
-use wickra_core::{BarBuilder, BatchExt, Indicator};
+use wickra_core::{BarBuilder, BatchNanExt, Indicator};
 
 /// An integer argument arriving from JavaScript.
 ///
@@ -110,12 +111,172 @@ impl napi::bindgen_prelude::TypeName for Count {
     }
 }
 
-fn map_err(e: wc::Error) -> NapiError {
-    NapiError::new(Status::InvalidArg, e.to_string())
+/// A numeric input series from JavaScript.
+///
+/// A `Float64Array` is read in place, without a copy; any other array of
+/// numbers is converted element by element, as every batch took it before. A
+/// typed array of another element type is refused rather than reinterpreted.
+pub struct Series(SeriesData);
+
+enum SeriesData {
+    Typed(Float64Array),
+    Plain(Vec<f64>),
 }
 
-fn flatten(v: Vec<Option<f64>>) -> Vec<f64> {
-    v.into_iter().map(|x| x.unwrap_or(f64::NAN)).collect()
+impl std::ops::Deref for Series {
+    type Target = [f64];
+
+    fn deref(&self) -> &[f64] {
+        match &self.0 {
+            SeriesData::Typed(values) => values,
+            SeriesData::Plain(values) => values,
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a Series {
+    type Item = &'a f64;
+    type IntoIter = std::slice::Iter<'a, f64>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl FromNapiValue for Series {
+    // The trait method is `unsafe` because it takes raw napi handles; the body
+    // only chooses between napi's own typed-array and array conversions.
+    #[allow(unsafe_code)]
+    unsafe fn from_napi_value(
+        env: napi::sys::napi_env,
+        value: napi::sys::napi_value,
+    ) -> napi::Result<Self> {
+        let mut typed = false;
+        napi::check_status!(napi::sys::napi_is_typedarray(env, value, &raw mut typed))?;
+        let data = if typed {
+            SeriesData::Typed(Float64Array::from_napi_value(env, value)?)
+        } else {
+            SeriesData::Plain(Vec::<f64>::from_napi_value(env, value)?)
+        };
+        Ok(Self(data))
+    }
+}
+
+impl ValidateNapiValue for Series {}
+
+impl TypeName for Series {
+    fn type_name() -> &'static str {
+        "Series"
+    }
+
+    fn value_type() -> napi::ValueType {
+        napi::ValueType::Object
+    }
+}
+
+/// A caller-owned `Float64Array` a batch writes its result into.
+///
+/// Writing into JavaScript memory is sound here because JavaScript runs on
+/// this thread only and none runs during the synchronous call, and because two
+/// things are refused up front: a buffer another thread could write at the same
+/// time (a `SharedArrayBuffer`), and an output that overlaps one of the inputs.
+pub struct OutSeries(Float64Array);
+
+impl FromNapiValue for OutSeries {
+    // The trait method is `unsafe` because it takes raw napi handles; the body
+    // only queries the value through napi and then uses napi's own conversion.
+    #[allow(unsafe_code)]
+    unsafe fn from_napi_value(
+        env: napi::sys::napi_env,
+        value: napi::sys::napi_value,
+    ) -> napi::Result<Self> {
+        let mut typed = false;
+        napi::check_status!(napi::sys::napi_is_typedarray(env, value, &raw mut typed))?;
+        if !typed {
+            return Err(NapiError::new(
+                Status::InvalidArg,
+                "the output must be a Float64Array".to_string(),
+            ));
+        }
+        let mut buffer = std::ptr::null_mut();
+        napi::check_status!(napi::sys::napi_get_typedarray_info(
+            env,
+            value,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            &raw mut buffer,
+            std::ptr::null_mut(),
+        ))?;
+        let mut plain = false;
+        napi::check_status!(napi::sys::napi_is_arraybuffer(env, buffer, &raw mut plain))?;
+        if !plain {
+            return Err(NapiError::new(
+                Status::InvalidArg,
+                "the output Float64Array must not be backed by a SharedArrayBuffer".to_string(),
+            ));
+        }
+        Ok(Self(Float64Array::from_napi_value(env, value)?))
+    }
+}
+
+impl ValidateNapiValue for OutSeries {}
+
+impl TypeName for OutSeries {
+    fn type_name() -> &'static str {
+        "Float64Array"
+    }
+
+    fn value_type() -> napi::ValueType {
+        napi::ValueType::Object
+    }
+}
+
+impl OutSeries {
+    /// The output as a slice of `rows` values, after checking its length and
+    /// that it shares no memory with any input.
+    fn rows(&mut self, rows: usize, inputs: &[&[f64]]) -> napi::Result<&mut [f64]> {
+        let out: &[f64] = &self.0;
+        if out.len() != rows {
+            return Err(NapiError::new(
+                Status::InvalidArg,
+                format!("the output must hold {rows} values, got {}", out.len()),
+            ));
+        }
+        let span = out.as_ptr_range();
+        let shares = inputs.iter().any(|input| {
+            let other = input.as_ptr_range();
+            !input.is_empty() && !out.is_empty() && other.start < span.end && span.start < other.end
+        });
+        if shares {
+            return Err(NapiError::new(
+                Status::InvalidArg,
+                "the output must not share memory with an input".to_string(),
+            ));
+        }
+        // SAFETY: JavaScript runs on this thread only and none runs until this
+        // call returns; the buffer is not a SharedArrayBuffer (refused when the
+        // value arrived) and overlaps no input (checked above), so this is the
+        // only reference to the memory for as long as it lives.
+        #[allow(unsafe_code)]
+        let rows_out = unsafe { self.0.as_mut() };
+        Ok(rows_out)
+    }
+}
+
+/// Every input column of a batch must be as long as the first.
+fn same_length(columns: &[&[f64]], what: &str) -> napi::Result<usize> {
+    let n = columns.first().map_or(0, |c| c.len());
+    if columns.iter().any(|c| c.len() != n) {
+        return Err(NapiError::from_reason(format!(
+            "{what} must be equal length"
+        )));
+    }
+    Ok(n)
+}
+
+fn map_err(e: wc::Error) -> NapiError {
+    NapiError::new(Status::InvalidArg, e.to_string())
 }
 
 /// Library version (matches the Rust crate version).
@@ -146,8 +307,28 @@ macro_rules! node_scalar_indicator {
                 self.inner.update(value)
             }
             #[napi]
-            pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-                flatten(self.inner.batch(&prices))
+            pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+                self.inner.batch_nan(&prices)
+            }
+            #[napi(js_name = "batchFast")]
+            pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+                Float64Array::new(self.inner.batch_fast(&prices))
+            }
+            #[napi(js_name = "batchInto")]
+            pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+                let rows = out.rows(prices.len(), &[&prices])?;
+                self.inner.batch_nan_into(&prices, rows);
+                Ok(())
+            }
+            #[napi(js_name = "batchFastInto")]
+            pub fn batch_fast_into(
+                &mut self,
+                prices: Series,
+                mut out: OutSeries,
+            ) -> napi::Result<()> {
+                let rows = out.rows(prices.len(), &[&prices])?;
+                self.inner.batch_fast_into(&prices, rows);
+                Ok(())
             }
             #[napi]
             pub fn reset(&mut self) {
@@ -236,8 +417,24 @@ impl RviVolatilityNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -379,8 +576,24 @@ impl UpsidePotentialRatioNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -420,8 +633,24 @@ impl M2MeasureNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -460,8 +689,24 @@ impl BandpassFilterNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -501,8 +746,24 @@ impl EvenBetterSinewaveNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -542,8 +803,24 @@ impl AutocorrelationPeriodogramNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -585,8 +862,24 @@ impl ShannonEntropyNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -625,8 +918,24 @@ impl SampleEntropyNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -665,8 +974,24 @@ impl EwmaVolatilityNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -705,8 +1030,24 @@ impl Garch11Node {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -746,8 +1087,24 @@ impl VolatilityOfVolatilityNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -811,12 +1168,7 @@ impl VolatilityConeNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -872,8 +1224,24 @@ impl JumpIndicatorNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -912,8 +1280,24 @@ impl RegimeLabelNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -952,8 +1336,24 @@ impl RollingQuantileNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -994,8 +1394,24 @@ impl AutocorrelationNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -1036,8 +1452,24 @@ impl HurstExponentNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -1082,7 +1514,7 @@ macro_rules! node_pair_indicator {
             /// Batch over two equally-sized arrays. Returns a length-`n` array
             /// with `NaN` for warmup positions.
             #[napi]
-            pub fn batch(&mut self, x: Vec<f64>, y: Vec<f64>) -> napi::Result<Vec<f64>> {
+            pub fn batch(&mut self, x: Series, y: Series) -> napi::Result<Vec<f64>> {
                 if x.len() != y.len() {
                     return Err(NapiError::new(
                         Status::InvalidArg,
@@ -1121,6 +1553,37 @@ node_pair_indicator!(
     "PearsonCorrelation",
     wc::PearsonCorrelation
 );
+
+#[napi]
+impl PearsonCorrelationNode {
+    /// Opt-in fast batch over the pairs `(x[i], y[i])`.
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, x: Series, y: Series) -> napi::Result<Float64Array> {
+        let n = same_length(&[&x, &y], "x and y")?;
+        let mut out = vec![0.0; n];
+        self.inner.batch_pairs_fast_into(&x, &y, &mut out);
+        Ok(Float64Array::new(out))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, x: Series, y: Series, mut out: OutSeries) -> napi::Result<()> {
+        let n = same_length(&[&x, &y], "x and y")?;
+        let rows = out.rows(n, &[&x, &y])?;
+        self.inner.batch_pairs_into(&x, &y, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(
+        &mut self,
+        x: Series,
+        y: Series,
+        mut out: OutSeries,
+    ) -> napi::Result<()> {
+        let n = same_length(&[&x, &y], "x and y")?;
+        let rows = out.rows(n, &[&x, &y])?;
+        self.inner.batch_pairs_fast_into(&x, &y, rows);
+        Ok(())
+    }
+}
 node_pair_indicator!(BetaNode, "Beta", wc::Beta);
 node_pair_indicator!(PairwiseBetaNode, "PairwiseBeta", wc::PairwiseBeta);
 node_pair_indicator!(
@@ -1182,7 +1645,7 @@ impl PairSpreadZScoreNode {
     /// Batch over two equally-sized arrays of prices. Returns a length-`n`
     /// array with `NaN` for warmup positions.
     #[napi]
-    pub fn batch(&mut self, a: Vec<f64>, b: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, a: Series, b: Series) -> napi::Result<Vec<f64>> {
         if a.len() != b.len() {
             return Err(NapiError::new(
                 Status::InvalidArg,
@@ -1250,7 +1713,7 @@ impl LeadLagCrossCorrelationNode {
     /// `2 * n`, interleaved per row as `[lag0, corr0, lag1, corr1, ...]`. Read
     /// column `j` of row `i` as `result[i * 2 + j]`. Warmup rows are `NaN`.
     #[napi]
-    pub fn batch(&mut self, a: Vec<f64>, b: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, a: Series, b: Series) -> napi::Result<Vec<f64>> {
         if a.len() != b.len() {
             return Err(NapiError::new(
                 Status::InvalidArg,
@@ -1324,7 +1787,7 @@ impl CointegrationNode {
     /// `3 * n`, interleaved per row as `[hedgeRatio0, spread0, adfStat0, ...]`.
     /// Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
     #[napi]
-    pub fn batch(&mut self, a: Vec<f64>, b: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, a: Series, b: Series) -> napi::Result<Vec<f64>> {
         if a.len() != b.len() {
             return Err(NapiError::new(
                 Status::InvalidArg,
@@ -1399,7 +1862,7 @@ impl RelativeStrengthABNode {
     /// `3 * n`, interleaved per row as `[ratio0, ratioMa0, ratioRsi0, ...]`.
     /// Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
     #[napi]
-    pub fn batch(&mut self, a: Vec<f64>, b: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, a: Series, b: Series) -> napi::Result<Vec<f64>> {
         if a.len() != b.len() {
             return Err(NapiError::new(
                 Status::InvalidArg,
@@ -1459,7 +1922,7 @@ impl VarianceRatioNode {
     /// Batch over two equally-sized arrays. Returns a length-`n` array with
     /// `NaN` for warmup positions.
     #[napi]
-    pub fn batch(&mut self, a: Vec<f64>, b: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, a: Series, b: Series) -> napi::Result<Vec<f64>> {
         if a.len() != b.len() {
             return Err(NapiError::new(
                 Status::InvalidArg,
@@ -1515,7 +1978,7 @@ impl GrangerCausalityNode {
     /// Batch over two equally-sized arrays. Returns a length-`n` array with
     /// `NaN` for warmup positions.
     #[napi]
-    pub fn batch(&mut self, a: Vec<f64>, b: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, a: Series, b: Series) -> napi::Result<Vec<f64>> {
         if a.len() != b.len() {
             return Err(NapiError::new(
                 Status::InvalidArg,
@@ -1585,7 +2048,7 @@ impl KalmanHedgeRatioNode {
     /// `3 * n`, interleaved per row as `[hedgeRatio0, intercept0, spread0, ...]`.
     /// Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
     #[napi]
-    pub fn batch(&mut self, a: Vec<f64>, b: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, a: Series, b: Series) -> napi::Result<Vec<f64>> {
         if a.len() != b.len() {
             return Err(NapiError::new(
                 Status::InvalidArg,
@@ -1664,7 +2127,7 @@ impl SpreadBollingerBandsNode {
     /// `4 * n`, interleaved per row as `[middle0, upper0, lower0, percentB0, ...]`.
     /// Read column `j` of row `i` as `result[i * 4 + j]`. Warmup rows are `NaN`.
     #[napi]
-    pub fn batch(&mut self, a: Vec<f64>, b: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, a: Series, b: Series) -> napi::Result<Vec<f64>> {
         if a.len() != b.len() {
             return Err(NapiError::new(
                 Status::InvalidArg,
@@ -1736,16 +2199,29 @@ impl MacdNode {
     /// interleaved per row as `[macd0, signal0, histogram0, macd1, ...]`.
     /// Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        let mut out = vec![f64::NAN; prices.len() * 3];
-        for (i, p) in prices.iter().enumerate() {
-            if let Some(o) = self.inner.update(*p) {
-                out[i * 3] = o.macd;
-                out[i * 3 + 1] = o.signal;
-                out[i * 3 + 2] = o.histogram;
-            }
-        }
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        let mut out = vec![0.0; prices.len() * 3];
+        self.inner.batch_macd_into(&prices, &mut out);
         out
+    }
+    /// Opt-in fast batch, flat `[macd, signal, histogram]` rows like `batch`.
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        let mut out = vec![0.0; prices.len() * 3];
+        self.inner.batch_macd_fast_into(&prices, &mut out);
+        Float64Array::new(out)
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len() * 3, &[&prices])?;
+        self.inner.batch_macd_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len() * 3, &[&prices])?;
+        self.inner.batch_macd_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -1790,7 +2266,7 @@ impl MacdFixNode {
     /// Batch over a price array. Returns a flat array of length `3 * n`,
     /// interleaved per row as `[macd0, signal0, histogram0, macd1, ...]`.
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 3];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -1861,7 +2337,7 @@ impl MacdExtNode {
     /// Batch over a price array. Returns a flat array of length `3 * n`,
     /// interleaved per row as `[macd0, signal0, histogram0, macd1, ...]`.
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 3];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -1927,17 +2403,29 @@ impl BollingerNode {
     /// interleaved per row as `[upper0, middle0, lower0, stddev0, upper1, ...]`.
     /// Read column `j` of row `i` as `result[i * 4 + j]`. Warmup rows are `NaN`.
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        let mut out = vec![f64::NAN; prices.len() * 4];
-        for (i, p) in prices.iter().enumerate() {
-            if let Some(o) = self.inner.update(*p) {
-                out[i * 4] = o.upper;
-                out[i * 4 + 1] = o.middle;
-                out[i * 4 + 2] = o.lower;
-                out[i * 4 + 3] = o.stddev;
-            }
-        }
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        let mut out = vec![0.0; prices.len() * 4];
+        self.inner.batch_bands_into(&prices, &mut out);
         out
+    }
+    /// Opt-in fast batch, flat `[upper, middle, lower, stddev]` rows like `batch`.
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        let mut out = vec![0.0; prices.len() * 4];
+        self.inner.batch_bands_fast_into(&prices, &mut out);
+        Float64Array::new(out)
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len() * 4, &[&prices])?;
+        self.inner.batch_bands_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len() * 4, &[&prices])?;
+        self.inner.batch_bands_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -1982,26 +2470,86 @@ impl AtrNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
-        if high.len() != low.len() || low.len() != close.len() {
-            return Err(NapiError::from_reason(
-                "high, low, close must be equal length".to_string(),
-            ));
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
+        let n = same_length(&[&high, &low, &close], "high, low, close")?;
+        // Every bar is validated first, as `update` would build it, so a bad bar
+        // is refused before the indicator consumes anything.
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid_hlc(&high, &low, &close) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], 0.0)?;
+            }
         }
-        let mut out = Vec::with_capacity(high.len());
-        for i in 0..high.len() {
-            out.push(
-                self.inner
-                    .update(cnd(high[i], low[i], close[i], 0.0)?)
-                    .unwrap_or(f64::NAN),
-            );
-        }
+        let mut out = vec![0.0; n];
+        self.inner.batch_atr_into(&high, &low, &close, &mut out);
         Ok(out)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(
+        &mut self,
+        high: Series,
+        low: Series,
+        close: Series,
+    ) -> napi::Result<Float64Array> {
+        let n = same_length(&[&high, &low, &close], "high, low, close")?;
+        // Every bar is validated first, as `update` would build it, so a bad bar
+        // is refused before the indicator consumes anything.
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid_hlc(&high, &low, &close) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], 0.0)?;
+            }
+        }
+        let mut out = vec![0.0; n];
+        self.inner
+            .batch_atr_fast_into(&high, &low, &close, &mut out);
+        Ok(Float64Array::new(out))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(
+        &mut self,
+        high: Series,
+        low: Series,
+        close: Series,
+        mut out: OutSeries,
+    ) -> napi::Result<()> {
+        let n = same_length(&[&high, &low, &close], "high, low, close")?;
+        // Every bar is validated first, as `update` would build it, so a bad bar
+        // is refused before the indicator consumes anything.
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid_hlc(&high, &low, &close) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], 0.0)?;
+            }
+        }
+        let rows = out.rows(n, &[&high, &low, &close])?;
+        self.inner.batch_atr_into(&high, &low, &close, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(
+        &mut self,
+        high: Series,
+        low: Series,
+        close: Series,
+        mut out: OutSeries,
+    ) -> napi::Result<()> {
+        let n = same_length(&[&high, &low, &close], "high, low, close")?;
+        // Every bar is validated first, as `update` would build it, so a bad bar
+        // is refused before the indicator consumes anything.
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid_hlc(&high, &low, &close) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], 0.0)?;
+            }
+        }
+        let rows = out.rows(n, &[&high, &low, &close])?;
+        self.inner.batch_atr_fast_into(&high, &low, &close, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -2040,12 +2588,7 @@ impl PlusDmNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -2098,12 +2641,7 @@ impl MinusDmNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -2156,12 +2694,7 @@ impl PlusDiNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -2214,12 +2747,7 @@ impl MinusDiNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -2272,12 +2800,7 @@ impl DxNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -2330,12 +2853,7 @@ impl MidPriceNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -2402,10 +2920,10 @@ impl AvgPriceNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if !(open.len() == high.len() && high.len() == low.len() && low.len() == close.len()) {
             return Err(NapiError::from_reason(
@@ -2479,12 +2997,7 @@ impl SarExtNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -2554,7 +3067,7 @@ impl HtPhasorNode {
     /// Batch over a price array. Returns a flat array of length `2 * n`,
     /// interleaved per row as `[inphase0, quadrature0, inphase1, ...]`.
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 2];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -2616,10 +3129,10 @@ impl CloseVsOpenNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -2686,10 +3199,10 @@ impl BodySizePctNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -2756,10 +3269,10 @@ impl WickRatioNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -2826,10 +3339,10 @@ impl HighLowRangeNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -2881,12 +3394,7 @@ impl StochasticCciNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -2947,10 +3455,10 @@ impl ImiNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -3014,7 +3522,7 @@ impl QqeNode {
         })
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 2];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -3078,12 +3586,7 @@ impl ElderRayNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3136,12 +3639,7 @@ impl TtmTrendNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3196,7 +3694,7 @@ impl QstickNode {
         Ok(self.inner.update(cnd4(open, hi, lo, close)?))
     }
     #[napi]
-    pub fn batch(&mut self, open: Vec<f64>, close: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, open: Series, close: Series) -> napi::Result<Vec<f64>> {
         if open.len() != close.len() {
             return Err(NapiError::from_reason(
                 "open, close must be equal length".to_string(),
@@ -3252,8 +3750,24 @@ impl PolarizedFractalEfficiencyNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -3292,8 +3806,24 @@ impl WavePmNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -3354,12 +3884,7 @@ impl GatorOscillatorNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3430,12 +3955,7 @@ impl KasePermissionStochasticNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3488,12 +4008,7 @@ impl VolatilityRatioNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3546,12 +4061,7 @@ impl ProjectionOscillatorNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3604,12 +4114,7 @@ impl TimeBasedStopNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3662,12 +4167,7 @@ impl AdaptiveCciNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3729,12 +4229,7 @@ impl StochNode {
             .map(|o| StochValue { k: o.k, d: o.d }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3793,7 +4288,7 @@ impl ObvNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -3862,12 +4357,7 @@ impl AdxNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3921,12 +4411,7 @@ impl AdxrNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -3994,12 +4479,7 @@ impl CciNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -4051,12 +4531,7 @@ impl WilliamsRNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -4116,10 +4591,10 @@ impl MfiNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -4172,12 +4647,7 @@ impl PsarNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -4249,12 +4719,7 @@ impl KeltnerNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -4321,7 +4786,7 @@ impl DonchianNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -4387,10 +4852,10 @@ impl VwapNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -4455,10 +4920,10 @@ impl RollingVwapNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -4511,7 +4976,7 @@ impl AoNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -4575,7 +5040,7 @@ impl AroonNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -4624,10 +5089,10 @@ impl InertiaNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if !(open.len() == high.len() && high.len() == low.len() && low.len() == close.len()) {
             return Err(NapiError::from_reason(
@@ -4681,8 +5146,24 @@ impl ConnorsRsiNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -4720,8 +5201,24 @@ impl LaguerreRsiNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -4759,12 +5256,7 @@ impl SmiNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if !(high.len() == low.len() && low.len() == close.len()) {
             return Err(NapiError::from_reason(
                 "high, low and close must be equal length".to_string(),
@@ -4853,7 +5345,7 @@ impl KstNode {
         })
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let n = prices.len();
         let mut out = vec![f64::NAN; n * 2];
         for (i, p) in prices.iter().enumerate() {
@@ -4900,12 +5392,7 @@ impl PgoNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if !(high.len() == low.len() && low.len() == close.len()) {
             return Err(NapiError::from_reason(
                 "high, low and close must be equal length".to_string(),
@@ -4965,10 +5452,10 @@ impl RviNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if !(open.len() == high.len() && high.len() == low.len() && low.len() == close.len()) {
             return Err(NapiError::from_reason(
@@ -5022,7 +5509,7 @@ impl AwesomeOscillatorHistogramNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -5075,8 +5562,24 @@ impl StcNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5125,8 +5628,24 @@ impl ElderImpulseNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5175,7 +5694,7 @@ impl ZeroLagMacdNode {
         })
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let n = prices.len();
         let mut out = vec![f64::NAN; n * 3];
         for (i, p) in prices.iter().enumerate() {
@@ -5223,8 +5742,24 @@ impl CfoNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5262,8 +5797,24 @@ impl ApoNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5318,8 +5869,24 @@ impl KamaNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
 }
 
@@ -5342,7 +5909,7 @@ impl EvwmaNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -5427,7 +5994,7 @@ impl AlligatorNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -5482,8 +6049,24 @@ impl JmaNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
 }
 
@@ -5523,8 +6106,24 @@ impl VidyaNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
 }
 
@@ -5564,8 +6163,24 @@ impl AlmaNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
 }
 
@@ -5589,8 +6204,24 @@ impl T3Node {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5631,8 +6262,24 @@ impl GeneralizedDemaNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5673,8 +6320,24 @@ impl HoltWintersNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5715,8 +6378,24 @@ impl RmiNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5768,8 +6447,24 @@ impl DerivativeOscillatorNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5810,8 +6505,24 @@ impl MacdHistogramNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5852,8 +6563,24 @@ impl PpoHistogramNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5894,8 +6621,24 @@ impl TsiNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5936,8 +6679,24 @@ impl PmoNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -5980,8 +6739,24 @@ impl TiiNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -6036,10 +6811,10 @@ impl AdlNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -6101,7 +6876,7 @@ impl VolumePriceTrendNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -6164,10 +6939,10 @@ impl ChaikinMoneyFlowNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -6231,25 +7006,96 @@ impl ChaikinOscillatorNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
-        if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
-            return Err(NapiError::from_reason(
-                "high, low, close, volume must be equal length".to_string(),
-            ));
+        let n = same_length(&[&high, &low, &close, &volume], "high, low, close, volume")?;
+        // Every bar is validated first, as `update` would build it, so a bad bar
+        // is refused before the indicator consumes anything.
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid(&close, &high, &low, &close, &volume) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], volume[i])?;
+            }
         }
-        let mut out = Vec::with_capacity(high.len());
-        for i in 0..high.len() {
-            out.push(
-                self.inner
-                    .update(cnd(high[i], low[i], close[i], volume[i])?)
-                    .unwrap_or(f64::NAN),
-            );
-        }
+        let mut out = vec![0.0; n];
+        self.inner
+            .batch_hlcv_into(&high, &low, &close, &volume, &mut out);
         Ok(out)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(
+        &mut self,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
+    ) -> napi::Result<Float64Array> {
+        let n = same_length(&[&high, &low, &close, &volume], "high, low, close, volume")?;
+        // Every bar is validated first, as `update` would build it, so a bad bar
+        // is refused before the indicator consumes anything.
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid(&close, &high, &low, &close, &volume) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], volume[i])?;
+            }
+        }
+        let mut out = vec![0.0; n];
+        self.inner
+            .batch_hlcv_fast_into(&high, &low, &close, &volume, &mut out);
+        Ok(Float64Array::new(out))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(
+        &mut self,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
+        mut out: OutSeries,
+    ) -> napi::Result<()> {
+        let n = same_length(&[&high, &low, &close, &volume], "high, low, close, volume")?;
+        // Every bar is validated first, as `update` would build it, so a bad bar
+        // is refused before the indicator consumes anything.
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid(&close, &high, &low, &close, &volume) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], volume[i])?;
+            }
+        }
+        let rows = out.rows(n, &[&high, &low, &close, &volume])?;
+        self.inner
+            .batch_hlcv_into(&high, &low, &close, &volume, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(
+        &mut self,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
+        mut out: OutSeries,
+    ) -> napi::Result<()> {
+        let n = same_length(&[&high, &low, &close, &volume], "high, low, close, volume")?;
+        // Every bar is validated first, as `update` would build it, so a bad bar
+        // is refused before the indicator consumes anything.
+        // The vectorized column check first; the per-bar loop only runs to
+        // name the bad bar.
+        if !wc::Candle::all_valid(&close, &high, &low, &close, &volume) {
+            for i in 0..n {
+                cnd(high[i], low[i], close[i], volume[i])?;
+            }
+        }
+        let rows = out.rows(n, &[&high, &low, &close, &volume])?;
+        self.inner
+            .batch_hlcv_fast_into(&high, &low, &close, &volume, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -6290,7 +7136,7 @@ impl ForceIndexNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -6345,7 +7191,7 @@ impl NviNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -6400,7 +7246,7 @@ impl PviNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -6455,7 +7301,7 @@ impl VolumeOscillatorNode {
         Ok(self.inner.update(cnd(10.0, 10.0, 10.0, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, volume: Series) -> napi::Result<Vec<f64>> {
         let mut out = Vec::with_capacity(volume.len());
         for &v in &volume {
             out.push(
@@ -6513,10 +7359,10 @@ impl KvoNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -6573,12 +7419,7 @@ impl AdOscillatorNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -6638,8 +7479,24 @@ impl AnchoredRsiNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -6693,10 +7550,10 @@ impl AnchoredVwapNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -6760,10 +7617,10 @@ impl DemandIndexNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -6819,7 +7676,7 @@ impl TsvNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -6874,7 +7731,7 @@ impl VzoNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -6930,12 +7787,7 @@ impl MarketFacilitationIndexNode {
         Ok(self.inner.update(cnd(high, low, low, volume)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -6990,12 +7842,7 @@ impl EaseOfMovementNode {
         Ok(self.inner.update(cnd(high, low, low, volume)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -7069,12 +7916,7 @@ impl SuperTrendNode {
     /// Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
     /// Warmup positions are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7148,12 +7990,7 @@ impl ChandelierExitNode {
     /// Returns `[long0, short0, long1, short1, ...]`, length `2 * n`. Warmup
     /// positions are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7228,12 +8065,7 @@ impl ChandeKrollStopNode {
     /// Returns `[long0, short0, long1, short1, ...]`, length `2 * n`. Warmup
     /// positions are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7288,12 +8120,7 @@ impl AtrTrailingStopNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7348,12 +8175,7 @@ impl HiLoActivatorNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7408,12 +8230,7 @@ impl VoltyStopNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7468,12 +8285,7 @@ impl YoyoExitNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7546,7 +8358,7 @@ impl DonchianStopNode {
     /// Returns `[long0, short0, long1, short1, ...]`, length `2 * n`. Warmup
     /// positions are `NaN`.
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -7601,8 +8413,24 @@ impl PercentageTrailingStopNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -7643,8 +8471,24 @@ impl StepTrailingStopNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -7685,8 +8529,24 @@ impl RenkoTrailingStopNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -7746,12 +8606,7 @@ impl KaseDevStopNode {
     /// Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
     /// Warmup positions are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7825,12 +8680,7 @@ impl ElderSafeZoneNode {
     /// Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
     /// Warmup positions are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7904,12 +8754,7 @@ impl AtrRatchetNode {
     /// Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
     /// Warmup positions are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -7978,12 +8823,7 @@ impl NrtrNode {
     /// Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
     /// Warmup positions are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -8057,12 +8897,7 @@ impl ModifiedMaStopNode {
     /// Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
     /// Warmup positions are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -8123,12 +8958,7 @@ impl TypicalPriceNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -8189,7 +9019,7 @@ impl MedianPriceNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -8250,12 +9080,7 @@ impl WeightedCloseNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -8310,8 +9135,24 @@ impl LinearRegressionNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -8352,8 +9193,24 @@ impl LinRegSlopeNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -8399,7 +9256,7 @@ impl AcceleratorOscillatorNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -8469,10 +9326,10 @@ impl BalanceOfPowerNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -8526,12 +9383,7 @@ impl ChoppinessIndexNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -8592,12 +9444,7 @@ impl TrueRangeNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -8653,7 +9500,7 @@ impl ChaikinVolatilityNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -8718,10 +9565,10 @@ impl YangZhangVolatilityNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         let n = open.len();
         if high.len() != n || low.len() != n || close.len() != n {
@@ -8786,10 +9633,10 @@ impl RogersSatchellVolatilityNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         let n = open.len();
         if high.len() != n || low.len() != n || close.len() != n {
@@ -8854,10 +9701,10 @@ impl GarmanKlassVolatilityNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         let n = open.len();
         if high.len() != n || low.len() != n || close.len() != n {
@@ -8913,7 +9760,7 @@ impl ParkinsonVolatilityNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -8968,8 +9815,24 @@ impl LinRegAngleNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -9010,8 +9873,24 @@ impl BollingerBandwidthNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -9052,8 +9931,24 @@ impl PercentBNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -9094,12 +9989,7 @@ impl NatrNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -9155,8 +10045,24 @@ impl HistoricalVolatilityNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -9197,7 +10103,7 @@ impl AroonOscillatorNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -9299,12 +10205,7 @@ impl WaveTrendNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -9364,12 +10265,7 @@ impl RwiNode {
     }
     /// Returns `[high0, low0, high1, low1, ...]`, length `2 * n`. Warmup is NaN.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -9429,12 +10325,7 @@ impl VortexNode {
     }
     /// Returns `[plus0, minus0, plus1, minus1, ...]`, length `2 * n`. Warmup is NaN.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -9489,7 +10380,7 @@ impl MassIndexNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -9544,8 +10435,24 @@ impl StochRsiNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -9587,12 +10494,7 @@ impl UltimateOscillatorNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -9647,8 +10549,24 @@ impl PpoNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -9690,8 +10608,24 @@ impl CoppockNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -9730,7 +10664,7 @@ impl VwmaNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -9798,7 +10732,7 @@ impl MaEnvelopeNode {
     }
     /// Flat `[upper0, middle0, lower0, upper1, ...]`, length `3 * n`.
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 3];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -9867,12 +10801,7 @@ impl AccelerationBandsNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -9948,12 +10877,7 @@ impl StarcBandsNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -10028,12 +10952,7 @@ impl AtrBandsNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -10108,12 +11027,7 @@ impl HurstChannelNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -10180,7 +11094,7 @@ impl LinRegChannelNode {
         })
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 3];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -10241,7 +11155,7 @@ impl StandardErrorBandsNode {
         })
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 3];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -10302,7 +11216,7 @@ impl QuartileBandsNode {
         })
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 3];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -10363,7 +11277,7 @@ impl BomarBandsNode {
         })
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 3];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -10424,7 +11338,7 @@ impl MedianChannelNode {
         })
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 3];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -10488,7 +11402,7 @@ impl ProjectionBandsNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -10569,12 +11483,7 @@ impl CentralPivotRangeNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -10665,7 +11574,7 @@ impl MurreyMathLinesNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -10741,7 +11650,7 @@ impl AndrewsPitchforkNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -10814,12 +11723,7 @@ impl VolumeWeightedSrNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -10874,12 +11778,7 @@ impl PivotReversalNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -10954,7 +11853,7 @@ impl DoubleBollingerNode {
     }
     /// Flat `[u_o, u_i, m, l_i, l_o, ...]`, length `5 * n`.
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 5];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -11024,12 +11923,7 @@ impl TtmSqueezeNode {
     }
     /// Flat `[sq0, mom0, sq1, mom1, ...]`, length `2 * n`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -11097,7 +11991,7 @@ impl FractalChaosBandsNode {
     }
     /// Flat `[u0, l0, u1, l1, ...]`, length `2 * n`.
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -11177,10 +12071,10 @@ impl VwapStdDevBandsNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         let n = high.len();
         if low.len() != n || close.len() != n || volume.len() != n {
@@ -11267,12 +12161,7 @@ impl ClassicPivotsNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -11363,12 +12252,7 @@ impl FibonacciPivotsNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -11463,12 +12347,7 @@ impl CamarillaNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -11557,12 +12436,7 @@ impl WoodiePivotsNode {
             }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -11644,10 +12518,10 @@ impl DemarkPivotsNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -11724,7 +12598,7 @@ impl WilliamsFractalsNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -11799,7 +12673,7 @@ impl ZigZagNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -11857,12 +12731,7 @@ impl TdSetupNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -11949,12 +12818,7 @@ impl TdSequentialNode {
     }
     /// Batch returns a flat array `[setup0, countdown0, direction0, setup1, ...]`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -12010,7 +12874,7 @@ impl TdDeMarkerNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -12065,7 +12929,7 @@ impl TdReiNode {
         Ok(self.inner.update(cnd(high, low, low, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -12130,11 +12994,11 @@ impl TdPressureNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len()
             || high.len() != low.len()
@@ -12203,12 +13067,7 @@ impl TdComboNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -12263,12 +13122,7 @@ impl TdDWaveNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -12335,7 +13189,7 @@ impl TdMovingAverageNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high, low must be equal length".to_string(),
@@ -12401,12 +13255,7 @@ impl TdCountdownNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -12480,12 +13329,7 @@ impl TdLinesNode {
     }
     /// Batch returns a flat array `[resistance0, support0, resistance1, ...]`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -12566,10 +13410,10 @@ impl TdRangeProjectionNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -12633,12 +13477,7 @@ impl TdDifferentialNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -12708,10 +13547,10 @@ impl TdOpenNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -12785,12 +13624,7 @@ impl TdRiskLevelNode {
     }
     /// Batch returns a flat array `[buyRisk0, sellRisk0, buyRisk1, ...]`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -12845,8 +13679,24 @@ impl InverseFisherTransformNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -12885,8 +13735,24 @@ impl DecyclerOscillatorNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -12925,8 +13791,24 @@ impl RoofingFilterNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -12965,8 +13847,24 @@ impl EmpiricalModeDecompositionNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -13011,8 +13909,24 @@ impl HtDcPhaseNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -13057,8 +13971,24 @@ impl HtTrendModeNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -13103,8 +14033,24 @@ impl HilbertDominantCycleNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -13149,8 +14095,24 @@ impl AdaptiveCycleNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -13195,8 +14157,24 @@ impl SineWaveNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn lead(&self) -> f64 {
@@ -13249,7 +14227,7 @@ impl MamaNode {
     }
     /// Returns a flat array of length `2 * n`: `[mama0, fama0, mama1, fama1, ...]`.
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         let mut out = vec![f64::NAN; prices.len() * 2];
         for (i, p) in prices.iter().enumerate() {
             if let Some(o) = self.inner.update(*p) {
@@ -13296,8 +14274,24 @@ impl FamaNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -13378,12 +14372,7 @@ impl IchimokuNode {
     /// Returns `[tenkan0, kijun0, senkouA0, senkouB0, chikou0, tenkan1, ...]`,
     /// length `5 * n`. Cells without a defined value are `NaN`.
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -13480,10 +14469,10 @@ impl HeikinAshiNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -13551,10 +14540,10 @@ impl HeikinAshiOscillatorNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -13607,12 +14596,7 @@ impl ThreeLineBreakNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -13689,10 +14673,10 @@ impl SmoothedHeikinAshiNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -13766,12 +14750,7 @@ impl EquivolumeNode {
         }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -13845,12 +14824,7 @@ impl CandleVolumeNode {
         }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        open: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, open: Series, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if open.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "open, close, volume must be equal length".to_string(),
@@ -13908,12 +14882,7 @@ impl FryPanBottomNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -13968,12 +14937,7 @@ impl DumplingTopNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -14028,12 +14992,7 @@ impl NewPriceLinesNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -14123,12 +15082,7 @@ impl ValueAreaNode {
         }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -14186,10 +15140,10 @@ impl NakedPocNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -14247,7 +15201,7 @@ impl SinglePrintsNode {
             .update(wc::Candle::new(mid, high, low, mid, 0.0, 0).map_err(map_err)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -14305,12 +15259,7 @@ impl ProfileShapeNode {
             .update(wc::Candle::new(mid, high, low, mid, volume, 0).map_err(map_err)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -14384,12 +15333,7 @@ impl HighLowVolumeNodesNode {
         }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -14465,12 +15409,7 @@ impl CompositeProfileNode {
         }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -14554,12 +15493,7 @@ impl VolumeProfileNode {
         }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        volume: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "high, low, volume must be equal length".to_string(),
@@ -14633,7 +15567,7 @@ impl TpoProfileNode {
         }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high, low must be equal length".to_string(),
@@ -14708,7 +15642,7 @@ impl InitialBalanceNode {
         }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -14785,12 +15719,7 @@ impl OpeningRangeNode {
         }))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -14852,10 +15781,10 @@ macro_rules! node_candle_pattern {
             #[napi]
             pub fn batch(
                 &mut self,
-                open: Vec<f64>,
-                high: Vec<f64>,
-                low: Vec<f64>,
-                close: Vec<f64>,
+                open: Series,
+                high: Series,
+                low: Series,
+                close: Series,
             ) -> napi::Result<Vec<f64>> {
                 if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
                     return Err(NapiError::from_reason(
@@ -14929,10 +15858,10 @@ impl DojiNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<f64>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -15329,8 +16258,8 @@ macro_rules! node_trade_indicator {
             #[napi]
             pub fn batch(
                 &mut self,
-                price: Vec<f64>,
-                size: Vec<f64>,
+                price: Series,
+                size: Series,
                 is_buy: Vec<bool>,
             ) -> napi::Result<Vec<f64>> {
                 if price.len() != size.len() || size.len() != is_buy.len() {
@@ -15394,8 +16323,8 @@ impl TradeImbalanceNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
     ) -> napi::Result<Vec<f64>> {
         if price.len() != size.len() || size.len() != is_buy.len() {
@@ -15450,8 +16379,8 @@ impl TradeSignAutocorrelationNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
     ) -> napi::Result<Vec<f64>> {
         if price.len() != size.len() || size.len() != is_buy.len() {
@@ -15506,8 +16435,8 @@ impl PinNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
     ) -> napi::Result<Vec<f64>> {
         if price.len() != size.len() || size.len() != is_buy.len() {
@@ -15615,8 +16544,8 @@ impl VpinNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
     ) -> napi::Result<Vec<f64>> {
         if price.len() != size.len() || size.len() != is_buy.len() {
@@ -15671,8 +16600,8 @@ impl AmihudIlliquidityNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
     ) -> napi::Result<Vec<f64>> {
         if price.len() != size.len() || size.len() != is_buy.len() {
@@ -15727,8 +16656,8 @@ impl RollMeasureNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
     ) -> napi::Result<Vec<f64>> {
         if price.len() != size.len() || size.len() != is_buy.len() {
@@ -15815,10 +16744,10 @@ macro_rules! node_trade_quote_indicator {
             #[napi]
             pub fn batch(
                 &mut self,
-                price: Vec<f64>,
-                size: Vec<f64>,
+                price: Series,
+                size: Series,
                 is_buy: Vec<bool>,
-                mid: Vec<f64>,
+                mid: Series,
             ) -> napi::Result<Vec<f64>> {
                 if price.len() != size.len()
                     || size.len() != is_buy.len()
@@ -15887,10 +16816,10 @@ impl RealizedSpreadNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
-        mid: Vec<f64>,
+        mid: Series,
     ) -> napi::Result<Vec<f64>> {
         if price.len() != size.len() || size.len() != is_buy.len() || is_buy.len() != mid.len() {
             return Err(NapiError::from_reason(
@@ -15952,10 +16881,10 @@ impl KylesLambdaNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
-        mid: Vec<f64>,
+        mid: Series,
     ) -> napi::Result<Vec<f64>> {
         if price.len() != size.len() || size.len() != is_buy.len() || is_buy.len() != mid.len() {
             return Err(NapiError::from_reason(
@@ -16043,8 +16972,8 @@ impl FootprintNode {
     #[napi]
     pub fn batch(
         &mut self,
-        price: Vec<f64>,
-        size: Vec<f64>,
+        price: Series,
+        size: Series,
         is_buy: Vec<bool>,
     ) -> napi::Result<Vec<Vec<FootprintLevelValue>>> {
         if price.len() != size.len() || size.len() != is_buy.len() {
@@ -16310,9 +17239,9 @@ impl FundingRateNode {
         Ok(self.inner.update(deriv_funding(funding_rate)?))
     }
     #[napi]
-    pub fn batch(&mut self, funding_rate: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, funding_rate: Series) -> napi::Result<Vec<f64>> {
         let mut out = Vec::with_capacity(funding_rate.len());
-        for rate in funding_rate {
+        for &rate in &funding_rate {
             out.push(self.inner.update(deriv_funding(rate)?).unwrap_or(f64::NAN));
         }
         Ok(out)
@@ -16354,9 +17283,9 @@ impl FundingRateMeanNode {
         Ok(self.inner.update(deriv_funding(funding_rate)?))
     }
     #[napi]
-    pub fn batch(&mut self, funding_rate: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, funding_rate: Series) -> napi::Result<Vec<f64>> {
         let mut out = Vec::with_capacity(funding_rate.len());
-        for rate in funding_rate {
+        for &rate in &funding_rate {
             out.push(self.inner.update(deriv_funding(rate)?).unwrap_or(f64::NAN));
         }
         Ok(out)
@@ -16398,9 +17327,9 @@ impl FundingRateZScoreNode {
         Ok(self.inner.update(deriv_funding(funding_rate)?))
     }
     #[napi]
-    pub fn batch(&mut self, funding_rate: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, funding_rate: Series) -> napi::Result<Vec<f64>> {
         let mut out = Vec::with_capacity(funding_rate.len());
-        for rate in funding_rate {
+        for &rate in &funding_rate {
             out.push(self.inner.update(deriv_funding(rate)?).unwrap_or(f64::NAN));
         }
         Ok(out)
@@ -16448,7 +17377,7 @@ impl FundingBasisNode {
         Ok(self.inner.update(deriv_basis(mark_price, index_price)?))
     }
     #[napi]
-    pub fn batch(&mut self, mark_price: Vec<f64>, index_price: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, mark_price: Series, index_price: Series) -> napi::Result<Vec<f64>> {
         if mark_price.len() != index_price.len() {
             return Err(NapiError::from_reason(
                 "mark_price and index_price must be equal length".to_string(),
@@ -16507,9 +17436,9 @@ impl OpenInterestDeltaNode {
         Ok(self.inner.update(deriv_oi(open_interest)?))
     }
     #[napi]
-    pub fn batch(&mut self, open_interest: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, open_interest: Series) -> napi::Result<Vec<f64>> {
         let mut out = Vec::with_capacity(open_interest.len());
-        for oi in open_interest {
+        for &oi in &open_interest {
             out.push(self.inner.update(deriv_oi(oi)?).unwrap_or(f64::NAN));
         }
         Ok(out)
@@ -16551,11 +17480,7 @@ impl OIPriceDivergenceNode {
         Ok(self.inner.update(deriv_oi_mark(open_interest, mark_price)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        open_interest: Vec<f64>,
-        mark_price: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, open_interest: Series, mark_price: Series) -> napi::Result<Vec<f64>> {
         if open_interest.len() != mark_price.len() {
             return Err(NapiError::from_reason(
                 "open_interest and mark_price must be equal length".to_string(),
@@ -16614,11 +17539,7 @@ impl OIWeightedNode {
         Ok(self.inner.update(deriv_oi_mark(open_interest, mark_price)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        mark_price: Vec<f64>,
-        open_interest: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, mark_price: Series, open_interest: Series) -> napi::Result<Vec<f64>> {
         if mark_price.len() != open_interest.len() {
             return Err(NapiError::from_reason(
                 "mark_price and open_interest must be equal length".to_string(),
@@ -16677,7 +17598,7 @@ impl LongShortRatioNode {
         Ok(self.inner.update(deriv_long_short(long_size, short_size)?))
     }
     #[napi]
-    pub fn batch(&mut self, long_size: Vec<f64>, short_size: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, long_size: Series, short_size: Series) -> napi::Result<Vec<f64>> {
         if long_size.len() != short_size.len() {
             return Err(NapiError::from_reason(
                 "long_size and short_size must be equal length".to_string(),
@@ -16744,8 +17665,8 @@ impl TakerBuySellRatioNode {
     #[napi]
     pub fn batch(
         &mut self,
-        taker_buy_volume: Vec<f64>,
-        taker_sell_volume: Vec<f64>,
+        taker_buy_volume: Series,
+        taker_sell_volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if taker_buy_volume.len() != taker_sell_volume.len() {
             return Err(NapiError::from_reason(
@@ -16830,8 +17751,8 @@ impl LiquidationFeaturesNode {
     #[napi]
     pub fn batch(
         &mut self,
-        long_liquidation: Vec<f64>,
-        short_liquidation: Vec<f64>,
+        long_liquidation: Series,
+        short_liquidation: Series,
     ) -> napi::Result<Vec<f64>> {
         if long_liquidation.len() != short_liquidation.len() {
             return Err(NapiError::from_reason(
@@ -16900,11 +17821,7 @@ impl TermStructureBasisNode {
             .update(deriv_futures_index(futures_price, index_price)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        futures_price: Vec<f64>,
-        index_price: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, futures_price: Series, index_price: Series) -> napi::Result<Vec<f64>> {
         if futures_price.len() != index_price.len() {
             return Err(NapiError::from_reason(
                 "futures_price and index_price must be equal length".to_string(),
@@ -16965,11 +17882,7 @@ impl CalendarSpreadNode {
             .update(deriv_futures_mark(futures_price, mark_price)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        futures_price: Vec<f64>,
-        mark_price: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, futures_price: Series, mark_price: Series) -> napi::Result<Vec<f64>> {
         if futures_price.len() != mark_price.len() {
             return Err(NapiError::from_reason(
                 "futures_price and mark_price must be equal length".to_string(),
@@ -17038,9 +17951,9 @@ impl EstimatedLeverageRatioNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open_interest: Vec<f64>,
-        long_size: Vec<f64>,
-        short_size: Vec<f64>,
+        open_interest: Series,
+        long_size: Series,
+        short_size: Series,
     ) -> napi::Result<Vec<f64>> {
         if open_interest.len() != long_size.len() || long_size.len() != short_size.len() {
             return Err(NapiError::from_reason(
@@ -17116,9 +18029,9 @@ impl OiToVolumeRatioNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open_interest: Vec<f64>,
-        taker_buy_volume: Vec<f64>,
-        taker_sell_volume: Vec<f64>,
+        open_interest: Series,
+        taker_buy_volume: Series,
+        taker_sell_volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if open_interest.len() != taker_buy_volume.len()
             || taker_buy_volume.len() != taker_sell_volume.len()
@@ -17186,7 +18099,7 @@ impl PerpetualPremiumIndexNode {
         Ok(self.inner.update(deriv_basis(mark_price, index_price)?))
     }
     #[napi]
-    pub fn batch(&mut self, mark_price: Vec<f64>, index_price: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, mark_price: Series, index_price: Series) -> napi::Result<Vec<f64>> {
         if mark_price.len() != index_price.len() {
             return Err(NapiError::from_reason(
                 "mark_price and index_price must be equal length".to_string(),
@@ -17240,9 +18153,9 @@ impl FundingImpliedAprNode {
         Ok(self.inner.update(deriv_funding(funding_rate)?))
     }
     #[napi]
-    pub fn batch(&mut self, funding_rate: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, funding_rate: Series) -> napi::Result<Vec<f64>> {
         let mut out = Vec::with_capacity(funding_rate.len());
-        for r in funding_rate {
+        for &r in &funding_rate {
             out.push(self.inner.update(deriv_funding(r)?).unwrap_or(f64::NAN));
         }
         Ok(out)
@@ -17285,9 +18198,9 @@ impl OpenInterestMomentumNode {
         Ok(self.inner.update(deriv_oi(open_interest)?))
     }
     #[napi]
-    pub fn batch(&mut self, open_interest: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, open_interest: Series) -> napi::Result<Vec<f64>> {
         let mut out = Vec::with_capacity(open_interest.len());
-        for oi in open_interest {
+        for &oi in &open_interest {
             out.push(self.inner.update(deriv_oi(oi)?).unwrap_or(f64::NAN));
         }
         Ok(out)
@@ -18530,8 +19443,24 @@ impl SharpeRatioNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18570,8 +19499,24 @@ impl SortinoRatioNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18610,8 +19555,24 @@ impl CalmarRatioNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18650,8 +19611,24 @@ impl OmegaRatioNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18690,8 +19667,24 @@ impl MaxDrawdownNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18730,8 +19723,24 @@ impl AverageDrawdownNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18776,7 +19785,7 @@ impl DrawdownDurationNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
         prices
             .iter()
             .map(|p| self.inner.update(*p).map_or(f64::NAN, f64::from))
@@ -18819,8 +19828,24 @@ impl PainIndexNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18859,8 +19884,24 @@ impl ValueAtRiskNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18899,8 +19940,24 @@ impl ConditionalValueAtRiskNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18939,8 +19996,24 @@ impl ProfitFactorNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -18979,8 +20052,24 @@ impl GainLossRatioNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -19025,8 +20114,24 @@ impl RecoveryFactorNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -19065,8 +20170,24 @@ impl KellyCriterionNode {
         self.inner.update(value)
     }
     #[napi]
-    pub fn batch(&mut self, prices: Vec<f64>) -> Vec<f64> {
-        flatten(self.inner.batch(&prices))
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -19113,7 +20234,7 @@ impl TreynorRatioNode {
         self.inner.update((asset, benchmark))
     }
     #[napi]
-    pub fn batch(&mut self, asset: Vec<f64>, benchmark: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, asset: Series, benchmark: Series) -> napi::Result<Vec<f64>> {
         if asset.len() != benchmark.len() {
             return Err(NapiError::from_reason(
                 "asset and benchmark must be equal length".to_string(),
@@ -19166,7 +20287,7 @@ impl InformationRatioNode {
         self.inner.update((asset, benchmark))
     }
     #[napi]
-    pub fn batch(&mut self, asset: Vec<f64>, benchmark: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, asset: Series, benchmark: Series) -> napi::Result<Vec<f64>> {
         if asset.len() != benchmark.len() {
             return Err(NapiError::from_reason(
                 "asset and benchmark must be equal length".to_string(),
@@ -19241,9 +20362,9 @@ impl RenkoBarsNode {
             .collect())
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>) -> napi::Result<Vec<RenkoBrickValue>> {
+    pub fn batch(&mut self, close: Series) -> napi::Result<Vec<RenkoBrickValue>> {
         let mut out = Vec::new();
-        for price in close {
+        for &price in &close {
             let candle = wc::Candle::new(price, price, price, price, 1.0, 0).map_err(map_err)?;
             for b in self.inner.update(candle) {
                 out.push(RenkoBrickValue {
@@ -19304,9 +20425,9 @@ impl KagiBarsNode {
             .collect())
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>) -> napi::Result<Vec<KagiSegmentValue>> {
+    pub fn batch(&mut self, close: Series) -> napi::Result<Vec<KagiSegmentValue>> {
         let mut out = Vec::new();
-        for price in close {
+        for &price in &close {
             let candle = wc::Candle::new(price, price, price, price, 1.0, 0).map_err(map_err)?;
             for b in self.inner.update(candle) {
                 out.push(KagiSegmentValue {
@@ -19367,9 +20488,9 @@ impl PointAndFigureBarsNode {
             .collect())
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>) -> napi::Result<Vec<PnfColumnValue>> {
+    pub fn batch(&mut self, close: Series) -> napi::Result<Vec<PnfColumnValue>> {
         let mut out = Vec::new();
-        for price in close {
+        for &price in &close {
             let candle = wc::Candle::new(price, price, price, price, 1.0, 0).map_err(map_err)?;
             for col in self.inner.update(candle) {
                 out.push(PnfColumnValue {
@@ -19434,9 +20555,9 @@ impl RangeBarsNode {
             .collect())
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>) -> napi::Result<Vec<RangeBarValue>> {
+    pub fn batch(&mut self, close: Series) -> napi::Result<Vec<RangeBarValue>> {
         let mut out = Vec::new();
-        for price in close {
+        for &price in &close {
             let candle = wc::Candle::new(price, price, price, price, 1.0, 0).map_err(map_err)?;
             for b in self.inner.update(candle) {
                 out.push(RangeBarValue {
@@ -19510,11 +20631,11 @@ impl TickBarsNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<TickBarValue>> {
         if open.len() != high.len()
             || high.len() != low.len()
@@ -19603,11 +20724,11 @@ impl VolumeBarsNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<VolumeBarValue>> {
         if open.len() != high.len()
             || high.len() != low.len()
@@ -19698,11 +20819,11 @@ impl DollarBarsNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<DollarBarValue>> {
         if open.len() != high.len()
             || high.len() != low.len()
@@ -19793,10 +20914,10 @@ impl ImbalanceBarsNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<ImbalanceBarValue>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -19883,10 +21004,10 @@ impl RunBarsNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
     ) -> napi::Result<Vec<RunBarValue>> {
         if open.len() != high.len() || high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
@@ -19959,9 +21080,9 @@ impl ThreeLineBreakBarsNode {
             .collect())
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>) -> napi::Result<Vec<LineBreakBarValue>> {
+    pub fn batch(&mut self, close: Series) -> napi::Result<Vec<LineBreakBarValue>> {
         let mut out = Vec::new();
-        for price in close {
+        for &price in &close {
             let candle = wc::Candle::new(price, price, price, price, 1.0, 0).map_err(map_err)?;
             for b in self.inner.update(candle) {
                 out.push(LineBreakBarValue {
@@ -20006,7 +21127,7 @@ impl AlphaNode {
         self.inner.update((asset, benchmark))
     }
     #[napi]
-    pub fn batch(&mut self, asset: Vec<f64>, benchmark: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, asset: Series, benchmark: Series) -> napi::Result<Vec<f64>> {
         if asset.len() != benchmark.len() {
             return Err(NapiError::from_reason(
                 "asset and benchmark must be equal length".to_string(),
@@ -20111,11 +21232,11 @@ macro_rules! node_seasonality_offset_scalar {
             #[napi]
             pub fn batch(
                 &mut self,
-                open: Vec<f64>,
-                high: Vec<f64>,
-                low: Vec<f64>,
-                close: Vec<f64>,
-                volume: Vec<f64>,
+                open: Series,
+                high: Series,
+                low: Series,
+                close: Series,
+                volume: Series,
                 timestamp: Vec<i64>,
             ) -> napi::Result<Vec<f64>> {
                 let candles = season_candles(&open, &high, &low, &close, &volume, &timestamp)?;
@@ -20184,11 +21305,11 @@ macro_rules! node_seasonality_bucket_profile {
             #[napi]
             pub fn batch(
                 &mut self,
-                open: Vec<f64>,
-                high: Vec<f64>,
-                low: Vec<f64>,
-                close: Vec<f64>,
-                volume: Vec<f64>,
+                open: Series,
+                high: Series,
+                low: Series,
+                close: Series,
+                volume: Series,
                 timestamp: Vec<i64>,
             ) -> napi::Result<Vec<f64>> {
                 let candles = season_candles(&open, &high, &low, &close, &volume, &timestamp)?;
@@ -20268,11 +21389,11 @@ macro_rules! node_seasonality_offset_profile {
             #[napi]
             pub fn batch(
                 &mut self,
-                open: Vec<f64>,
-                high: Vec<f64>,
-                low: Vec<f64>,
-                close: Vec<f64>,
-                volume: Vec<f64>,
+                open: Series,
+                high: Series,
+                low: Series,
+                close: Series,
+                volume: Series,
                 timestamp: Vec<i64>,
             ) -> napi::Result<Vec<f64>> {
                 let candles = season_candles(&open, &high, &low, &close, &volume, &timestamp)?;
@@ -20367,11 +21488,11 @@ impl AverageDailyRangeNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
         timestamp: Vec<i64>,
     ) -> napi::Result<Vec<f64>> {
         let candles = season_candles(&open, &high, &low, &close, &volume, &timestamp)?;
@@ -20433,11 +21554,11 @@ impl TurnOfMonthNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
         timestamp: Vec<i64>,
     ) -> napi::Result<Vec<f64>> {
         let candles = season_candles(&open, &high, &low, &close, &volume, &timestamp)?;
@@ -20504,11 +21625,11 @@ impl SessionHighLowNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
         timestamp: Vec<i64>,
     ) -> napi::Result<Vec<f64>> {
         let candles = season_candles(&open, &high, &low, &close, &volume, &timestamp)?;
@@ -20582,11 +21703,11 @@ impl SessionRangeNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
         timestamp: Vec<i64>,
     ) -> napi::Result<Vec<f64>> {
         let candles = season_candles(&open, &high, &low, &close, &volume, &timestamp)?;
@@ -20659,11 +21780,11 @@ impl OvernightIntradayReturnNode {
     #[napi]
     pub fn batch(
         &mut self,
-        open: Vec<f64>,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        open: Series,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
         timestamp: Vec<i64>,
     ) -> napi::Result<Vec<f64>> {
         let candles = season_candles(&open, &high, &low, &close, &volume, &timestamp)?;
@@ -20744,7 +21865,7 @@ impl FibRetracementNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -20820,7 +21941,7 @@ impl FibExtensionNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -20892,7 +22013,7 @@ impl FibProjectionNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -20969,7 +22090,7 @@ impl AutoFibNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -21041,7 +22162,7 @@ impl GoldenPocketNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -21107,7 +22228,7 @@ impl FibConfluenceNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -21210,7 +22331,7 @@ impl FibFanNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -21284,7 +22405,7 @@ impl FibArcsNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -21360,7 +22481,7 @@ impl FibChannelNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -21433,7 +22554,7 @@ impl FibTimeZonesNode {
             }))
     }
     #[napi]
-    pub fn batch(&mut self, high: Vec<f64>, low: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() {
             return Err(NapiError::from_reason(
                 "high and low must be equal length".to_string(),
@@ -21494,7 +22615,7 @@ impl VolumeRsiNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -21549,12 +22670,7 @@ impl WadNode {
         Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(
-        &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-    ) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
                 "high, low, close must be equal length".to_string(),
@@ -21623,10 +22739,10 @@ impl TwiggsMoneyFlowNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -21682,7 +22798,7 @@ impl TradeVolumeIndexNode {
         Ok(self.inner.update(cnd(close, close, close, volume)?))
     }
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),
@@ -21745,10 +22861,10 @@ impl IntradayIntensityNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -21818,10 +22934,10 @@ impl BetterVolumeNode {
     #[napi]
     pub fn batch(
         &mut self,
-        high: Vec<f64>,
-        low: Vec<f64>,
-        close: Vec<f64>,
-        volume: Vec<f64>,
+        high: Series,
+        low: Series,
+        close: Series,
+        volume: Series,
     ) -> napi::Result<Vec<f64>> {
         if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
             return Err(NapiError::from_reason(
@@ -21898,7 +23014,7 @@ impl VolumeWeightedMacdNode {
     /// Returns `[macd0, signal0, histogram0, macd1, ...]`, length `3 * n`.
     /// Warmup positions are `NaN`.
     #[napi]
-    pub fn batch(&mut self, close: Vec<f64>, volume: Vec<f64>) -> napi::Result<Vec<f64>> {
+    pub fn batch(&mut self, close: Series, volume: Series) -> napi::Result<Vec<f64>> {
         if close.len() != volume.len() {
             return Err(NapiError::from_reason(
                 "close and volume must be equal length".to_string(),

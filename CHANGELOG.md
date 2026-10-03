@@ -7,6 +7,228 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Throughput. Every batch the library had gets faster without a bit of its output
+changing, an opt-in `batch_fast` runs SIMD kernels where the last place may, and
+every binding can write a batch into a buffer the caller keeps. Streaming gets
+faster on the indicators that did more work per tick than their window needed.
+The one output that moves is WMA's past its first sixteen windows, towards its
+definition (see Fixed).
+
+### Added
+
+- **`batch_fast`: an opt-in fast batch, in every language.** Where an indicator
+  has a SIMD kernel -- SMA, EMA, WMA, HMA, TRIMA, SMMA, DEMA, TEMA, RSI, MACD,
+  Bollinger Bands, ATR, the Chaikin oscillator, skewness and Pearson
+  correlation -- the kernel reorders the arithmetic, so each value agrees with
+  the exact batch to within a few units in the last place rather than bit for
+  bit (the tests hold the moving averages to 1e-11 relative and the
+  worse-conditioned statistics, skewness, correlation and Chaikin, to 1e-9).
+  `NaN` placement and length are identical, the result is the same on every
+  platform and CPU, and afterwards the indicator streams on from the same
+  state. Where an indicator has no kernel, the fast batch *is* the exact batch. It is `batch_fast` (Rust, Python,
+  R), `batchFast` (Node, WASM, Java), `BatchFast` (C#, Go) and
+  `wickra_<name>_batch_fast` in the C ABI: 155 entry points, one per f64-series
+  indicator plus MACD, Bollinger Bands, ATR, the Chaikin oscillator and Pearson.
+  In Python it runs SMA(20) over 20,000 bars in 9.0 us (TA-Lib 15.5,
+  tulipy 16.1) and leads TA-Lib and tulipy on every indicator measured; in Rust
+  it beats `kand` on all six; into a reused buffer it reaches 2,800 to 3,200
+  million updates per second from C, C#, Go, Java and Node alike
+  (BENCHMARKS.md).
+- **Batches into a buffer the caller keeps.** Writing a fresh multi-megabyte
+  result costs page faults on the order of the computation, so every binding
+  that can gains a form that allocates nothing: `batch_nan_into` /
+  `batch_fast_into` in Rust (provided methods of `Indicator` for every
+  indicator whose output converts to `f64`, bounded by the associated types
+  only, so a generic caller and a `dyn Indicator` alike reach an indicator's
+  fast path and the trait stays object safe), `Span` overloads of `Batch`
+  and `BatchFast` in C# (`Span<double>`, and a span of the output records for
+  MACD, Bollinger and every other multi-output indicator), `BatchInto(dst, ...)` / `BatchFastInto` in Go,
+  `batchInto` / `batchFastInto` in Java over arrays and over native
+  `MemorySegment`s (handed to the C ABI without a copy, after checking they are
+  off-heap, equally long and aligned; a multi-output indicator's rows are laid
+  out flat, MACD three doubles per input), and `batchInto` / `batchFastInto` into a
+  `Float64Array` in Node and WASM. C# allocating batches use
+  `GC.AllocateUninitializedArray`, since the native side writes every element.
+- **Node batches take a `Float64Array`,** read in place without a copy, as well
+  as a plain array; `batch` keeps returning an `Array`. An output
+  `Float64Array` is refused when it has the wrong length, overlaps an input or
+  is backed by a `SharedArrayBuffer`.
+- **`wickra-simd`,** a new published crate holding the one `unsafe` call runtime
+  dispatch needs: a kernel runs in a function compiled with AVX2 and FMA when
+  the CPU has both, the portable build otherwise, with the same bits either way.
+  Kernels that opt in also run with AVX-512F where the CPU has it, their
+  element-wise work in one 512-bit register instead of two 256-bit ones -- the
+  same operation on every lane, so again the same bits; the skewness, Chaikin
+  oscillator and WMA kernels and the OHLCV check do. The AVX-512 level needs
+  Rust 1.89, and a build by an older compiler simply has none.
+  `wickra-core` stays `#![forbid(unsafe_code)]`.
+- **`Candle::all_valid`** holds a set of OHLCV columns to the rules of
+  `Candle::new` in eight branch-free lanes over fixed-size blocks, dispatched
+  to AVX2 -- or AVX-512 -- where the CPU has it (0.34 ns a bar on AVX-512, 0.43
+  on AVX2; a per-element check cost as much as the ATR batch it guards). It
+  tests finiteness at the high, the low and the volume only: an open and close
+  between a finite low and high are finite, and `NaN` fails every comparison.
+  The C ABI's column batches use it, so ATR from C, C#, Go, Java and R batches
+  at 522 million bars a second where the previous release managed 330 on the
+  same machine, 941 with the fast batch. **`Candle::all_valid_hlc`** is the
+  same check for the candles a high/low/close series builds (open = close, no
+  volume); the Python, Node and WASM high/low/close batches validate with it,
+  and walk the bars one by one only to name a bad one.
+- **OHLCV batches that validate their own columns:**
+  `ChaikinOscillator::batch_ohlcv_into` and `batch_ohlcv_fast_into` take
+  unvalidated columns and report whether every bar was valid, leaving the
+  indicator untouched when not; the fast one learns that and whether the bars
+  are inside its kernel's range in one pass instead of two. The C ABI and the
+  Python Chaikin batches use them.
+- **A .NET cross-library benchmark** (`bindings/csharp/cross-library`): Wickra
+  against QuanTAlib, TA-Lib, Skender and OoplesFinance on QuanTAlib's own setup
+  (500,000 GBM bars, period 220, BenchmarkDotNet), timing Wickra's allocating
+  batch, its batch and fast batch into a `Span`, and streaming. Its `verify`
+  mode checks the libraries agree before their times are compared; CI runs it
+  and fails if Wickra disagrees with TA-Lib or a two-pass reference.
+- **Tests:** an adversarial-input test replays all 149 scalar indicators of
+  the fuzz list over nine hostile series (NaN, infinities, 1e150, flat, steps,
+  subnormals, signed noise) and requires `batch_nan` to equal streaming bit for
+  bit and `batch_fast` to keep length and `NaN` placement, falling back to the
+  exact batch on non-finite or out-of-range input; the scalar fuzz target
+  asserts the same on arbitrary input. Every binding tests the new surface
+  against its exact batch.
+
+### Changed
+
+- **Exact batches, bit for bit faster.** The hot indicators run fused batch
+  paths written to perform the same arithmetic in the same order as `update`:
+  SMA, EMA, RSI, MACD (with its tail through the SIMD dispatch, so its fused
+  multiply-adds become hardware FMA), Bollinger Bands, ATR, the Chaikin
+  oscillator, WMA and HMA. WMA keeps its sums in registers instead of writing
+  them back per input (period 220: 4.2 -> 1.4 ns a value, as fast as
+  streaming), and HMA steps its three WMAs in one loop (3.3 -> 2.5 ns). The
+  C ABI's scalar `_batch` now calls
+  them instead of replaying `update`, which carries them to C, C++, C#, Go,
+  Java and R; Node and WASM batches run them too.
+  The Chaikin oscillator's exact batch is one fused kernel instead of an
+  `update` replay (500,000 bars: 1.37 -> 0.77 ms).
+  Through C#, SMA(20) over 200,000 bars: 304 -> 742 million updates per
+  second (1,155 into a `Span`), same machine and session.
+- **Python batches share their buffers instead of copying them.** A contiguous
+  `float64` NumPy array or `array.array('d')` of 8,192 values or more is read
+  in place (below that one copy costs less than finding the values); any other
+  NumPy array, `array.array` or `memoryview` is read with one copy instead of
+  being walked element by element through the sequence protocol. From Python
+  3.11 results are written straight into the returned `array.array('d')`,
+  before that into the `bytes` object that seeds it. While a series is read in
+  place the cyclic garbage collector is held off, so no Python code can run
+  until the batch is done; the one module that dereferences these addresses
+  is the binding's only `unsafe`.
+  Together with the fused paths, 20,000 bars, us per call, the previous
+  release against this one on the same machine: SMA 372 -> 20.5, EMA
+  377 -> 32.0, RSI 559 -> 38.3, MACD 425 -> 40.1, Bollinger 638 -> 75.0, ATR
+  1,108 -> 41.1 -- 8 to 27 times faster, the output unchanged to the bit.
+- **Streaming, same bits, less work per tick.**
+  - EMA keeps its warmup as a running sum instead of a buffer (2.9 -> 1.6 ns per
+    update in the core); ATR likewise keeps its seed as a sum and a count, which
+    speeds up every indicator built on it (ATR bands, Keltner, SuperTrend,
+    NATR, Chandelier, STARC and more).
+  - The autocorrelation periodogram tabulates its cosines and sines once
+    instead of computing some 3,600 per update: (10, 48) 18.4 -> 0.72 us.
+  - Thirteen quantile and median indicators (VaR, CVaR, tail ratio, median MA,
+    rolling quantile and IQR, quartile bands, common sense ratio, MAD, median
+    channel, Bomar bands, regime label, volatility cone) keep their window
+    sorted as it slides instead of sorting a copy per update; MAD, median
+    channel and Bomar merge their absolute deviations instead of sorting them.
+    RollingQuantile(220) 2.4 us -> 64 ns, MAD(220) 2.6 -> 0.63 us, VaR(20)
+    173 -> 47 ns, volatility cone 713 -> 90 ns.
+  - Kendall's tau keeps its pair counts as pairs enter and leave (period 20:
+    235 -> 92 ns), and the Hilbert-transform phase (HtDcPhase, HtTrendMode)
+    integrates against a shared table (354 -> 78 and 389 -> 114 ns).
+  - Pearson correlation and WMA keep their windows in ring buffers.
+- **C#: `Update` no longer reference-counts the native handle.** The
+  marshaller's AddRef/Release around every call were two interlocked
+  operations, 13 of the 16 ns an SMA update took; `Update` now passes the
+  pointer after a disposed check and keeps the handle alive with
+  `GC.KeepAlive`, so it still throws `ObjectDisposedException` after `Dispose`
+  and the finalizer cannot run mid-call (SMA streaming 64 -> 347 million
+  updates per second, same machine and session). Every other member keeps the reference-counted handle.
+  An indicator was never thread-safe; the README now says not to dispose one
+  while another thread calls it.
+- **C#: multi-output batches write their records in place.** The record is laid
+  out like the native struct, so the native side fills the result directly
+  instead of an intermediate array copied row by row (MACD batch 381 million
+  updates per second, 627 into a reused span).
+- **Java: streaming updates, 3-8x faster.** The library is loaded into the
+  global arena instead of a shared one (a downcall into a library of a
+  closeable arena acquires and releases it around every call, 6 of 9 ns); each
+  indicator holds its update handle as a static final, linked critical (no
+  thread-state transition, valid for a short native call that never calls back);
+  and a multi-output update writes into a buffer allocated once per instance
+  instead of opening an arena per call (SMA 61 -> 239, ATR 53 -> 157, MACD
+  14 -> 105 million updates per second, same machine and session).
+- **Java: array batches copy nothing.** `batchInto(double[]...)` and the
+  allocating `batch` copied every input array into a confined arena and the
+  result back out -- for a candle indicator six columns and the output, which
+  made ATR's array batch slower than its streaming update. The arrays now go to
+  the C ABI as heap segments through a second handle per batch function, linked
+  critical with heap access on first use, so the collector waits for the call
+  and the arrays stay where they are. Arrays of `boolean` keep the copy. SMA
+  batch 280 -> 760, ATR 98 -> 465, MACD `batchInto` 172 -> 609 million updates
+  per second on the same machine.
+- **WASM: result objects in one call.** A multi-output `update` (MACD,
+  Bollinger, Ichimoku, … 112 of them) built its object field by field: a new
+  JS string per key, a boxed number and a `Reflect.set` per field. The keys are
+  now interned and cached per call site, and one inline JS helper builds the
+  object from plain numbers (MACD streaming 1.1 -> 17.4 million updates per
+  second, same machine and session). wasm-pack leaves the helper's `snippets/` out of the package's
+  `files`; the release adds it, and CI now loads the module from its packed
+  tarball, the way npm ships it.
+- **R: native routines resolved once.** `.Call` given a routine's name searches
+  the DLL's registration table (thousands of entries) on every call, 11 us of
+  the 12.8 us a streaming `update` took. Every method now calls a routine
+  resolved once and cached, and `update` reads its fields with `.subset2`,
+  since `$` on a classed object first looks for a method (update 12.8 -> 3.2
+  us; what is left is R's own S3 dispatch of `update`).
+- **Fast kernels, fewer passes, the same bits.** The skewness and Bollinger
+  kernels scan their power sums in the pass that makes the steps; the Chaikin
+  oscillator and MACD kernels run their fast and slow EMA scans in one pass and
+  store the difference; on an AVX-512 CPU the skewness finish runs eight lanes
+  at a time. Every value is the operation it was, in the same order (500,000
+  bars, period 220: skewness 722 -> 565 us, Chaikin oscillator 742 -> 600 us).
+- **Node ATR and Chaikin batches validate every bar before consuming any,**
+  where they used to fail part-way with the state advanced; the same holds for
+  WASM, and for the Python Chaikin batch.
+- **The benchmarks:** every binding's `throughput` benchmark reports the fast
+  batch and the caller-buffer forms; the Go one repeats each sample to at least
+  20 ms (a batch now finishes inside one tick of the Windows clock and was
+  timed as zero); the Rust one batches into reused buffers, as the C ABI's
+  callers do; the cross-library criterion benchmark times Wickra's exact batch
+  into a caller buffer, as kand's fill-the-slice functions are timed, and adds
+  `wickra/fast`; `compare_libraries.py` adds a "Wickra (fast)" row.
+
+### Fixed
+
+- **Skewness and Jarque-Bera differed between platforms.** Both took `m2^1.5`
+  as `m2.powf(1.5)`, which is the platform libm's `pow` and differs in the last
+  bit between glibc, the MSVC runtime and macOS; they now compute
+  `m2 * m2.sqrt()`, correctly rounded everywhere, so the golden fixtures hold
+  them to 1e-12 like every IEEE-exact indicator instead of 1e-6. Values move
+  by at most two units in the last place, and Skewness streams 2.8x faster
+  (15.3 -> 5.5 ns per update), `pow` having been most of its cost.
+- **WMA's running sums drifted.** The weighted sum was updated as
+  `W - S + period * x` and never recomputed, so rounding accumulated without
+  bound: on 500,000 prices WMA(14) ended 6.4e-10 (relative) from its
+  definition. Both sums are now recomputed from the live window every
+  `16 * period` updates, the SMA's cadence, keeping a long stream at the
+  definition to about 1e-14. Until the first recompute the values are the old
+  ones, bit for bit; after it they move towards the definition. HMA and the
+  other WMA-built indicators follow. The golden fixtures are shorter than one
+  interval and are unchanged.
+- **MACD's fused batch disagreed with streaming in two corners:** an
+  all-negative-zero seed window kept the wrong sign bit, and values beyond
+  1e300 could overflow a difference the streaming signal EMA skips. Both now
+  match the replay.
+- **The Node README said a warming-up `batch` returns `null`;** it returns
+  `NaN`.
+
+
 ## [1.0.6] - 2026-09-23
 
 A maintenance release: no crate, binding or indicator changed. It publishes the

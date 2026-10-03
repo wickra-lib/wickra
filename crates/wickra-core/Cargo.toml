@@ -23,6 +23,7 @@ workspace = true
 
 [dependencies]
 thiserror = { workspace = true }
+wickra-simd = { workspace = true }
 rayon = { workspace = true, optional = true }
 
 [features]

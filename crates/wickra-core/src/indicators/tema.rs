@@ -79,6 +79,36 @@ impl Indicator for Tema {
     fn name(&self) -> &'static str {
         "TEMA"
     }
+
+    /// SIMD kernel: like DEMA's, with a third chained EMA scan. Agrees with the
+    /// exact batch to within a few units in the last place; warmup `NaN`s and
+    /// length are identical. Afterwards the three EMAs continue streaming from
+    /// the kernel's last values.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        if !(self.ema1.is_fresh() && self.ema2.is_fresh() && self.ema3.is_fresh())
+            || inputs.len() < 3 * p - 2
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        let (e1, e2, e3) = wickra_simd::dispatch(crate::fast::TemaFast {
+            x: inputs,
+            period: p,
+            alpha: self.ema1.alpha(),
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        self.ema1.seed_to(e1);
+        self.ema2.seed_to(e2);
+        self.ema3.seed_to(e3);
+    }
 }
 
 #[cfg(test)]

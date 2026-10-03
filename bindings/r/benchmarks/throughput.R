@@ -2,18 +2,18 @@
 #
 # Throughput benchmark for the Wickra R bindings.
 #
-# Measures how many indicator updates per second the R binding sustains, both
-# per-tick (streaming `update`) and bulk (`batch`), over a synthetic OHLCV
-# series. It is the R counterpart of the Node `throughput.js` and the Rust
-# criterion benches: it benchmarks Wickra's own O(1) streaming engine across
-# the R<->C-ABI boundary (there is no comparable streaming TA library on CRAN
-# to compare against), so the headline number is raw per-binding throughput /
-# FFI overhead, not a cross-library ratio.
+# Measures how many indicator updates per second the R binding sustains, per
+# tick (streaming `update`), bulk (`batch`) and bulk through the opt-in SIMD
+# kernels (`batch_fast`), over a synthetic OHLCV series. It is the R
+# counterpart of the Node `throughput.js` and the Rust criterion benches: it
+# benchmarks Wickra's own O(1) streaming engine across the R<->C-ABI boundary
+# (there is no comparable streaming TA library on CRAN to compare against), so
+# the headline number is raw per-binding throughput / FFI overhead, not a
+# cross-library ratio.
 #
 # Three indicators are timed, chosen by FFI call-signature archetype rather
 # than algorithm: SMA (1-in -> 1-out), ATR (multi-in -> 1-out), and MACD
-# (1-in -> multi-out). Streaming is timed for all three; batch only for the
-# single-output SMA and ATR (multi-output batch is not exposed uniformly).
+# (1-in -> multi-out). All three are timed streaming, batch and fast batch.
 #
 # Install the package first (it links the C ABI; see bindings/r/README.md),
 # then run:
@@ -74,6 +74,9 @@ indicators <- list(
     },
     batch = function() {
       batch(Sma(20), close)
+    },
+    fast = function() {
+      batch_fast(Sma(20), close)
     }
   ),
   list(
@@ -86,6 +89,9 @@ indicators <- list(
     },
     batch = function() {
       batch(Atr(14), open, high, low, close, volume, timestamp)
+    },
+    fast = function() {
+      batch_fast(Atr(14), open, high, low, close, volume, timestamp)
     }
   ),
   list(
@@ -94,7 +100,12 @@ indicators <- list(
       ind <- MacdIndicator(12, 26, 9)
       for (i in seq_len(bars)) update(ind, close[i])
     },
-    batch = NULL # multi-output: streaming only
+    batch = function() {
+      batch(MacdIndicator(12, 26, 9), close)
+    },
+    fast = function() {
+      batch_fast(MacdIndicator(12, 26, 9), close)
+    }
   )
 )
 
@@ -102,18 +113,25 @@ cat(sprintf(
   "Wickra R throughput - %s bars (median of 3 runs)\n\n",
   format(bars, big.mark = ",")
 ))
-cat(sprintf("%-22s%20s%18s\n", "Indicator", "streaming (Mupd/s)", "batch (Mupd/s)"))
-cat(strrep("-", 60), "\n", sep = "")
+cat(sprintf(
+  "%-22s%20s%18s%18s\n", "Indicator", "streaming (Mupd/s)", "batch (Mupd/s)", "fast (Mupd/s)"
+))
+cat(strrep("-", 78), "\n", sep = "")
 
 for (ind in indicators) {
-  stream_mups <- sprintf("%.1f", mups_from_ns(time_ns(ind$stream)))
-  batch_mups <- if (is.null(ind$batch)) "-" else sprintf("%.1f", mups_from_ns(time_ns(ind$batch)))
-  cat(sprintf("%-22s%20s%18s\n", ind$name, stream_mups, batch_mups))
+  cells <- vapply(
+    list(ind$stream, ind$batch, ind$fast),
+    function(run) sprintf("%.1f", mups_from_ns(time_ns(run))),
+    character(1L)
+  )
+  cat(sprintf("%-22s%20s%18s%18s\n", ind$name, cells[1L], cells[2L], cells[3L]))
 }
 
 cat(paste0(
   "\nMupd/s = million indicator updates per second. Streaming is the per-tick\n",
   "`update` path crossing the R<->C-ABI boundary once per value; batch is the\n",
-  "bulk vector path (one boundary crossing). Higher is better. Numbers are\n",
-  "machine-dependent - use them for relative comparison, not as a speed claim.\n"
+  "bulk vector path (one boundary crossing) and fast the opt-in batch_fast\n",
+  "(SIMD kernels within a few units in the last place of batch). Higher is\n",
+  "better. Numbers are machine-dependent - use them for relative comparison,\n",
+  "not as a speed claim.\n"
 ))

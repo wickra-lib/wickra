@@ -172,9 +172,31 @@ pub unsafe extern "C" fn wickra_adaptive_cycle_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_adaptive_cycle_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_adaptive_cycle_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_adaptive_cycle_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_adaptive_cycle_batch_fast(
+    handle: *mut AdaptiveCycle,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -289,9 +311,31 @@ pub unsafe extern "C" fn wickra_adaptive_laguerre_filter_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_adaptive_laguerre_filter_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_adaptive_laguerre_filter_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_adaptive_laguerre_filter_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_adaptive_laguerre_filter_batch_fast(
+    handle: *mut AdaptiveLaguerreFilter,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -409,9 +453,31 @@ pub unsafe extern "C" fn wickra_adaptive_rsi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_adaptive_rsi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_adaptive_rsi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_adaptive_rsi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_adaptive_rsi_batch_fast(
+    handle: *mut AdaptiveRsi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -521,9 +587,31 @@ pub unsafe extern "C" fn wickra_alma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_alma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_alma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_alma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_alma_batch_fast(
+    handle: *mut Alma,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -630,9 +718,31 @@ pub unsafe extern "C" fn wickra_anchored_rsi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_anchored_rsi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_anchored_rsi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_anchored_rsi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_anchored_rsi_batch_fast(
+    handle: *mut AnchoredRsi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -742,9 +852,31 @@ pub unsafe extern "C" fn wickra_apo_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_apo_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_apo_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_apo_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_apo_batch_fast(
+    handle: *mut Apo,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -857,9 +989,31 @@ pub unsafe extern "C" fn wickra_autocorrelation_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_autocorrelation_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_autocorrelation_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_autocorrelation_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_autocorrelation_batch_fast(
+    handle: *mut Autocorrelation,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -979,9 +1133,31 @@ pub unsafe extern "C" fn wickra_autocorrelation_periodogram_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_autocorrelation_periodogram_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_autocorrelation_periodogram_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_autocorrelation_periodogram_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_autocorrelation_periodogram_batch_fast(
+    handle: *mut AutocorrelationPeriodogram,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -1104,9 +1280,31 @@ pub unsafe extern "C" fn wickra_average_drawdown_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_average_drawdown_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_average_drawdown_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_average_drawdown_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_average_drawdown_batch_fast(
+    handle: *mut AverageDrawdown,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -1223,9 +1421,31 @@ pub unsafe extern "C" fn wickra_bandpass_filter_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_bandpass_filter_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_bandpass_filter_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_bandpass_filter_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_bandpass_filter_batch_fast(
+    handle: *mut BandpassFilter,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -1340,9 +1560,31 @@ pub unsafe extern "C" fn wickra_bipower_variation_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_bipower_variation_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_bipower_variation_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_bipower_variation_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_bipower_variation_batch_fast(
+    handle: *mut BipowerVariation,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -1462,9 +1704,31 @@ pub unsafe extern "C" fn wickra_bollinger_bandwidth_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_bollinger_bandwidth_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_bollinger_bandwidth_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_bollinger_bandwidth_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_bollinger_bandwidth_batch_fast(
+    handle: *mut BollingerBandwidth,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -1580,9 +1844,31 @@ pub unsafe extern "C" fn wickra_burke_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_burke_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_burke_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_burke_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_burke_ratio_batch_fast(
+    handle: *mut BurkeRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -1692,9 +1978,31 @@ pub unsafe extern "C" fn wickra_calmar_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_calmar_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_calmar_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_calmar_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_calmar_ratio_batch_fast(
+    handle: *mut CalmarRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -1807,9 +2115,31 @@ pub unsafe extern "C" fn wickra_center_of_gravity_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_center_of_gravity_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_center_of_gravity_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_center_of_gravity_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_center_of_gravity_batch_fast(
+    handle: *mut CenterOfGravity,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -1923,9 +2253,31 @@ pub unsafe extern "C" fn wickra_cfo_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_cfo_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_cfo_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_cfo_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_cfo_batch_fast(
+    handle: *mut Cfo,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2035,9 +2387,31 @@ pub unsafe extern "C" fn wickra_cmo_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_cmo_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_cmo_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_cmo_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_cmo_batch_fast(
+    handle: *mut Cmo,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2152,9 +2526,31 @@ pub unsafe extern "C" fn wickra_coefficient_of_variation_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_coefficient_of_variation_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_coefficient_of_variation_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_coefficient_of_variation_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_coefficient_of_variation_batch_fast(
+    handle: *mut CoefficientOfVariation,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2275,9 +2671,31 @@ pub unsafe extern "C" fn wickra_common_sense_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_common_sense_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_common_sense_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_common_sense_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_common_sense_ratio_batch_fast(
+    handle: *mut CommonSenseRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2397,9 +2815,31 @@ pub unsafe extern "C" fn wickra_conditional_value_at_risk_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_conditional_value_at_risk_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_conditional_value_at_risk_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_conditional_value_at_risk_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_conditional_value_at_risk_batch_fast(
+    handle: *mut ConditionalValueAtRisk,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2523,9 +2963,31 @@ pub unsafe extern "C" fn wickra_connors_rsi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_connors_rsi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_connors_rsi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_connors_rsi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_connors_rsi_batch_fast(
+    handle: *mut ConnorsRsi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2639,9 +3101,31 @@ pub unsafe extern "C" fn wickra_coppock_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_coppock_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_coppock_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_coppock_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_coppock_batch_fast(
+    handle: *mut Coppock,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2756,9 +3240,31 @@ pub unsafe extern "C" fn wickra_correlation_trend_indicator_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_correlation_trend_indicator_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_correlation_trend_indicator_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_correlation_trend_indicator_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_correlation_trend_indicator_batch_fast(
+    handle: *mut CorrelationTrendIndicator,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2881,9 +3387,31 @@ pub unsafe extern "C" fn wickra_cybernetic_cycle_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_cybernetic_cycle_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_cybernetic_cycle_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_cybernetic_cycle_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_cybernetic_cycle_batch_fast(
+    handle: *mut CyberneticCycle,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -2997,9 +3525,31 @@ pub unsafe extern "C" fn wickra_decycler_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_decycler_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_decycler_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_decycler_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_decycler_batch_fast(
+    handle: *mut Decycler,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -3115,9 +3665,31 @@ pub unsafe extern "C" fn wickra_decycler_oscillator_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_decycler_oscillator_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_decycler_oscillator_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_decycler_oscillator_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_decycler_oscillator_batch_fast(
+    handle: *mut DecyclerOscillator,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -3233,9 +3805,31 @@ pub unsafe extern "C" fn wickra_dema_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_dema_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_dema_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_dema_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_dema_batch_fast(
+    handle: *mut Dema,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -3353,9 +3947,31 @@ pub unsafe extern "C" fn wickra_derivative_oscillator_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_derivative_oscillator_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_derivative_oscillator_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_derivative_oscillator_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_derivative_oscillator_batch_fast(
+    handle: *mut DerivativeOscillator,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -3474,9 +4090,31 @@ pub unsafe extern "C" fn wickra_detrended_std_dev_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_detrended_std_dev_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_detrended_std_dev_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_detrended_std_dev_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_detrended_std_dev_batch_fast(
+    handle: *mut DetrendedStdDev,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -3593,9 +4231,31 @@ pub unsafe extern "C" fn wickra_disparity_index_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_disparity_index_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_disparity_index_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_disparity_index_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_disparity_index_batch_fast(
+    handle: *mut DisparityIndex,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -3707,9 +4367,31 @@ pub unsafe extern "C" fn wickra_dpo_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_dpo_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_dpo_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_dpo_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_dpo_batch_fast(
+    handle: *mut Dpo,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -3938,9 +4620,31 @@ pub unsafe extern "C" fn wickra_dynamic_momentum_index_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_dynamic_momentum_index_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_dynamic_momentum_index_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_dynamic_momentum_index_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_dynamic_momentum_index_batch_fast(
+    handle: *mut DynamicMomentumIndex,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4059,9 +4763,31 @@ pub unsafe extern "C" fn wickra_ehlers_stochastic_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ehlers_stochastic_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ehlers_stochastic_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ehlers_stochastic_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ehlers_stochastic_batch_fast(
+    handle: *mut EhlersStochastic,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4175,9 +4901,31 @@ pub unsafe extern "C" fn wickra_ehma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ehma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ehma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ehma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ehma_batch_fast(
+    handle: *mut Ehma,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4292,9 +5040,31 @@ pub unsafe extern "C" fn wickra_elder_impulse_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_elder_impulse_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_elder_impulse_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_elder_impulse_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_elder_impulse_batch_fast(
+    handle: *mut ElderImpulse,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4404,9 +5174,31 @@ pub unsafe extern "C" fn wickra_ema_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ema_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ema_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ema_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ema_batch_fast(
+    handle: *mut Ema,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4522,9 +5314,31 @@ pub unsafe extern "C" fn wickra_empirical_mode_decomposition_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_empirical_mode_decomposition_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_empirical_mode_decomposition_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_empirical_mode_decomposition_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_empirical_mode_decomposition_batch_fast(
+    handle: *mut EmpiricalModeDecomposition,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4650,9 +5464,31 @@ pub unsafe extern "C" fn wickra_even_better_sinewave_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_even_better_sinewave_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_even_better_sinewave_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_even_better_sinewave_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_even_better_sinewave_batch_fast(
+    handle: *mut EvenBetterSinewave,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4771,9 +5607,31 @@ pub unsafe extern "C" fn wickra_ewma_volatility_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ewma_volatility_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ewma_volatility_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ewma_volatility_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ewma_volatility_batch_fast(
+    handle: *mut EwmaVolatility,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4885,9 +5743,31 @@ pub unsafe extern "C" fn wickra_expectancy_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_expectancy_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_expectancy_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_expectancy_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_expectancy_batch_fast(
+    handle: *mut Expectancy,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -4997,9 +5877,31 @@ pub unsafe extern "C" fn wickra_fama_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_fama_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_fama_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_fama_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_fama_batch_fast(
+    handle: *mut Fama,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -5109,9 +6011,31 @@ pub unsafe extern "C" fn wickra_fisher_rsi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_fisher_rsi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_fisher_rsi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_fisher_rsi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_fisher_rsi_batch_fast(
+    handle: *mut FisherRsi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -5224,9 +6148,31 @@ pub unsafe extern "C" fn wickra_fisher_transform_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_fisher_transform_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_fisher_transform_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_fisher_transform_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_fisher_transform_batch_fast(
+    handle: *mut FisherTransform,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -5340,9 +6286,31 @@ pub unsafe extern "C" fn wickra_frama_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_frama_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_frama_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_frama_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_frama_batch_fast(
+    handle: *mut Frama,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -5455,9 +6423,31 @@ pub unsafe extern "C" fn wickra_gain_loss_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_gain_loss_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_gain_loss_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_gain_loss_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_gain_loss_ratio_batch_fast(
+    handle: *mut GainLossRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -5570,9 +6560,31 @@ pub unsafe extern "C" fn wickra_gain_to_pain_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_gain_to_pain_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_gain_to_pain_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_gain_to_pain_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_gain_to_pain_ratio_batch_fast(
+    handle: *mut GainToPainRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -5686,9 +6698,31 @@ pub unsafe extern "C" fn wickra_garch11_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_garch11_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_garch11_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_garch11_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_garch11_batch_fast(
+    handle: *mut Garch11,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -5801,9 +6835,31 @@ pub unsafe extern "C" fn wickra_generalized_dema_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_generalized_dema_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_generalized_dema_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_generalized_dema_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_generalized_dema_batch_fast(
+    handle: *mut GeneralizedDema,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -5917,9 +6973,31 @@ pub unsafe extern "C" fn wickra_geometric_ma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_geometric_ma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_geometric_ma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_geometric_ma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_geometric_ma_batch_fast(
+    handle: *mut GeometricMa,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6032,9 +7110,31 @@ pub unsafe extern "C" fn wickra_highpass_filter_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_highpass_filter_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_highpass_filter_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_highpass_filter_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_highpass_filter_batch_fast(
+    handle: *mut HighpassFilter,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6146,9 +7246,31 @@ pub unsafe extern "C" fn wickra_hilbert_dominant_cycle_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_hilbert_dominant_cycle_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_hilbert_dominant_cycle_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_hilbert_dominant_cycle_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_hilbert_dominant_cycle_batch_fast(
+    handle: *mut HilbertDominantCycle,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6270,9 +7392,31 @@ pub unsafe extern "C" fn wickra_historical_volatility_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_historical_volatility_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_historical_volatility_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_historical_volatility_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_historical_volatility_batch_fast(
+    handle: *mut HistoricalVolatility,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6388,9 +7532,31 @@ pub unsafe extern "C" fn wickra_hma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_hma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_hma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_hma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_hma_batch_fast(
+    handle: *mut Hma,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6500,9 +7666,31 @@ pub unsafe extern "C" fn wickra_holt_winters_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_holt_winters_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_holt_winters_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_holt_winters_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_holt_winters_batch_fast(
+    handle: *mut HoltWinters,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6609,9 +7797,31 @@ pub unsafe extern "C" fn wickra_ht_dc_phase_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ht_dc_phase_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ht_dc_phase_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ht_dc_phase_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ht_dc_phase_batch_fast(
+    handle: *mut HtDcPhase,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6718,9 +7928,31 @@ pub unsafe extern "C" fn wickra_ht_trend_mode_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ht_trend_mode_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ht_trend_mode_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ht_trend_mode_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ht_trend_mode_batch_fast(
+    handle: *mut HtTrendMode,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6833,9 +8065,31 @@ pub unsafe extern "C" fn wickra_hurst_exponent_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_hurst_exponent_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_hurst_exponent_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_hurst_exponent_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_hurst_exponent_batch_fast(
+    handle: *mut HurstExponent,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -6948,9 +8202,31 @@ pub unsafe extern "C" fn wickra_instantaneous_trendline_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_instantaneous_trendline_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_instantaneous_trendline_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_instantaneous_trendline_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_instantaneous_trendline_batch_fast(
+    handle: *mut InstantaneousTrendline,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7069,9 +8345,31 @@ pub unsafe extern "C" fn wickra_inverse_fisher_transform_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_inverse_fisher_transform_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_inverse_fisher_transform_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_inverse_fisher_transform_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_inverse_fisher_transform_batch_fast(
+    handle: *mut InverseFisherTransform,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7189,9 +8487,31 @@ pub unsafe extern "C" fn wickra_jarque_bera_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_jarque_bera_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_jarque_bera_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_jarque_bera_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_jarque_bera_batch_fast(
+    handle: *mut JarqueBera,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7301,9 +8621,31 @@ pub unsafe extern "C" fn wickra_jma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_jma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_jma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_jma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_jma_batch_fast(
+    handle: *mut Jma,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7416,9 +8758,31 @@ pub unsafe extern "C" fn wickra_jump_indicator_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_jump_indicator_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_jump_indicator_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_jump_indicator_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_jump_indicator_batch_fast(
+    handle: *mut JumpIndicator,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7528,9 +8892,31 @@ pub unsafe extern "C" fn wickra_k_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_k_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_k_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_k_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_k_ratio_batch_fast(
+    handle: *mut KRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7640,9 +9026,31 @@ pub unsafe extern "C" fn wickra_kama_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_kama_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_kama_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_kama_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_kama_batch_fast(
+    handle: *mut Kama,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7755,9 +9163,31 @@ pub unsafe extern "C" fn wickra_kelly_criterion_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_kelly_criterion_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_kelly_criterion_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_kelly_criterion_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_kelly_criterion_batch_fast(
+    handle: *mut KellyCriterion,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7869,9 +9299,31 @@ pub unsafe extern "C" fn wickra_kurtosis_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_kurtosis_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_kurtosis_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_kurtosis_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_kurtosis_batch_fast(
+    handle: *mut Kurtosis,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -7981,9 +9433,31 @@ pub unsafe extern "C" fn wickra_laguerre_rsi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_laguerre_rsi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_laguerre_rsi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_laguerre_rsi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_laguerre_rsi_batch_fast(
+    handle: *mut LaguerreRsi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -8096,9 +9570,31 @@ pub unsafe extern "C" fn wickra_linear_regression_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_linear_regression_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_linear_regression_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_linear_regression_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_linear_regression_batch_fast(
+    handle: *mut LinearRegression,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -8212,9 +9708,31 @@ pub unsafe extern "C" fn wickra_lin_reg_angle_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_lin_reg_angle_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_lin_reg_angle_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_lin_reg_angle_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_lin_reg_angle_batch_fast(
+    handle: *mut LinRegAngle,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -8327,9 +9845,31 @@ pub unsafe extern "C" fn wickra_lin_reg_intercept_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_lin_reg_intercept_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_lin_reg_intercept_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_lin_reg_intercept_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_lin_reg_intercept_batch_fast(
+    handle: *mut LinRegIntercept,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -8443,9 +9983,31 @@ pub unsafe extern "C" fn wickra_lin_reg_slope_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_lin_reg_slope_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_lin_reg_slope_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_lin_reg_slope_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_lin_reg_slope_batch_fast(
+    handle: *mut LinRegSlope,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -8555,9 +10117,31 @@ pub unsafe extern "C" fn wickra_log_return_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_log_return_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_log_return_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_log_return_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_log_return_batch_fast(
+    handle: *mut LogReturn,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -8671,9 +10255,31 @@ pub unsafe extern "C" fn wickra_m2_measure_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_m2_measure_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_m2_measure_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_m2_measure_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_m2_measure_batch_fast(
+    handle: *mut M2Measure,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -8790,9 +10396,31 @@ pub unsafe extern "C" fn wickra_macd_histogram_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_macd_histogram_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_macd_histogram_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_macd_histogram_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_macd_histogram_batch_fast(
+    handle: *mut MacdHistogram,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -8902,9 +10530,31 @@ pub unsafe extern "C" fn wickra_martin_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_martin_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_martin_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_martin_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_martin_ratio_batch_fast(
+    handle: *mut MartinRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9014,9 +10664,31 @@ pub unsafe extern "C" fn wickra_max_drawdown_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_max_drawdown_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_max_drawdown_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_max_drawdown_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_max_drawdown_batch_fast(
+    handle: *mut MaxDrawdown,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9129,9 +10801,31 @@ pub unsafe extern "C" fn wickra_mc_ginley_dynamic_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_mc_ginley_dynamic_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_mc_ginley_dynamic_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_mc_ginley_dynamic_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_mc_ginley_dynamic_batch_fast(
+    handle: *mut McGinleyDynamic,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9250,9 +10944,31 @@ pub unsafe extern "C" fn wickra_median_absolute_deviation_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_median_absolute_deviation_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_median_absolute_deviation_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_median_absolute_deviation_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_median_absolute_deviation_batch_fast(
+    handle: *mut MedianAbsoluteDeviation,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9372,9 +11088,31 @@ pub unsafe extern "C" fn wickra_median_ma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_median_ma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_median_ma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_median_ma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_median_ma_batch_fast(
+    handle: *mut MedianMa,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9484,9 +11222,31 @@ pub unsafe extern "C" fn wickra_mid_point_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_mid_point_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_mid_point_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_mid_point_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_mid_point_batch_fast(
+    handle: *mut MidPoint,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9596,9 +11356,31 @@ pub unsafe extern "C" fn wickra_mom_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_mom_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_mom_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_mom_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_mom_batch_fast(
+    handle: *mut Mom,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9708,9 +11490,31 @@ pub unsafe extern "C" fn wickra_omega_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_omega_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_omega_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_omega_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_omega_ratio_batch_fast(
+    handle: *mut OmegaRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9820,9 +11624,31 @@ pub unsafe extern "C" fn wickra_pain_index_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_pain_index_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_pain_index_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_pain_index_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_pain_index_batch_fast(
+    handle: *mut PainIndex,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -9932,9 +11758,31 @@ pub unsafe extern "C" fn wickra_percent_b_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_percent_b_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_percent_b_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_percent_b_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_percent_b_batch_fast(
+    handle: *mut PercentB,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10047,9 +11895,31 @@ pub unsafe extern "C" fn wickra_percentage_trailing_stop_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_percentage_trailing_stop_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_percentage_trailing_stop_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_percentage_trailing_stop_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_percentage_trailing_stop_batch_fast(
+    handle: *mut PercentageTrailingStop,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10167,9 +12037,31 @@ pub unsafe extern "C" fn wickra_pmo_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_pmo_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_pmo_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_pmo_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_pmo_batch_fast(
+    handle: *mut Pmo,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10285,9 +12177,31 @@ pub unsafe extern "C" fn wickra_polarized_fractal_efficiency_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_polarized_fractal_efficiency_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_polarized_fractal_efficiency_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_polarized_fractal_efficiency_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_polarized_fractal_efficiency_batch_fast(
+    handle: *mut PolarizedFractalEfficiency,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10407,9 +12321,31 @@ pub unsafe extern "C" fn wickra_ppo_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ppo_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ppo_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ppo_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ppo_batch_fast(
+    handle: *mut Ppo,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10523,9 +12459,31 @@ pub unsafe extern "C" fn wickra_ppo_histogram_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ppo_histogram_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ppo_histogram_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ppo_histogram_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ppo_histogram_batch_fast(
+    handle: *mut PpoHistogram,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10635,9 +12593,31 @@ pub unsafe extern "C" fn wickra_profit_factor_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_profit_factor_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_profit_factor_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_profit_factor_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_profit_factor_batch_fast(
+    handle: *mut ProfitFactor,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10747,9 +12727,31 @@ pub unsafe extern "C" fn wickra_r_squared_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_r_squared_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_r_squared_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_r_squared_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_r_squared_batch_fast(
+    handle: *mut RSquared,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10862,9 +12864,31 @@ pub unsafe extern "C" fn wickra_realized_volatility_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_realized_volatility_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_realized_volatility_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_realized_volatility_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_realized_volatility_batch_fast(
+    handle: *mut RealizedVolatility,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -10980,9 +13004,31 @@ pub unsafe extern "C" fn wickra_recovery_factor_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_recovery_factor_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_recovery_factor_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_recovery_factor_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_recovery_factor_batch_fast(
+    handle: *mut RecoveryFactor,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11094,9 +13140,31 @@ pub unsafe extern "C" fn wickra_reflex_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_reflex_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_reflex_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_reflex_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_reflex_batch_fast(
+    handle: *mut Reflex,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11206,9 +13274,31 @@ pub unsafe extern "C" fn wickra_regime_label_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_regime_label_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_regime_label_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_regime_label_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_regime_label_batch_fast(
+    handle: *mut RegimeLabel,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11321,9 +13411,31 @@ pub unsafe extern "C" fn wickra_renko_trailing_stop_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_renko_trailing_stop_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_renko_trailing_stop_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_renko_trailing_stop_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_renko_trailing_stop_batch_fast(
+    handle: *mut RenkoTrailingStop,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11439,9 +13551,31 @@ pub unsafe extern "C" fn wickra_rmi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rmi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rmi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rmi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rmi_batch_fast(
+    handle: *mut Rmi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11551,9 +13685,31 @@ pub unsafe extern "C" fn wickra_roc_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_roc_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_roc_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_roc_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_roc_batch_fast(
+    handle: *mut Roc,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11663,9 +13819,31 @@ pub unsafe extern "C" fn wickra_rocp_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rocp_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rocp_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rocp_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rocp_batch_fast(
+    handle: *mut Rocp,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11775,9 +13953,31 @@ pub unsafe extern "C" fn wickra_rocr_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rocr_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rocr_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rocr_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rocr_batch_fast(
+    handle: *mut Rocr,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11887,9 +14087,31 @@ pub unsafe extern "C" fn wickra_rocr100_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rocr100_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rocr100_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rocr100_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rocr100_batch_fast(
+    handle: *mut Rocr100,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -11999,9 +14221,31 @@ pub unsafe extern "C" fn wickra_rolling_iqr_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rolling_iqr_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rolling_iqr_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rolling_iqr_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rolling_iqr_batch_fast(
+    handle: *mut RollingIqr,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -12114,9 +14358,31 @@ pub unsafe extern "C" fn wickra_rolling_min_max_scaler_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rolling_min_max_scaler_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rolling_min_max_scaler_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rolling_min_max_scaler_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rolling_min_max_scaler_batch_fast(
+    handle: *mut RollingMinMaxScaler,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -12235,9 +14501,31 @@ pub unsafe extern "C" fn wickra_rolling_percentile_rank_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rolling_percentile_rank_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rolling_percentile_rank_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rolling_percentile_rank_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rolling_percentile_rank_batch_fast(
+    handle: *mut RollingPercentileRank,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -12359,9 +14647,31 @@ pub unsafe extern "C" fn wickra_rolling_quantile_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rolling_quantile_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rolling_quantile_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rolling_quantile_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rolling_quantile_batch_fast(
+    handle: *mut RollingQuantile,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -12481,9 +14791,31 @@ pub unsafe extern "C" fn wickra_roofing_filter_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_roofing_filter_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_roofing_filter_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_roofing_filter_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_roofing_filter_batch_fast(
+    handle: *mut RoofingFilter,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -12593,9 +14925,31 @@ pub unsafe extern "C" fn wickra_rsi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rsi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rsi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rsi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rsi_batch_fast(
+    handle: *mut Rsi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -12705,9 +15059,31 @@ pub unsafe extern "C" fn wickra_rsx_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rsx_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rsx_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rsx_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rsx_batch_fast(
+    handle: *mut Rsx,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -12820,9 +15196,31 @@ pub unsafe extern "C" fn wickra_rvi_volatility_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_rvi_volatility_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_rvi_volatility_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_rvi_volatility_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_rvi_volatility_batch_fast(
+    handle: *mut RviVolatility,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -12939,9 +15337,31 @@ pub unsafe extern "C" fn wickra_sample_entropy_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_sample_entropy_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_sample_entropy_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_sample_entropy_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_sample_entropy_batch_fast(
+    handle: *mut SampleEntropy,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13054,9 +15474,31 @@ pub unsafe extern "C" fn wickra_shannon_entropy_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_shannon_entropy_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_shannon_entropy_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_shannon_entropy_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_shannon_entropy_batch_fast(
+    handle: *mut ShannonEntropy,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13168,9 +15610,31 @@ pub unsafe extern "C" fn wickra_sharpe_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_sharpe_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_sharpe_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_sharpe_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_sharpe_ratio_batch_fast(
+    handle: *mut SharpeRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13277,9 +15741,31 @@ pub unsafe extern "C" fn wickra_sine_wave_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_sine_wave_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_sine_wave_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_sine_wave_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_sine_wave_batch_fast(
+    handle: *mut SineWave,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13392,9 +15878,31 @@ pub unsafe extern "C" fn wickra_sine_weighted_ma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_sine_weighted_ma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_sine_weighted_ma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_sine_weighted_ma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_sine_weighted_ma_batch_fast(
+    handle: *mut SineWeightedMa,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13508,9 +16016,31 @@ pub unsafe extern "C" fn wickra_skewness_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_skewness_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_skewness_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_skewness_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_skewness_batch_fast(
+    handle: *mut Skewness,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13620,9 +16150,31 @@ pub unsafe extern "C" fn wickra_sma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_sma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_sma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_sma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_sma_batch_fast(
+    handle: *mut Sma,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13732,9 +16284,31 @@ pub unsafe extern "C" fn wickra_smma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_smma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_smma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_smma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_smma_batch_fast(
+    handle: *mut Smma,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13844,9 +16418,31 @@ pub unsafe extern "C" fn wickra_sortino_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_sortino_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_sortino_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_sortino_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_sortino_ratio_batch_fast(
+    handle: *mut SortinoRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -13959,9 +16555,31 @@ pub unsafe extern "C" fn wickra_standard_error_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_standard_error_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_standard_error_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_standard_error_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_standard_error_batch_fast(
+    handle: *mut StandardError,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14076,9 +16694,31 @@ pub unsafe extern "C" fn wickra_stc_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_stc_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_stc_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_stc_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_stc_batch_fast(
+    handle: *mut Stc,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14188,9 +16828,31 @@ pub unsafe extern "C" fn wickra_std_dev_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_std_dev_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_std_dev_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_std_dev_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_std_dev_batch_fast(
+    handle: *mut StdDev,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14303,9 +16965,31 @@ pub unsafe extern "C" fn wickra_step_trailing_stop_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_step_trailing_stop_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_step_trailing_stop_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_step_trailing_stop_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_step_trailing_stop_batch_fast(
+    handle: *mut StepTrailingStop,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14422,9 +17106,31 @@ pub unsafe extern "C" fn wickra_sterling_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_sterling_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_sterling_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_sterling_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_sterling_ratio_batch_fast(
+    handle: *mut SterlingRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14534,9 +17240,31 @@ pub unsafe extern "C" fn wickra_stoch_rsi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_stoch_rsi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_stoch_rsi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_stoch_rsi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_stoch_rsi_batch_fast(
+    handle: *mut StochRsi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14649,9 +17377,31 @@ pub unsafe extern "C" fn wickra_super_smoother_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_super_smoother_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_super_smoother_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_super_smoother_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_super_smoother_batch_fast(
+    handle: *mut SuperSmoother,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14761,9 +17511,31 @@ pub unsafe extern "C" fn wickra_t3_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_t3_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_t3_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_t3_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_t3_batch_fast(
+    handle: *mut T3,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14873,9 +17645,31 @@ pub unsafe extern "C" fn wickra_tail_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_tail_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_tail_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_tail_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_tail_ratio_batch_fast(
+    handle: *mut TailRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -14985,9 +17779,31 @@ pub unsafe extern "C" fn wickra_tema_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_tema_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_tema_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_tema_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_tema_batch_fast(
+    handle: *mut Tema,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -15097,9 +17913,31 @@ pub unsafe extern "C" fn wickra_tii_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_tii_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_tii_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_tii_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_tii_batch_fast(
+    handle: *mut Tii,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -15209,9 +18047,31 @@ pub unsafe extern "C" fn wickra_trend_label_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_trend_label_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_trend_label_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_trend_label_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_trend_label_batch_fast(
+    handle: *mut TrendLabel,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -15324,9 +18184,31 @@ pub unsafe extern "C" fn wickra_trend_strength_index_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_trend_strength_index_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_trend_strength_index_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_trend_strength_index_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_trend_strength_index_batch_fast(
+    handle: *mut TrendStrengthIndex,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -15442,9 +18324,31 @@ pub unsafe extern "C" fn wickra_trendflex_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_trendflex_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_trendflex_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_trendflex_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_trendflex_batch_fast(
+    handle: *mut Trendflex,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -15554,9 +18458,31 @@ pub unsafe extern "C" fn wickra_trima_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_trima_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_trima_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_trima_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_trima_batch_fast(
+    handle: *mut Trima,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -15666,9 +18592,31 @@ pub unsafe extern "C" fn wickra_trix_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_trix_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_trix_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_trix_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_trix_batch_fast(
+    handle: *mut Trix,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -15778,9 +18726,31 @@ pub unsafe extern "C" fn wickra_tsf_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_tsf_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_tsf_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_tsf_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_tsf_batch_fast(
+    handle: *mut Tsf,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -15893,9 +18863,31 @@ pub unsafe extern "C" fn wickra_tsf_oscillator_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_tsf_oscillator_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_tsf_oscillator_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_tsf_oscillator_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_tsf_oscillator_batch_fast(
+    handle: *mut TsfOscillator,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16005,9 +18997,31 @@ pub unsafe extern "C" fn wickra_tsi_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_tsi_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_tsi_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_tsi_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_tsi_batch_fast(
+    handle: *mut Tsi,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16117,9 +19131,31 @@ pub unsafe extern "C" fn wickra_ulcer_index_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_ulcer_index_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_ulcer_index_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_ulcer_index_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_ulcer_index_batch_fast(
+    handle: *mut UlcerIndex,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16232,9 +19268,31 @@ pub unsafe extern "C" fn wickra_universal_oscillator_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_universal_oscillator_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_universal_oscillator_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_universal_oscillator_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_universal_oscillator_batch_fast(
+    handle: *mut UniversalOscillator,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16356,9 +19414,31 @@ pub unsafe extern "C" fn wickra_upside_potential_ratio_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_upside_potential_ratio_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_upside_potential_ratio_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_upside_potential_ratio_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_upside_potential_ratio_batch_fast(
+    handle: *mut UpsidePotentialRatio,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16474,9 +19554,31 @@ pub unsafe extern "C" fn wickra_value_at_risk_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_value_at_risk_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_value_at_risk_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_value_at_risk_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_value_at_risk_batch_fast(
+    handle: *mut ValueAtRisk,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16586,9 +19688,31 @@ pub unsafe extern "C" fn wickra_variance_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_variance_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_variance_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_variance_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_variance_batch_fast(
+    handle: *mut Variance,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16703,9 +19827,31 @@ pub unsafe extern "C" fn wickra_vertical_horizontal_filter_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_vertical_horizontal_filter_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_vertical_horizontal_filter_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_vertical_horizontal_filter_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_vertical_horizontal_filter_batch_fast(
+    handle: *mut VerticalHorizontalFilter,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16825,9 +19971,31 @@ pub unsafe extern "C" fn wickra_vidya_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_vidya_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_vidya_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_vidya_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_vidya_batch_fast(
+    handle: *mut Vidya,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -16943,9 +20111,31 @@ pub unsafe extern "C" fn wickra_volatility_of_volatility_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_volatility_of_volatility_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_volatility_of_volatility_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_volatility_of_volatility_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_volatility_of_volatility_batch_fast(
+    handle: *mut VolatilityOfVolatility,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -17063,9 +20253,31 @@ pub unsafe extern "C" fn wickra_wave_pm_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_wave_pm_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_wave_pm_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_wave_pm_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_wave_pm_batch_fast(
+    handle: *mut WavePm,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -17175,9 +20387,31 @@ pub unsafe extern "C" fn wickra_win_rate_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_win_rate_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_win_rate_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_win_rate_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_win_rate_batch_fast(
+    handle: *mut WinRate,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -17287,9 +20521,31 @@ pub unsafe extern "C" fn wickra_wma_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_wma_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_wma_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_wma_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_wma_batch_fast(
+    handle: *mut Wma,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -17399,9 +20655,31 @@ pub unsafe extern "C" fn wickra_z_score_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_z_score_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_z_score_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_z_score_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_z_score_batch_fast(
+    handle: *mut ZScore,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -17511,9 +20789,31 @@ pub unsafe extern "C" fn wickra_zlema_batch(
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for (slot, &value) in outputs.iter_mut().zip(inputs) {
-        *slot = ind.update(value).unwrap_or(f64::NAN);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_zlema_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_zlema_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_zlema_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_zlema_batch_fast(
+    handle: *mut Zlema,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -18952,9 +22252,33 @@ pub unsafe extern "C" fn wickra_pearson_correlation_batch(
     let xs = slice::from_raw_parts(x, n);
     let ys = slice::from_raw_parts(y, n);
     let outputs = slice::from_raw_parts_mut(out, n);
-    for ((slot, &xv), &yv) in outputs.iter_mut().zip(xs).zip(ys) {
-        *slot = ind.update((xv, yv)).unwrap_or(f64::NAN);
+    ind.batch_pairs_into(xs, ys, outputs);
+}
+
+/// Opt-in fast batch over the pairs `(x[i], y[i])` into `out[0..n]`: the SIMD
+/// kernel reassociates the arithmetic, so each value agrees with
+/// `wickra_pearson_correlation_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform.
+///
+/// # Safety
+/// `handle` valid (from `wickra_pearson_correlation_new`, not freed); `x`/`y`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_pearson_correlation_batch_fast(
+    handle: *mut PearsonCorrelation,
+    x: *const f64,
+    y: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || x.is_null() || y.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let xs = slice::from_raw_parts(x, n);
+    let ys = slice::from_raw_parts(y, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_pairs_fast_into(xs, ys, outputs);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -21490,6 +24814,69 @@ pub unsafe extern "C" fn wickra_atr_batch(
     let volumes = slice::from_raw_parts(volume, n);
     let timestamps = slice::from_raw_parts(timestamp, n);
     let outputs = slice::from_raw_parts_mut(out, n);
+    if Candle::all_valid(opens, highs, lows, closes, volumes) {
+        ind.batch_atr_into(highs, lows, closes, outputs);
+        return;
+    }
+    for (idx, slot) in outputs.iter_mut().enumerate() {
+        *slot = match Candle::new(
+            opens[idx],
+            highs[idx],
+            lows[idx],
+            closes[idx],
+            volumes[idx],
+            timestamps[idx],
+        ) {
+            Ok(candle) => ind.update(candle).unwrap_or(f64::NAN),
+            Err(_) => f64::NAN,
+        };
+    }
+}
+
+/// Opt-in fast batch over the OHLCV series into `out[0..n]`: the SIMD kernel
+/// reassociates the arithmetic, so each value agrees with `wickra_atr_batch`
+/// to within a few units in the last place rather than bit for bit; `NaN`
+/// placement and length are identical, and the result is the same on every
+/// platform. A series with an invalid candle is `wickra_atr_batch` exactly.
+///
+/// # Safety
+/// `handle` valid (from `wickra_atr_new`, not freed); every input pointer and `out`
+/// cover `n` elements.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_atr_batch_fast(
+    handle: *mut Atr,
+    open: *const f64,
+    high: *const f64,
+    low: *const f64,
+    close: *const f64,
+    volume: *const f64,
+    timestamp: *const i64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null()
+        || open.is_null()
+        || high.is_null()
+        || low.is_null()
+        || close.is_null()
+        || volume.is_null()
+        || timestamp.is_null()
+        || out.is_null()
+    {
+        return;
+    }
+    let ind = &mut *handle;
+    let opens = slice::from_raw_parts(open, n);
+    let highs = slice::from_raw_parts(high, n);
+    let lows = slice::from_raw_parts(low, n);
+    let closes = slice::from_raw_parts(close, n);
+    let volumes = slice::from_raw_parts(volume, n);
+    let timestamps = slice::from_raw_parts(timestamp, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    if Candle::all_valid(opens, highs, lows, closes, volumes) {
+        ind.batch_atr_fast_into(highs, lows, closes, outputs);
+        return;
+    }
     for (idx, slot) in outputs.iter_mut().enumerate() {
         *slot = match Candle::new(
             opens[idx],
@@ -23671,6 +27058,67 @@ pub unsafe extern "C" fn wickra_chaikin_oscillator_batch(
     let volumes = slice::from_raw_parts(volume, n);
     let timestamps = slice::from_raw_parts(timestamp, n);
     let outputs = slice::from_raw_parts_mut(out, n);
+    if ind.batch_ohlcv_into(opens, highs, lows, closes, volumes, outputs) {
+        return;
+    }
+    for (idx, slot) in outputs.iter_mut().enumerate() {
+        *slot = match Candle::new(
+            opens[idx],
+            highs[idx],
+            lows[idx],
+            closes[idx],
+            volumes[idx],
+            timestamps[idx],
+        ) {
+            Ok(candle) => ind.update(candle).unwrap_or(f64::NAN),
+            Err(_) => f64::NAN,
+        };
+    }
+}
+
+/// Opt-in fast batch over the OHLCV series into `out[0..n]`: the SIMD kernel
+/// reassociates the arithmetic, so each value agrees with `wickra_chaikin_oscillator_batch`
+/// to within a few units in the last place rather than bit for bit; `NaN`
+/// placement and length are identical, and the result is the same on every
+/// platform. A series with an invalid candle is `wickra_chaikin_oscillator_batch` exactly.
+///
+/// # Safety
+/// `handle` valid (from `wickra_chaikin_oscillator_new`, not freed); every input pointer and `out`
+/// cover `n` elements.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_chaikin_oscillator_batch_fast(
+    handle: *mut ChaikinOscillator,
+    open: *const f64,
+    high: *const f64,
+    low: *const f64,
+    close: *const f64,
+    volume: *const f64,
+    timestamp: *const i64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null()
+        || open.is_null()
+        || high.is_null()
+        || low.is_null()
+        || close.is_null()
+        || volume.is_null()
+        || timestamp.is_null()
+        || out.is_null()
+    {
+        return;
+    }
+    let ind = &mut *handle;
+    let opens = slice::from_raw_parts(open, n);
+    let highs = slice::from_raw_parts(high, n);
+    let lows = slice::from_raw_parts(low, n);
+    let closes = slice::from_raw_parts(close, n);
+    let volumes = slice::from_raw_parts(volume, n);
+    let timestamps = slice::from_raw_parts(timestamp, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    if ind.batch_ohlcv_fast_into(opens, highs, lows, closes, volumes, outputs) {
+        return;
+    }
     for (idx, slot) in outputs.iter_mut().enumerate() {
         *slot = match Candle::new(
             opens[idx],
@@ -59653,23 +63101,32 @@ pub unsafe extern "C" fn wickra_bollinger_bands_batch(
     }
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
-    let outputs = slice::from_raw_parts_mut(out, n);
-    for (i, slot) in outputs.iter_mut().enumerate() {
-        *slot = WickraBollingerOutput {
-            upper: f64::NAN,
-            middle: f64::NAN,
-            lower: f64::NAN,
-            stddev: f64::NAN,
-        };
-        if let Some(out_val) = ind.update(inputs[i]) {
-            *slot = WickraBollingerOutput {
-                upper: out_val.upper,
-                middle: out_val.middle,
-                lower: out_val.lower,
-                stddev: out_val.stddev,
-            };
-        }
+    let rows = slice::from_raw_parts_mut(out.cast::<f64>(), n * 4);
+    ind.batch_bands_into(inputs, rows);
+}
+
+/// Opt-in fast batch into `out[0..n]`: the SIMD kernel reassociates the
+/// arithmetic, so each field agrees with `wickra_bollinger_bands_batch` to within a few
+/// units in the last place rather than bit for bit; warmup rows and length are
+/// identical, and the result is the same on every platform.
+///
+/// # Safety
+/// `handle` valid (from `wickra_bollinger_bands_new`, not freed); `input` covers `n`
+/// `double`s and `out` covers `n` `WickraBollingerOutput` values.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_bollinger_bands_batch_fast(
+    handle: *mut BollingerBands,
+    input: *const f64,
+    out: *mut WickraBollingerOutput,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let rows = slice::from_raw_parts_mut(out.cast::<f64>(), n * 4);
+    ind.batch_bands_fast_into(inputs, rows);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -67423,21 +70880,32 @@ pub unsafe extern "C" fn wickra_macd_indicator_batch(
     }
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
-    let outputs = slice::from_raw_parts_mut(out, n);
-    for (i, slot) in outputs.iter_mut().enumerate() {
-        *slot = WickraMacdOutput {
-            macd: f64::NAN,
-            signal: f64::NAN,
-            histogram: f64::NAN,
-        };
-        if let Some(out_val) = ind.update(inputs[i]) {
-            *slot = WickraMacdOutput {
-                macd: out_val.macd,
-                signal: out_val.signal,
-                histogram: out_val.histogram,
-            };
-        }
+    let rows = slice::from_raw_parts_mut(out.cast::<f64>(), n * 3);
+    ind.batch_macd_into(inputs, rows);
+}
+
+/// Opt-in fast batch into `out[0..n]`: the SIMD kernel reassociates the
+/// arithmetic, so each field agrees with `wickra_macd_indicator_batch` to within a few
+/// units in the last place rather than bit for bit; warmup rows and length are
+/// identical, and the result is the same on every platform.
+///
+/// # Safety
+/// `handle` valid (from `wickra_macd_indicator_new`, not freed); `input` covers `n`
+/// `double`s and `out` covers `n` `WickraMacdOutput` values.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_macd_indicator_batch_fast(
+    handle: *mut MacdIndicator,
+    input: *const f64,
+    out: *mut WickraMacdOutput,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let rows = slice::from_raw_parts_mut(out.cast::<f64>(), n * 3);
+    ind.batch_macd_fast_into(inputs, rows);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.
@@ -78524,6 +81992,293 @@ mod tests {
     #[test]
     fn new_rejects_zero_period() {
         assert!(wickra_sma_new(0).is_null());
+    }
+
+    /// A wandering price path long enough for every kernel's vector loop,
+    /// tail and re-anchoring.
+    fn prices(n: usize) -> Vec<f64> {
+        (0..n)
+            .map(|i| {
+                let t = f64::from(u32::try_from(i).unwrap());
+                100.0 + (t * 0.0137).sin() * 5.0 + (t * 0.37).cos()
+            })
+            .collect()
+    }
+
+    /// `NaN` in the same places, and within `tol` relative to a unit floor.
+    fn within(exact: &[f64], fast: &[f64], tol: f64) {
+        for (i, (x, y)) in exact.iter().zip(fast).enumerate() {
+            assert_eq!(x.is_nan(), y.is_nan(), "NaN mismatch at {i}");
+            if x.is_finite() {
+                assert!(
+                    (x - y).abs() <= tol * x.abs().max(1.0),
+                    "at {i}: {x} vs {y}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn scalar_batch_fast_agrees_with_batch() {
+        let input = prices(1003);
+        let (mut exact, mut fast) = (vec![0.0; 1003], vec![0.0; 1003]);
+        unsafe {
+            let (a, b) = (wickra_ema_new(20), wickra_ema_new(20));
+            wickra_ema_batch(a, input.as_ptr(), exact.as_mut_ptr(), 1003);
+            wickra_ema_batch_fast(b, input.as_ptr(), fast.as_mut_ptr(), 1003);
+            within(&exact, &fast, 1e-12);
+            // Both continue streaming within the same tolerance.
+            assert!((wickra_ema_update(a, 101.0) - wickra_ema_update(b, 101.0)).abs() < 1e-12);
+            wickra_ema_free(a);
+            wickra_ema_free(b);
+            // An indicator without a kernel: the fast batch is the exact one.
+            let (a, b) = (wickra_roc_new(10), wickra_roc_new(10));
+            wickra_roc_batch(a, input.as_ptr(), exact.as_mut_ptr(), 1003);
+            wickra_roc_batch_fast(b, input.as_ptr(), fast.as_mut_ptr(), 1003);
+            assert!(exact
+                .iter()
+                .zip(&fast)
+                .all(|(x, y)| x.to_bits() == y.to_bits()));
+            // A NULL pointer is a no-op, as for the exact batch.
+            wickra_roc_batch_fast(ptr::null_mut(), input.as_ptr(), fast.as_mut_ptr(), 1003);
+            wickra_roc_batch_fast(b, ptr::null(), fast.as_mut_ptr(), 1003);
+            wickra_roc_batch_fast(b, input.as_ptr(), ptr::null_mut(), 1003);
+            wickra_roc_free(a);
+            wickra_roc_free(b);
+        }
+    }
+
+    #[test]
+    fn fused_rows_match_streaming_and_their_fast_twin() {
+        let input = prices(1003);
+        unsafe {
+            let exact = wickra_macd_indicator_new(12, 26, 9);
+            let stream = wickra_macd_indicator_new(12, 26, 9);
+            let fast = wickra_macd_indicator_new(12, 26, 9);
+            let blank = WickraMacdOutput {
+                macd: 0.0,
+                signal: 0.0,
+                histogram: 0.0,
+            };
+            let mut rows = vec![blank; 1003];
+            let mut fast_rows = vec![blank; 1003];
+            wickra_macd_indicator_batch(exact, input.as_ptr(), rows.as_mut_ptr(), 1003);
+            wickra_macd_indicator_batch_fast(fast, input.as_ptr(), fast_rows.as_mut_ptr(), 1003);
+            for (i, &value) in input.iter().enumerate() {
+                let mut one = blank;
+                if wickra_macd_indicator_update(stream, value, &raw mut one) {
+                    assert_eq!(rows[i].macd.to_bits(), one.macd.to_bits());
+                    assert_eq!(rows[i].signal.to_bits(), one.signal.to_bits());
+                    assert_eq!(rows[i].histogram.to_bits(), one.histogram.to_bits());
+                    assert!((fast_rows[i].macd - one.macd).abs() < 1e-12);
+                } else {
+                    assert!(rows[i].macd.is_nan() && fast_rows[i].macd.is_nan());
+                }
+            }
+            wickra_macd_indicator_batch_fast(
+                ptr::null_mut(),
+                input.as_ptr(),
+                fast_rows.as_mut_ptr(),
+                1,
+            );
+            wickra_macd_indicator_free(exact);
+            wickra_macd_indicator_free(stream);
+            wickra_macd_indicator_free(fast);
+
+            let exact = wickra_bollinger_bands_new(20, 2.0);
+            let stream = wickra_bollinger_bands_new(20, 2.0);
+            let fast = wickra_bollinger_bands_new(20, 2.0);
+            let blank = WickraBollingerOutput {
+                upper: 0.0,
+                middle: 0.0,
+                lower: 0.0,
+                stddev: 0.0,
+            };
+            let mut rows = vec![blank; 1003];
+            let mut fast_rows = vec![blank; 1003];
+            wickra_bollinger_bands_batch(exact, input.as_ptr(), rows.as_mut_ptr(), 1003);
+            wickra_bollinger_bands_batch_fast(fast, input.as_ptr(), fast_rows.as_mut_ptr(), 1003);
+            for (i, &value) in input.iter().enumerate() {
+                let mut one = blank;
+                if wickra_bollinger_bands_update(stream, value, &raw mut one) {
+                    assert_eq!(rows[i].upper.to_bits(), one.upper.to_bits());
+                    assert_eq!(rows[i].stddev.to_bits(), one.stddev.to_bits());
+                    assert!((fast_rows[i].middle - one.middle).abs() < 1e-11);
+                } else {
+                    assert!(rows[i].upper.is_nan() && fast_rows[i].upper.is_nan());
+                }
+            }
+            wickra_bollinger_bands_free(exact);
+            wickra_bollinger_bands_free(stream);
+            wickra_bollinger_bands_free(fast);
+        }
+    }
+
+    #[test]
+    fn candle_columns_match_the_replay_and_fall_back_on_an_invalid_bar() {
+        let close = prices(503);
+        let high: Vec<f64> = close.iter().map(|c| c + 1.0).collect();
+        let low: Vec<f64> = close.iter().map(|c| c - 1.0).collect();
+        let open = close.clone();
+        let volume = vec![1000.0; 503];
+        let stamps: Vec<i64> = (0..503).collect();
+        let replay = |valid_low: &[f64], out: &mut [f64], fast: bool| unsafe {
+            let h = wickra_atr_new(14);
+            let args = (
+                open.as_ptr(),
+                high.as_ptr(),
+                valid_low.as_ptr(),
+                close.as_ptr(),
+            );
+            if fast {
+                wickra_atr_batch_fast(
+                    h,
+                    args.0,
+                    args.1,
+                    args.2,
+                    args.3,
+                    volume.as_ptr(),
+                    stamps.as_ptr(),
+                    out.as_mut_ptr(),
+                    503,
+                );
+            } else {
+                wickra_atr_batch(
+                    h,
+                    args.0,
+                    args.1,
+                    args.2,
+                    args.3,
+                    volume.as_ptr(),
+                    stamps.as_ptr(),
+                    out.as_mut_ptr(),
+                    503,
+                );
+            }
+            wickra_atr_free(h);
+        };
+        let streamed: Vec<f64> = unsafe {
+            let h = wickra_atr_new(14);
+            let v = (0..503)
+                .map(|i| {
+                    wickra_atr_update(h, open[i], high[i], low[i], close[i], volume[i], stamps[i])
+                })
+                .collect();
+            wickra_atr_free(h);
+            v
+        };
+        let (mut exact, mut fast) = (vec![0.0; 503], vec![0.0; 503]);
+        replay(&low, &mut exact, false);
+        replay(&low, &mut fast, true);
+        assert!(exact
+            .iter()
+            .zip(&streamed)
+            .all(|(x, y)| x.to_bits() == y.to_bits()));
+        within(&exact, &fast, 1e-12);
+        // One bar with `low > high`: both batches replay, the bar reads NaN.
+        let mut broken = low.clone();
+        broken[200] = high[200] + 1.0;
+        replay(&broken, &mut exact, false);
+        replay(&broken, &mut fast, true);
+        assert!(exact[200].is_nan());
+        assert!(exact
+            .iter()
+            .zip(&fast)
+            .all(|(x, y)| x.to_bits() == y.to_bits()));
+    }
+
+    #[test]
+    fn chaikin_columns_match_their_fast_twin() {
+        let close = prices(503);
+        let high: Vec<f64> = close.iter().map(|c| c + 1.0).collect();
+        let low: Vec<f64> = close.iter().map(|c| c - 1.0).collect();
+        let open = close.clone();
+        let volume = vec![1000.0; 503];
+        let stamps: Vec<i64> = (0..503).collect();
+        let (mut exact, mut fast) = (vec![0.0; 503], vec![0.0; 503]);
+        unsafe {
+            let h = wickra_chaikin_oscillator_new(3, 10);
+            let f = wickra_chaikin_oscillator_new(3, 10);
+            wickra_chaikin_oscillator_batch(
+                h,
+                open.as_ptr(),
+                high.as_ptr(),
+                low.as_ptr(),
+                close.as_ptr(),
+                volume.as_ptr(),
+                stamps.as_ptr(),
+                exact.as_mut_ptr(),
+                503,
+            );
+            wickra_chaikin_oscillator_batch_fast(
+                f,
+                open.as_ptr(),
+                high.as_ptr(),
+                low.as_ptr(),
+                close.as_ptr(),
+                volume.as_ptr(),
+                stamps.as_ptr(),
+                fast.as_mut_ptr(),
+                503,
+            );
+            within(&exact, &fast, 1e-9);
+            wickra_chaikin_oscillator_batch_fast(
+                ptr::null_mut(),
+                open.as_ptr(),
+                high.as_ptr(),
+                low.as_ptr(),
+                close.as_ptr(),
+                volume.as_ptr(),
+                stamps.as_ptr(),
+                fast.as_mut_ptr(),
+                1,
+            );
+            wickra_chaikin_oscillator_free(h);
+            wickra_chaikin_oscillator_free(f);
+        }
+    }
+
+    #[test]
+    fn pair_columns_match_the_replay() {
+        let xs = prices(503);
+        let ys: Vec<f64> = xs.iter().map(|v| v * 0.5 + 3.0).rev().collect();
+        let (mut exact, mut fast) = (vec![0.0; 503], vec![0.0; 503]);
+        unsafe {
+            let (exact_h, stream, fast_h) = (
+                wickra_pearson_correlation_new(20),
+                wickra_pearson_correlation_new(20),
+                wickra_pearson_correlation_new(20),
+            );
+            wickra_pearson_correlation_batch(
+                exact_h,
+                xs.as_ptr(),
+                ys.as_ptr(),
+                exact.as_mut_ptr(),
+                503,
+            );
+            wickra_pearson_correlation_batch_fast(
+                fast_h,
+                xs.as_ptr(),
+                ys.as_ptr(),
+                fast.as_mut_ptr(),
+                503,
+            );
+            for i in 0..503 {
+                let one = wickra_pearson_correlation_update(stream, xs[i], ys[i]);
+                assert_eq!(exact[i].to_bits(), one.to_bits());
+            }
+            within(&exact, &fast, 1e-9);
+            wickra_pearson_correlation_batch_fast(
+                ptr::null_mut(),
+                xs.as_ptr(),
+                ys.as_ptr(),
+                fast.as_mut_ptr(),
+                1,
+            );
+            wickra_pearson_correlation_free(exact_h);
+            wickra_pearson_correlation_free(stream);
+            wickra_pearson_correlation_free(fast_h);
+        }
     }
 
     #[test]

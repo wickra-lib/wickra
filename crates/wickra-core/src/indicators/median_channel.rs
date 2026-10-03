@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 
 use crate::error::{Error, Result};
 use crate::indicators::rolling_quantile::quantile_sorted;
+use crate::indicators::sorted_window;
 use crate::traits::Indicator;
 
 /// Median Channel output.
@@ -53,7 +54,9 @@ pub struct MedianChannel {
     period: usize,
     multiplier: f64,
     window: VecDeque<f64>,
+    /// The window's values in `total_cmp` order, kept sorted as it slides.
     scratch: Vec<f64>,
+    /// The absolute deviations from the median, in ascending order.
     deviations: Vec<f64>,
 }
 
@@ -106,22 +109,19 @@ impl Indicator for MedianChannel {
             return None;
         }
         if self.window.len() == self.period {
-            self.window.pop_front();
+            let oldest = self.window.pop_front().expect("window is full");
+            sorted_window::remove(&mut self.scratch, oldest);
         }
         self.window.push_back(value);
+        sorted_window::insert(&mut self.scratch, value);
         if self.window.len() < self.period {
             return None;
         }
-        self.scratch.clear();
-        self.scratch.extend(self.window.iter().copied());
-        self.scratch.sort_by(f64::total_cmp);
         let median = quantile_sorted(&self.scratch, 0.5);
 
-        self.deviations.clear();
-        for &v in &self.window {
-            self.deviations.push((v - median).abs());
-        }
-        self.deviations.sort_by(f64::total_cmp);
+        // The absolute deviations, sorted by merging the runs either side of
+        // the median.
+        sorted_window::abs_deviations(&self.scratch, median, &mut self.deviations);
         let mad = quantile_sorted(&self.deviations, 0.5);
         let offset = self.multiplier * mad;
 

@@ -14,6 +14,21 @@
 export type Count = number
 
 /**
+ * A numeric input series: a `Float64Array` is read in place without a copy,
+ * any other array of numbers is converted element by element. A typed array of
+ * another element type is refused rather than reinterpreted.
+ */
+export type Series = Float64Array | Array<number>
+
+/**
+ * A caller-owned `Float64Array` a `batchInto` / `batchFastInto` call writes
+ * its result into. It must be exactly as long as the result, must not share
+ * memory with an input, and must not be backed by a `SharedArrayBuffer`;
+ * anything else is refused.
+ */
+export type OutSeries = Float64Array
+
+/**
  * Which binding artifact the generated loader actually loaded: `'native'` for
  * a native addon, otherwise the `platformArchABI` of the WASI flavor. Every
  * flavor napi-rs can build is listed, because `NAPI_RS_NATIVE_LIBRARY_PATH`
@@ -24,7 +39,7 @@ export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-was
 export declare class AbandonedBaby {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -35,7 +50,7 @@ export type AbandonedBabyNode = AbandonedBaby
 export declare class Abcd {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -57,7 +72,7 @@ export type AbsoluteBreadthIndexNode = AbsoluteBreadthIndex
 export declare class AccelerationBands {
   constructor(period: Count, factor: number)
   update(high: number, low: number, close: number): AccelerationBandsValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -68,7 +83,7 @@ export type AccelerationBandsNode = AccelerationBands
 export declare class AcceleratorOscillator {
   constructor(aoFast: Count, aoSlow: Count, signalPeriod: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -79,7 +94,7 @@ export type AcceleratorOscillatorNode = AcceleratorOscillator
 export declare class ADAPTIVECCI {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -90,7 +105,10 @@ export type AdaptiveCciNode = ADAPTIVECCI
 export declare class AdaptiveCycle {
   constructor()
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -101,7 +119,10 @@ export type AdaptiveCycleNode = AdaptiveCycle
 export declare class AdaptiveLaguerre {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -112,7 +133,10 @@ export type AdaptiveLaguerreFilterNode = AdaptiveLaguerre
 export declare class ADAPTIVERSI {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -123,7 +147,7 @@ export type AdaptiveRsiNode = ADAPTIVERSI
 export declare class ADL {
   constructor()
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -134,7 +158,7 @@ export type AdlNode = ADL
 export declare class ADOSC {
   constructor()
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -145,7 +169,7 @@ export type AdOscillatorNode = ADOSC
 export declare class AdvanceBlock {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -189,7 +213,7 @@ export type AdVolumeLineNode = AdVolumeLine
 export declare class ADX {
   constructor(period: Count)
   update(high: number, low: number, close: number): AdxValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -200,7 +224,7 @@ export type AdxNode = ADX
 export declare class ADXR {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -215,7 +239,7 @@ export declare class Alligator {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number): AlligatorValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
 }
 export type AlligatorNode = Alligator
 
@@ -226,14 +250,17 @@ export declare class ALMA {
   isReady(): boolean
   warmupPeriod(): number
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
 }
 export type AlmaNode = ALMA
 
 export declare class Alpha {
   constructor(period: Count, riskFree: number)
   update(asset: number, benchmark: number): number | null
-  batch(asset: Array<number>, benchmark: Array<number>): Array<number>
+  batch(asset: Series, benchmark: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -244,7 +271,7 @@ export type AlphaNode = Alpha
 export declare class AmihudIlliquidity {
   constructor(period: Count)
   update(price: number, size: number, isBuy: boolean): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -256,7 +283,10 @@ export declare class AnchoredRSI {
   constructor()
   setAnchor(): void
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -268,7 +298,7 @@ export declare class AnchoredVWAP {
   constructor()
   setAnchor(): void
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -279,7 +309,7 @@ export type AnchoredVwapNode = AnchoredVWAP
 export declare class AndrewsPitchfork {
   constructor(strength: Count)
   update(high: number, low: number): AndrewsPitchforkValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -290,7 +320,10 @@ export type AndrewsPitchforkNode = AndrewsPitchfork
 export declare class APO {
   constructor(fast: Count, slow: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -305,14 +338,14 @@ export declare class Aroon {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number): AroonValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
 }
 export type AroonNode = Aroon
 
 export declare class AroonOscillator {
   constructor(period: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -323,7 +356,10 @@ export type AroonOscillatorNode = AroonOscillator
 export declare class ATR {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
+  batchFast(high: Series, low: Series, close: Series): Float64Array
+  batchInto(high: Series, low: Series, close: Series, out: OutSeries): void
+  batchFastInto(high: Series, low: Series, close: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -334,7 +370,7 @@ export type AtrNode = ATR
 export declare class AtrBands {
   constructor(period: Count, multiplier: number)
   update(high: number, low: number, close: number): AtrBandsValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -349,7 +385,7 @@ export declare class AtrRatchet {
    * Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
    * Warmup positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -360,7 +396,7 @@ export type AtrRatchetNode = AtrRatchet
 export declare class AtrTrailingStop {
   constructor(atrPeriod: Count, multiplier: number)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -371,7 +407,10 @@ export type AtrTrailingStopNode = AtrTrailingStop
 export declare class Autocorrelation {
   constructor(period: Count, lag: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -382,7 +421,10 @@ export type AutocorrelationNode = Autocorrelation
 export declare class AUTOCORRPGRAM {
   constructor(minPeriod: Count, maxPeriod: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -393,7 +435,7 @@ export type AutocorrelationPeriodogramNode = AUTOCORRPGRAM
 export declare class AutoFib {
   constructor()
   update(high: number, low: number): AutoFibValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -404,7 +446,7 @@ export type AutoFibNode = AutoFib
 export declare class AverageDailyRange {
   constructor(period: Count, utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -415,7 +457,10 @@ export type AverageDailyRangeNode = AverageDailyRange
 export declare class AverageDrawdown {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -426,7 +471,7 @@ export type AverageDrawdownNode = AverageDrawdown
 export declare class AVGPRICE {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -441,14 +486,14 @@ export declare class AwesomeOscillator {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
 }
 export type AoNode = AwesomeOscillator
 
 export declare class AwesomeOscillatorHistogram {
   constructor(fast: Count, slow: Count, smaPeriod: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -459,7 +504,7 @@ export type AwesomeOscillatorHistogramNode = AwesomeOscillatorHistogram
 export declare class BalanceOfPower {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -470,7 +515,10 @@ export type BalanceOfPowerNode = BalanceOfPower
 export declare class BANDPASS {
   constructor(period: Count, bandwidth: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -481,7 +529,7 @@ export type BandpassFilterNode = BANDPASS
 export declare class Bat {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -492,7 +540,7 @@ export type BatNode = Bat
 export declare class BeltHold {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -507,7 +555,7 @@ export declare class Beta {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -522,7 +570,7 @@ export declare class BetaNeutralSpread {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -533,7 +581,7 @@ export type BetaNeutralSpreadNode = BetaNeutralSpread
 export declare class BetterVolume {
   constructor(period: Count)
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -569,7 +617,10 @@ export type BinanceFeedNode = BinanceFeed
 export declare class BipowerVariation {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -580,7 +631,7 @@ export type BipowerVariationNode = BipowerVariation
 export declare class BodySizePct {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -596,7 +647,11 @@ export declare class BollingerBands {
    * interleaved per row as `[upper0, middle0, lower0, stddev0, upper1, ...]`.
    * Read column `j` of row `i` as `result[i * 4 + j]`. Warmup rows are `NaN`.
    */
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  /** Opt-in fast batch, flat `[upper, middle, lower, stddev]` rows like `batch`. */
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -607,7 +662,10 @@ export type BollingerNode = BollingerBands
 export declare class BollingerBandwidth {
   constructor(period: Count, multiplier: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -618,7 +676,7 @@ export type BollingerBandwidthNode = BollingerBandwidth
 export declare class BomarBands {
   constructor(period: Count, coverage: number)
   update(value: number): BomarBandsValue | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -640,7 +698,7 @@ export type BreadthThrustNode = BreadthThrust
 export declare class Breakaway {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -662,7 +720,10 @@ export type BullishPercentIndexNode = BullishPercentIndex
 export declare class BurkeRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -673,7 +734,7 @@ export type BurkeRatioNode = BurkeRatio
 export declare class Butterfly {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -684,7 +745,7 @@ export type ButterflyNode = Butterfly
 export declare class CalendarSpread {
   constructor()
   update(futuresPrice: number, markPrice: number): number | null
-  batch(futuresPrice: Array<number>, markPrice: Array<number>): Array<number>
+  batch(futuresPrice: Series, markPrice: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -695,7 +756,10 @@ export type CalendarSpreadNode = CalendarSpread
 export declare class CalmarRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -706,7 +770,7 @@ export type CalmarRatioNode = CalmarRatio
 export declare class Camarilla {
   constructor()
   update(high: number, low: number, close: number): CamarillaValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -729,7 +793,7 @@ export type CandleReaderNode = CandleReader
 export declare class CandleVolume {
   constructor(period: Count)
   update(open: number, close: number, volume: number): CandleVolumeValue | null
-  batch(open: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(open: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -744,14 +808,17 @@ export declare class CCI {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
 }
 export type CciNode = CCI
 
 export declare class CenterOfGravity {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -762,7 +829,7 @@ export type CenterOfGravityNode = CenterOfGravity
 export declare class CentralPivotRange {
   constructor()
   update(high: number, low: number, close: number): CentralPivotRangeValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -773,7 +840,10 @@ export type CentralPivotRangeNode = CentralPivotRange
 export declare class CFO {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -784,7 +854,7 @@ export type CfoNode = CFO
 export declare class ChaikinMoneyFlow {
   constructor(period: Count)
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -795,7 +865,10 @@ export type ChaikinMoneyFlowNode = ChaikinMoneyFlow
 export declare class ChaikinOscillator {
   constructor(fast: Count, slow: Count)
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
+  batchFast(high: Series, low: Series, close: Series, volume: Series): Float64Array
+  batchInto(high: Series, low: Series, close: Series, volume: Series, out: OutSeries): void
+  batchFastInto(high: Series, low: Series, close: Series, volume: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -806,7 +879,7 @@ export type ChaikinOscillatorNode = ChaikinOscillator
 export declare class ChaikinVolatility {
   constructor(emaPeriod: Count, rocPeriod: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -821,7 +894,7 @@ export declare class ChandeKrollStop {
    * Returns `[long0, short0, long1, short1, ...]`, length `2 * n`. Warmup
    * positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -836,7 +909,7 @@ export declare class ChandelierExit {
    * Returns `[long0, short0, long1, short1, ...]`, length `2 * n`. Warmup
    * positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -847,7 +920,7 @@ export type ChandelierExitNode = ChandelierExit
 export declare class ChoppinessIndex {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -858,7 +931,7 @@ export type ChoppinessIndexNode = ChoppinessIndex
 export declare class ClassicPivots {
   constructor()
   update(high: number, low: number, close: number): ClassicPivotsValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -869,7 +942,7 @@ export type ClassicPivotsNode = ClassicPivots
 export declare class CloseVsOpen {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -880,7 +953,7 @@ export type CloseVsOpenNode = CloseVsOpen
 export declare class ClosingMarubozu {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -891,7 +964,10 @@ export type ClosingMarubozuNode = ClosingMarubozu
 export declare class CMO {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -902,7 +978,10 @@ export type CmoNode = CMO
 export declare class CoefficientOfVariation {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -918,7 +997,7 @@ export declare class Cointegration {
    * `3 * n`, interleaved per row as `[hedgeRatio0, spread0, adfStat0, ...]`.
    * Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
    */
-  batch(a: Array<number>, b: Array<number>): Array<number>
+  batch(a: Series, b: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -929,7 +1008,10 @@ export type CointegrationNode = Cointegration
 export declare class CommonSenseRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -940,7 +1022,7 @@ export type CommonSenseRatioNode = CommonSenseRatio
 export declare class CompositeProfile {
   constructor(period: Count, binCount: Count, valueAreaPct: number)
   update(high: number, low: number, volume: number): CompositeProfileValue | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -951,7 +1033,7 @@ export type CompositeProfileNode = CompositeProfile
 export declare class ConcealingBabySwallow {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -962,7 +1044,10 @@ export type ConcealingBabySwallowNode = ConcealingBabySwallow
 export declare class ConditionalValueAtRisk {
   constructor(period: Count, confidence: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -973,7 +1058,10 @@ export type ConditionalValueAtRiskNode = ConditionalValueAtRisk
 export declare class ConnorsRSI {
   constructor(periodRsi: Count, periodStreak: Count, periodRank: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -984,7 +1072,10 @@ export type ConnorsRsiNode = ConnorsRSI
 export declare class Coppock {
   constructor(rocLong: Count, rocShort: Count, wmaPeriod: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -995,7 +1086,7 @@ export type CoppockNode = Coppock
 export declare class Counterattack {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1006,7 +1097,7 @@ export type CounterattackNode = Counterattack
 export declare class Crab {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1017,7 +1108,10 @@ export type CrabNode = Crab
 export declare class CTI {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1028,7 +1122,7 @@ export type CorrelationTrendIndicatorNode = CTI
 export declare class CumulativeVolumeDelta {
   constructor()
   update(price: number, size: number, isBuy: boolean): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1050,7 +1144,7 @@ export type CumulativeVolumeIndexNode = CumulativeVolumeIndex
 export declare class CupAndHandle {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1061,7 +1155,10 @@ export type CupAndHandleNode = CupAndHandle
 export declare class CyberneticCycle {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1072,7 +1169,7 @@ export type CyberneticCycleNode = CyberneticCycle
 export declare class Cypher {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1083,7 +1180,7 @@ export type CypherNode = Cypher
 export declare class DayOfWeekProfile {
   constructor(utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): Array<number> | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1095,7 +1192,10 @@ export type DayOfWeekProfileNode = DayOfWeekProfile
 export declare class Decycler {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1106,7 +1206,10 @@ export type DecyclerNode = Decycler
 export declare class DecyclerOscillator {
   constructor(fast: Count, slow: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1117,7 +1220,10 @@ export type DecyclerOscillatorNode = DecyclerOscillator
 export declare class DEMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1128,7 +1234,7 @@ export type DemaNode = DEMA
 export declare class DemandIndex {
   constructor(period: Count)
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1139,7 +1245,7 @@ export type DemandIndexNode = DemandIndex
 export declare class DemarkPivots {
   constructor()
   update(open: number, high: number, low: number, close: number): DemarkPivotsValue | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1161,7 +1267,10 @@ export type DepthSlopeNode = DepthSlope
 export declare class DerivativeOscillator {
   constructor(rsiPeriod: Count, smooth1: Count, smooth2: Count, signalPeriod: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1172,7 +1281,10 @@ export type DerivativeOscillatorNode = DerivativeOscillator
 export declare class DetrendedStdDev {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1183,7 +1295,10 @@ export type DetrendedStdDevNode = DetrendedStdDev
 export declare class DisparityIndex {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1198,7 +1313,7 @@ export declare class DistanceSsd {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1209,7 +1324,7 @@ export type DistanceSsdNode = DistanceSsd
 export declare class Doji {
   constructor(signed?: boolean | undefined | null)
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1221,7 +1336,7 @@ export type DojiNode = Doji
 export declare class DojiStar {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1232,7 +1347,7 @@ export type DojiStarNode = DojiStar
 export declare class DollarBars {
   constructor(dollarPerBar: number)
   update(open: number, high: number, low: number, close: number, volume: number): Array<DollarBarValue>
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<DollarBarValue>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series): Array<DollarBarValue>
   dollarPerBar(): number
   reset(): void
   name(): string
@@ -1246,7 +1361,7 @@ export declare class Donchian {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number): DonchianValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
 }
 export type DonchianNode = Donchian
 
@@ -1257,7 +1372,7 @@ export declare class DonchianStop {
    * Returns `[long0, short0, long1, short1, ...]`, length `2 * n`. Warmup
    * positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1269,7 +1384,7 @@ export declare class DoubleBollinger {
   constructor(period: Count, kInner: number, kOuter: number)
   update(value: number): DoubleBollingerValue | null
   /** Flat `[u_o, u_i, m, l_i, l_o, ...]`, length `5 * n`. */
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1280,7 +1395,7 @@ export type DoubleBollingerNode = DoubleBollinger
 export declare class DoubleTopBottom {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1291,7 +1406,7 @@ export type DoubleTopBottomNode = DoubleTopBottom
 export declare class DownsideGapThreeMethods {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1302,7 +1417,10 @@ export type DownsideGapThreeMethodsNode = DownsideGapThreeMethods
 export declare class DPO {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1313,7 +1431,7 @@ export type DpoNode = DPO
 export declare class DragonflyDoji {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1324,7 +1442,7 @@ export type DragonflyDojiNode = DragonflyDoji
 export declare class DrawdownDuration {
   constructor()
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1335,7 +1453,7 @@ export type DrawdownDurationNode = DrawdownDuration
 export declare class DumplingTop {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1346,7 +1464,7 @@ export type DumplingTopNode = DumplingTop
 export declare class DX {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1357,7 +1475,10 @@ export type DxNode = DX
 export declare class DynamicMomentumIndex {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1368,7 +1489,7 @@ export type DynamicMomentumIndexNode = DynamicMomentumIndex
 export declare class EaseOfMovement {
   constructor(period: Count, divisor: number)
   update(high: number, low: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1379,7 +1500,7 @@ export type EaseOfMovementNode = EaseOfMovement
 export declare class EffectiveSpread {
   constructor()
   update(price: number, size: number, isBuy: boolean, mid: number): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>, mid: Array<number>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>, mid: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1390,7 +1511,10 @@ export type EffectiveSpreadNode = EffectiveSpread
 export declare class EhlersStochastic {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1401,7 +1525,10 @@ export type EhlersStochasticNode = EhlersStochastic
 export declare class EHMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1412,7 +1539,10 @@ export type EhmaNode = EHMA
 export declare class ElderImpulse {
   constructor(emaPeriod: Count, macdFast: Count, macdSlow: Count, macdSignal: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1423,7 +1553,7 @@ export type ElderImpulseNode = ElderImpulse
 export declare class ElderRay {
   constructor(period: Count)
   update(high: number, low: number, close: number): ElderRayValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1438,7 +1568,7 @@ export declare class ElderSafeZone {
    * Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
    * Warmup positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1449,7 +1579,10 @@ export type ElderSafeZoneNode = ElderSafeZone
 export declare class EMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1460,7 +1593,10 @@ export type EmaNode = EMA
 export declare class EmpiricalModeDecomposition {
   constructor(period: Count, fraction: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1471,7 +1607,7 @@ export type EmpiricalModeDecompositionNode = EmpiricalModeDecomposition
 export declare class Engulfing {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1482,7 +1618,7 @@ export type EngulfingNode = Engulfing
 export declare class Equivolume {
   constructor(period: Count)
   update(high: number, low: number, volume: number): EquivolumeValue | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1493,7 +1629,7 @@ export type EquivolumeNode = Equivolume
 export declare class EstimatedLeverageRatio {
   constructor()
   update(openInterest: number, longSize: number, shortSize: number): number | null
-  batch(openInterest: Array<number>, longSize: Array<number>, shortSize: Array<number>): Array<number>
+  batch(openInterest: Series, longSize: Series, shortSize: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1504,7 +1640,10 @@ export type EstimatedLeverageRatioNode = EstimatedLeverageRatio
 export declare class EVENBETTERSINE {
   constructor(hpPeriod: Count, ssfLength: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1515,7 +1654,7 @@ export type EvenBetterSinewaveNode = EVENBETTERSINE
 export declare class EveningDojiStar {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1526,7 +1665,7 @@ export type EveningDojiStarNode = EveningDojiStar
 export declare class EVWMA {
   constructor(period: Count)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1537,7 +1676,10 @@ export type EvwmaNode = EVWMA
 export declare class EwmaVolatility {
   constructor(lambda: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1548,7 +1690,10 @@ export type EwmaVolatilityNode = EwmaVolatility
 export declare class Expectancy {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1559,7 +1704,7 @@ export type ExpectancyNode = Expectancy
 export declare class FallingThreeMethods {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1570,7 +1715,10 @@ export type FallingThreeMethodsNode = FallingThreeMethods
 export declare class FAMA {
   constructor(fastLimit: number, slowLimit: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1581,7 +1729,7 @@ export type FamaNode = FAMA
 export declare class FibArcs {
   constructor()
   update(high: number, low: number): FibArcsValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1592,7 +1740,7 @@ export type FibArcsNode = FibArcs
 export declare class FibChannel {
   constructor()
   update(high: number, low: number): FibChannelValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1603,7 +1751,7 @@ export type FibChannelNode = FibChannel
 export declare class FibConfluence {
   constructor()
   update(high: number, low: number): FibConfluenceValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1614,7 +1762,7 @@ export type FibConfluenceNode = FibConfluence
 export declare class FibExtension {
   constructor()
   update(high: number, low: number): FibExtensionValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1625,7 +1773,7 @@ export type FibExtensionNode = FibExtension
 export declare class FibFan {
   constructor()
   update(high: number, low: number): FibFanValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1636,7 +1784,7 @@ export type FibFanNode = FibFan
 export declare class FibonacciPivots {
   constructor()
   update(high: number, low: number, close: number): FibonacciPivotsValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1647,7 +1795,7 @@ export type FibonacciPivotsNode = FibonacciPivots
 export declare class FibProjection {
   constructor()
   update(high: number, low: number): FibProjectionValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1658,7 +1806,7 @@ export type FibProjectionNode = FibProjection
 export declare class FibRetracement {
   constructor()
   update(high: number, low: number): FibRetracementValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1669,7 +1817,7 @@ export type FibRetracementNode = FibRetracement
 export declare class FibTimeZones {
   constructor()
   update(high: number, low: number): FibTimeZonesValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1680,7 +1828,10 @@ export type FibTimeZonesNode = FibTimeZones
 export declare class FisherRSI {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1691,7 +1842,10 @@ export type FisherRsiNode = FisherRSI
 export declare class FisherTransform {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1702,7 +1856,7 @@ export type FisherTransformNode = FisherTransform
 export declare class FlagPennant {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1713,7 +1867,7 @@ export type FlagPennantNode = FlagPennant
 export declare class Footprint {
   constructor(tickSize: number)
   update(price: number, size: number, isBuy: boolean): Array<FootprintLevelValue>
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<Array<FootprintLevelValue>>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<Array<FootprintLevelValue>>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1724,7 +1878,7 @@ export type FootprintNode = Footprint
 export declare class ForceIndex {
   constructor(period: Count)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1736,7 +1890,7 @@ export declare class FractalChaosBands {
   constructor(k: Count)
   update(high: number, low: number): FractalChaosBandsValue | null
   /** Flat `[u0, l0, u1, l1, ...]`, length `2 * n`. */
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1747,7 +1901,10 @@ export type FractalChaosBandsNode = FractalChaosBands
 export declare class FRAMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1758,7 +1915,7 @@ export type FramaNode = FRAMA
 export declare class FryPanBottom {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1769,7 +1926,7 @@ export type FryPanBottomNode = FryPanBottom
 export declare class FundingBasis {
   constructor()
   update(markPrice: number, indexPrice: number): number | null
-  batch(markPrice: Array<number>, indexPrice: Array<number>): Array<number>
+  batch(markPrice: Series, indexPrice: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1780,7 +1937,7 @@ export type FundingBasisNode = FundingBasis
 export declare class FundingImpliedApr {
   constructor(intervalsPerYear: number)
   update(fundingRate: number): number | null
-  batch(fundingRate: Array<number>): Array<number>
+  batch(fundingRate: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1791,7 +1948,7 @@ export type FundingImpliedAprNode = FundingImpliedApr
 export declare class FundingRate {
   constructor()
   update(fundingRate: number): number | null
-  batch(fundingRate: Array<number>): Array<number>
+  batch(fundingRate: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1802,7 +1959,7 @@ export type FundingRateNode = FundingRate
 export declare class FundingRateMean {
   constructor(window: Count)
   update(fundingRate: number): number | null
-  batch(fundingRate: Array<number>): Array<number>
+  batch(fundingRate: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1813,7 +1970,7 @@ export type FundingRateMeanNode = FundingRateMean
 export declare class FundingRateZScore {
   constructor(window: Count)
   update(fundingRate: number): number | null
-  batch(fundingRate: Array<number>): Array<number>
+  batch(fundingRate: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1824,7 +1981,10 @@ export type FundingRateZScoreNode = FundingRateZScore
 export declare class GainLossRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1835,7 +1995,10 @@ export type GainLossRatioNode = GainLossRatio
 export declare class GainToPainRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1846,7 +2009,7 @@ export type GainToPainRatioNode = GainToPainRatio
 export declare class GapSideBySideWhite {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1857,7 +2020,10 @@ export type GapSideBySideWhiteNode = GapSideBySideWhite
 export declare class Garch11 {
   constructor(omega: number, alpha: number, beta: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1868,7 +2034,7 @@ export type Garch11Node = Garch11
 export declare class GarmanKlassVolatility {
   constructor(period: Count, tradingPeriods: Count)
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1879,7 +2045,7 @@ export type GarmanKlassVolatilityNode = GarmanKlassVolatility
 export declare class Gartley {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1890,7 +2056,7 @@ export type GartleyNode = Gartley
 export declare class GatorOscillator {
   constructor(jawPeriod: Count, teethPeriod: Count, lipsPeriod: Count)
   update(high: number, low: number, close: number): GatorOscillatorValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1901,7 +2067,10 @@ export type GatorOscillatorNode = GatorOscillator
 export declare class GD {
   constructor(period: Count, v: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1912,7 +2081,10 @@ export type GeneralizedDemaNode = GD
 export declare class GMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -1923,7 +2095,7 @@ export type GeometricMaNode = GMA
 export declare class GoldenPocket {
   constructor()
   update(high: number, low: number): GoldenPocketValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1942,7 +2114,7 @@ export declare class GrangerCausality {
    * Batch over two equally-sized arrays. Returns a length-`n` array with
    * `NaN` for warmup positions.
    */
-  batch(a: Array<number>, b: Array<number>): Array<number>
+  batch(a: Series, b: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1953,7 +2125,7 @@ export type GrangerCausalityNode = GrangerCausality
 export declare class GravestoneDoji {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1964,7 +2136,7 @@ export type GravestoneDojiNode = GravestoneDoji
 export declare class Hammer {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1975,7 +2147,7 @@ export type HammerNode = Hammer
 export declare class HangingMan {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1986,7 +2158,7 @@ export type HangingManNode = HangingMan
 export declare class Harami {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1997,7 +2169,7 @@ export type HaramiNode = Harami
 export declare class HaramiCross {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2012,7 +2184,7 @@ export declare class HasbrouckInformationShare {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2023,7 +2195,7 @@ export type HasbrouckInformationShareNode = HasbrouckInformationShare
 export declare class HeadAndShoulders {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2035,7 +2207,7 @@ export declare class HeikinAshi {
   constructor()
   update(open: number, high: number, low: number, close: number): HeikinAshiValue | null
   /** Returns `[open0, high0, low0, close0, open1, ...]`, length `4 * n`. */
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2046,7 +2218,7 @@ export type HeikinAshiNode = HeikinAshi
 export declare class HeikinAshiOscillator {
   constructor(period: Count)
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2068,7 +2240,7 @@ export type HighLowIndexNode = HighLowIndex
 export declare class HighLowRange {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2079,7 +2251,7 @@ export type HighLowRangeNode = HighLowRange
 export declare class HighLowVolumeNodes {
   constructor(period: Count, binCount: Count)
   update(high: number, low: number, volume: number): HighLowVolumeNodesValue | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2090,7 +2262,10 @@ export type HighLowVolumeNodesNode = HighLowVolumeNodes
 export declare class HIGHPASS {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2101,7 +2276,7 @@ export type HighpassFilterNode = HIGHPASS
 export declare class HighWave {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2112,7 +2287,7 @@ export type HighWaveNode = HighWave
 export declare class Hikkake {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2123,7 +2298,7 @@ export type HikkakeNode = Hikkake
 export declare class HikkakeModified {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2134,7 +2309,10 @@ export type HikkakeModifiedNode = HikkakeModified
 export declare class HilbertDominantCycle {
   constructor()
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2145,7 +2323,7 @@ export type HilbertDominantCycleNode = HilbertDominantCycle
 export declare class HiLoActivator {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2156,7 +2334,10 @@ export type HiLoActivatorNode = HiLoActivator
 export declare class HistoricalVolatility {
   constructor(period: Count, tradingPeriods: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2167,7 +2348,10 @@ export type HistoricalVolatilityNode = HistoricalVolatility
 export declare class HMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2178,7 +2362,10 @@ export type HmaNode = HMA
 export declare class HoltWinters {
   constructor(alpha: number, beta: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2189,7 +2376,7 @@ export type HoltWintersNode = HoltWinters
 export declare class HomingPigeon {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2200,7 +2387,10 @@ export type HomingPigeonNode = HomingPigeon
 export declare class HT_DCPHASE {
   constructor()
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2215,7 +2405,7 @@ export declare class HT_PHASOR {
    * Batch over a price array. Returns a flat array of length `2 * n`,
    * interleaved per row as `[inphase0, quadrature0, inphase1, ...]`.
    */
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2226,7 +2416,10 @@ export type HtPhasorNode = HT_PHASOR
 export declare class HT_TRENDMODE {
   constructor()
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2237,7 +2430,7 @@ export type HtTrendModeNode = HT_TRENDMODE
 export declare class HurstChannel {
   constructor(period: Count, multiplier: number)
   update(high: number, low: number, close: number): HurstChannelValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2248,7 +2441,10 @@ export type HurstChannelNode = HurstChannel
 export declare class HurstExponent {
   constructor(period: Count, chunks: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2263,7 +2459,7 @@ export declare class Ichimoku {
    * Returns `[tenkan0, kijun0, senkouA0, senkouB0, chikou0, tenkan1, ...]`,
    * length `5 * n`. Cells without a defined value are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2274,7 +2470,7 @@ export type IchimokuNode = Ichimoku
 export declare class IdenticalThreeCrows {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2285,7 +2481,7 @@ export type IdenticalThreeCrowsNode = IdenticalThreeCrows
 export declare class ImbalanceBars {
   constructor(threshold: number)
   update(open: number, high: number, low: number, close: number): Array<ImbalanceBarValue>
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<ImbalanceBarValue>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<ImbalanceBarValue>
   threshold(): number
   reset(): void
   name(): string
@@ -2295,7 +2491,7 @@ export type ImbalanceBarsNode = ImbalanceBars
 export declare class IMI {
   constructor(period: Count)
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2306,7 +2502,7 @@ export type ImiNode = IMI
 export declare class Inertia {
   constructor(rviPeriod: Count, linregPeriod: Count)
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2317,7 +2513,7 @@ export type InertiaNode = Inertia
 export declare class InformationRatio {
   constructor(period: Count)
   update(asset: number, benchmark: number): number | null
-  batch(asset: Array<number>, benchmark: Array<number>): Array<number>
+  batch(asset: Series, benchmark: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2333,14 +2529,14 @@ export declare class InitialBalance {
   isLocked(): boolean
   warmupPeriod(): number
   update(high: number, low: number): InitialBalanceValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
 }
 export type InitialBalanceNode = InitialBalance
 
 export declare class InNeck {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2351,7 +2547,10 @@ export type InNeckNode = InNeck
 export declare class InstantaneousTrendline {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2362,7 +2561,7 @@ export type InstantaneousTrendlineNode = InstantaneousTrendline
 export declare class IntradayIntensity {
   constructor()
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2373,7 +2572,7 @@ export type IntradayIntensityNode = IntradayIntensity
 export declare class IntradayVolatilityProfile {
   constructor(buckets: Count, utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): Array<number> | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2386,7 +2585,10 @@ export type IntradayVolatilityProfileNode = IntradayVolatilityProfile
 export declare class InverseFisherTransform {
   constructor(scale: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2397,7 +2599,7 @@ export type InverseFisherTransformNode = InverseFisherTransform
 export declare class InvertedHammer {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2408,7 +2610,10 @@ export type InvertedHammerNode = InvertedHammer
 export declare class JARQUEBERA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2423,14 +2628,20 @@ export declare class JMA {
   isReady(): boolean
   warmupPeriod(): number
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
 }
 export type JmaNode = JMA
 
 export declare class JumpIndicator {
   constructor(period: Count, threshold: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2441,7 +2652,7 @@ export type JumpIndicatorNode = JumpIndicator
 export declare class KagiBars {
   constructor(reversal: number)
   update(close: number): Array<KagiSegmentValue>
-  batch(close: Array<number>): Array<KagiSegmentValue>
+  batch(close: Series): Array<KagiSegmentValue>
   reversal(): number
   reset(): void
   name(): string
@@ -2456,7 +2667,7 @@ export declare class KalmanHedgeRatio {
    * `3 * n`, interleaved per row as `[hedgeRatio0, intercept0, spread0, ...]`.
    * Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
    */
-  batch(a: Array<number>, b: Array<number>): Array<number>
+  batch(a: Series, b: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2471,7 +2682,10 @@ export declare class KAMA {
   isReady(): boolean
   warmupPeriod(): number
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
 }
 export type KamaNode = KAMA
 
@@ -2482,7 +2696,7 @@ export declare class KaseDevStop {
    * Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
    * Warmup positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2493,7 +2707,7 @@ export type KaseDevStopNode = KaseDevStop
 export declare class KasePermissionStochastic {
   constructor(length: Count, smooth: Count)
   update(high: number, low: number, close: number): KasePermissionStochasticValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2504,7 +2718,10 @@ export type KasePermissionStochasticNode = KasePermissionStochastic
 export declare class KellyCriterion {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2519,7 +2736,7 @@ export declare class Keltner {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, close: number): KeltnerValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
 }
 export type KeltnerNode = Keltner
 
@@ -2530,7 +2747,7 @@ export declare class KendallTau {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2541,7 +2758,7 @@ export type KendallTauNode = KendallTau
 export declare class Kicking {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2552,7 +2769,7 @@ export type KickingNode = Kicking
 export declare class KickingByLength {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2563,7 +2780,10 @@ export type KickingByLengthNode = KickingByLength
 export declare class KRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2575,7 +2795,7 @@ export declare class KST {
   constructor(roc1: Count, roc2: Count, roc3: Count, roc4: Count, sma1: Count, sma2: Count, sma3: Count, sma4: Count, signal: Count)
   static classic(): KST
   update(value: number): KstValue | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2586,7 +2806,10 @@ export type KstNode = KST
 export declare class Kurtosis {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2597,7 +2820,7 @@ export type KurtosisNode = Kurtosis
 export declare class KVO {
   constructor(fast: Count, slow: Count)
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2608,7 +2831,7 @@ export type KvoNode = KVO
 export declare class KylesLambda {
   constructor(window: Count)
   update(price: number, size: number, isBuy: boolean, mid: number): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>, mid: Array<number>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>, mid: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2619,7 +2842,7 @@ export type KylesLambdaNode = KylesLambda
 export declare class LadderBottom {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2630,7 +2853,10 @@ export type LadderBottomNode = LadderBottom
 export declare class LaguerreRSI {
   constructor(gamma: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2646,7 +2872,7 @@ export declare class LeadLagCrossCorrelation {
    * `2 * n`, interleaved per row as `[lag0, corr0, lag1, corr1, ...]`. Read
    * column `j` of row `i` as `result[i * 2 + j]`. Warmup rows are `NaN`.
    */
-  batch(a: Array<number>, b: Array<number>): Array<number>
+  batch(a: Series, b: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2657,7 +2883,10 @@ export type LeadLagCrossCorrelationNode = LeadLagCrossCorrelation
 export declare class LINEARREG_INTERCEPT {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2668,7 +2897,10 @@ export type LinRegInterceptNode = LINEARREG_INTERCEPT
 export declare class LinearRegression {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2679,7 +2911,10 @@ export type LinearRegressionNode = LinearRegression
 export declare class LinRegAngle {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2690,7 +2925,7 @@ export type LinRegAngleNode = LinRegAngle
 export declare class LinRegChannel {
   constructor(period: Count, multiplier: number)
   update(value: number): LinRegChannelValue | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2701,7 +2936,10 @@ export type LinRegChannelNode = LinRegChannel
 export declare class LinRegSlope {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2712,7 +2950,7 @@ export type LinRegSlopeNode = LinRegSlope
 export declare class LiquidationFeatures {
   constructor()
   update(longLiquidation: number, shortLiquidation: number): LiquidationFeaturesValue | null
-  batch(longLiquidation: Array<number>, shortLiquidation: Array<number>): Array<number>
+  batch(longLiquidation: Series, shortLiquidation: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2723,7 +2961,10 @@ export type LiquidationFeaturesNode = LiquidationFeatures
 export declare class LogReturn {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2734,7 +2975,7 @@ export type LogReturnNode = LogReturn
 export declare class LongLeggedDoji {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2745,7 +2986,7 @@ export type LongLeggedDojiNode = LongLeggedDoji
 export declare class LongLine {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2756,7 +2997,7 @@ export type LongLineNode = LongLine
 export declare class LongShortRatio {
   constructor()
   update(longSize: number, shortSize: number): number | null
-  batch(longSize: Array<number>, shortSize: Array<number>): Array<number>
+  batch(longSize: Series, shortSize: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2767,7 +3008,10 @@ export type LongShortRatioNode = LongShortRatio
 export declare class M2Measure {
   constructor(period: Count, riskFree: number, benchmarkStddev: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2783,7 +3027,11 @@ export declare class MACD {
    * interleaved per row as `[macd0, signal0, histogram0, macd1, ...]`.
    * Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
    */
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  /** Opt-in fast batch, flat `[macd, signal, histogram]` rows like `batch`. */
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2802,7 +3050,7 @@ export declare class MACDEXT {
    * Batch over a price array. Returns a flat array of length `3 * n`,
    * interleaved per row as `[macd0, signal0, histogram0, macd1, ...]`.
    */
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2817,7 +3065,7 @@ export declare class MACDFIX {
    * Batch over a price array. Returns a flat array of length `3 * n`,
    * interleaved per row as `[macd0, signal0, histogram0, macd1, ...]`.
    */
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2828,7 +3076,10 @@ export type MacdFixNode = MACDFIX
 export declare class MacdHistogram {
   constructor(fast: Count, slow: Count, signal: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2840,7 +3091,7 @@ export declare class MaEnvelope {
   constructor(period: Count, percent: number)
   update(value: number): MaEnvelopeValue | null
   /** Flat `[upper0, middle0, lower0, upper1, ...]`, length `3 * n`. */
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2852,7 +3103,7 @@ export declare class MAMA {
   constructor(fastLimit: number, slowLimit: number)
   update(value: number): MamaValue | null
   /** Returns a flat array of length `2 * n`: `[mama0, fama0, mama1, fama1, ...]`. */
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2863,7 +3114,7 @@ export type MamaNode = MAMA
 export declare class MarketFacilitationIndex {
   constructor()
   update(high: number, low: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2874,7 +3125,10 @@ export type MarketFacilitationIndexNode = MarketFacilitationIndex
 export declare class MartinRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2885,7 +3139,7 @@ export type MartinRatioNode = MartinRatio
 export declare class Marubozu {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2896,7 +3150,7 @@ export type MarubozuNode = Marubozu
 export declare class MassIndex {
   constructor(emaPeriod: Count, sumPeriod: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2907,7 +3161,7 @@ export type MassIndexNode = MassIndex
 export declare class MatchingLow {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2918,7 +3172,7 @@ export type MatchingLowNode = MatchingLow
 export declare class MatHold {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2929,7 +3183,10 @@ export type MatHoldNode = MatHold
 export declare class MaxDrawdown {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2962,7 +3219,10 @@ export type McClellanSummationIndexNode = McClellanSummationIndex
 export declare class McGinleyDynamic {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2973,7 +3233,10 @@ export type McGinleyDynamicNode = McGinleyDynamic
 export declare class MedianAbsoluteDeviation {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -2984,7 +3247,7 @@ export type MedianAbsoluteDeviationNode = MedianAbsoluteDeviation
 export declare class MedianChannel {
   constructor(period: Count, multiplier: number)
   update(value: number): MedianChannelValue | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -2995,7 +3258,10 @@ export type MedianChannelNode = MedianChannel
 export declare class MedianMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3006,7 +3272,7 @@ export type MedianMaNode = MedianMA
 export declare class MedianPrice {
   constructor()
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3021,7 +3287,7 @@ export declare class MFI {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
 }
 export type MfiNode = MFI
 
@@ -3039,7 +3305,10 @@ export type MicropriceNode = Microprice
 export declare class MIDPOINT {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3050,7 +3319,7 @@ export type MidPointNode = MIDPOINT
 export declare class MIDPRICE {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3061,7 +3330,7 @@ export type MidPriceNode = MIDPRICE
 export declare class MINUS_DI {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3072,7 +3341,7 @@ export type MinusDiNode = MINUS_DI
 export declare class MINUS_DM {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3087,7 +3356,7 @@ export declare class ModifiedMaStop {
    * Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
    * Warmup positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3098,7 +3367,10 @@ export type ModifiedMaStopNode = ModifiedMaStop
 export declare class MOM {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3109,7 +3381,7 @@ export type MomNode = MOM
 export declare class MorningDojiStar {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3120,7 +3392,7 @@ export type MorningDojiStarNode = MorningDojiStar
 export declare class MorningEveningStar {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3131,7 +3403,7 @@ export type MorningEveningStarNode = MorningEveningStar
 export declare class MurreyMathLines {
   constructor(period: Count)
   update(high: number, low: number): MurreyMathLinesValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3142,7 +3414,7 @@ export type MurreyMathLinesNode = MurreyMathLines
 export declare class NakedPoc {
   constructor(sessionLen: Count, binCount: Count)
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3153,7 +3425,7 @@ export type NakedPocNode = NakedPoc
 export declare class NATR {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3175,7 +3447,7 @@ export type NewHighsNewLowsNode = NewHighsNewLows
 export declare class NewPriceLines {
   constructor(count: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3190,7 +3462,7 @@ export declare class Nrtr {
    * Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
    * Warmup positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3201,7 +3473,7 @@ export type NrtrNode = Nrtr
 export declare class NVI {
   constructor(baseline?: number | undefined | null)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3212,7 +3484,7 @@ export type NviNode = NVI
 export declare class OBV {
   constructor()
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3223,7 +3495,7 @@ export type ObvNode = OBV
 export declare class OIPriceDivergence {
   constructor(window: Count)
   update(openInterest: number, markPrice: number): number | null
-  batch(openInterest: Array<number>, markPrice: Array<number>): Array<number>
+  batch(openInterest: Series, markPrice: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3234,7 +3506,7 @@ export type OIPriceDivergenceNode = OIPriceDivergence
 export declare class OiToVolumeRatio {
   constructor()
   update(openInterest: number, takerBuyVolume: number, takerSellVolume: number): number | null
-  batch(openInterest: Array<number>, takerBuyVolume: Array<number>, takerSellVolume: Array<number>): Array<number>
+  batch(openInterest: Series, takerBuyVolume: Series, takerSellVolume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3245,7 +3517,7 @@ export type OiToVolumeRatioNode = OiToVolumeRatio
 export declare class OIWeighted {
   constructor()
   update(markPrice: number, openInterest: number): number | null
-  batch(markPrice: Array<number>, openInterest: Array<number>): Array<number>
+  batch(markPrice: Series, openInterest: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3256,7 +3528,10 @@ export type OIWeightedNode = OIWeighted
 export declare class OmegaRatio {
   constructor(period: Count, threshold: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3267,7 +3542,7 @@ export type OmegaRatioNode = OmegaRatio
 export declare class OnNeck {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3278,7 +3553,7 @@ export type OnNeckNode = OnNeck
 export declare class OpeningMarubozu {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3294,14 +3569,14 @@ export declare class OpeningRange {
   isLocked(): boolean
   warmupPeriod(): number
   update(high: number, low: number, close: number): OpeningRangeValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
 }
 export type OpeningRangeNode = OpeningRange
 
 export declare class OpenInterestDelta {
   constructor()
   update(openInterest: number): number | null
-  batch(openInterest: Array<number>): Array<number>
+  batch(openInterest: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3312,7 +3587,7 @@ export type OpenInterestDeltaNode = OpenInterestDelta
 export declare class OpenInterestMomentum {
   constructor(period: Count)
   update(openInterest: number): number | null
-  batch(openInterest: Array<number>): Array<number>
+  batch(openInterest: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3371,7 +3646,7 @@ export declare class OuHalfLife {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3382,7 +3657,7 @@ export type OuHalfLifeNode = OuHalfLife
 export declare class OvernightGap {
   constructor(utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3394,7 +3669,7 @@ export type OvernightGapNode = OvernightGap
 export declare class OvernightIntradayReturn {
   constructor(utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): OvernightIntradayReturnValue | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3405,7 +3680,10 @@ export type OvernightIntradayReturnNode = OvernightIntradayReturn
 export declare class PainIndex {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3424,7 +3702,7 @@ export declare class PairSpreadZScore {
    * Batch over two equally-sized arrays of prices. Returns a length-`n`
    * array with `NaN` for warmup positions.
    */
-  batch(a: Array<number>, b: Array<number>): Array<number>
+  batch(a: Series, b: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3439,7 +3717,7 @@ export declare class PairwiseBeta {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3450,7 +3728,7 @@ export type PairwiseBetaNode = PairwiseBeta
 export declare class ParkinsonVolatility {
   constructor(period: Count, tradingPeriods: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3465,11 +3743,15 @@ export declare class PearsonCorrelation {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
   warmupPeriod(): number
+  /** Opt-in fast batch over the pairs `(x[i], y[i])`. */
+  batchFast(x: Series, y: Series): Float64Array
+  batchInto(x: Series, y: Series, out: OutSeries): void
+  batchFastInto(x: Series, y: Series, out: OutSeries): void
 }
 export type PearsonCorrelationNode = PearsonCorrelation
 
@@ -3487,7 +3769,10 @@ export type PercentAboveMaNode = PercentAboveMa
 export declare class PercentageTrailingStop {
   constructor(percent: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3498,7 +3783,10 @@ export type PercentageTrailingStopNode = PercentageTrailingStop
 export declare class PercentB {
   constructor(period: Count, multiplier: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3509,7 +3797,7 @@ export type PercentBNode = PercentB
 export declare class PerpetualPremiumIndex {
   constructor()
   update(markPrice: number, indexPrice: number): number | null
-  batch(markPrice: Array<number>, indexPrice: Array<number>): Array<number>
+  batch(markPrice: Series, indexPrice: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3520,7 +3808,7 @@ export type PerpetualPremiumIndexNode = PerpetualPremiumIndex
 export declare class PGO {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3531,7 +3819,7 @@ export type PgoNode = PGO
 export declare class PiercingDarkCloud {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3542,7 +3830,7 @@ export type PiercingDarkCloudNode = PiercingDarkCloud
 export declare class Pin {
   constructor(window: Count)
   update(price: number, size: number, isBuy: boolean): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3553,7 +3841,7 @@ export type PinNode = Pin
 export declare class PivotReversal {
   constructor(left: Count, right: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3564,7 +3852,7 @@ export type PivotReversalNode = PivotReversal
 export declare class PLUS_DI {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3575,7 +3863,7 @@ export type PlusDiNode = PLUS_DI
 export declare class PLUS_DM {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3586,7 +3874,10 @@ export type PlusDmNode = PLUS_DM
 export declare class PMO {
   constructor(smoothing1: Count, smoothing2: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3597,7 +3888,7 @@ export type PmoNode = PMO
 export declare class PointAndFigureBars {
   constructor(boxSize: number, reversal: Count)
   update(close: number): Array<PnfColumnValue>
-  batch(close: Array<number>): Array<PnfColumnValue>
+  batch(close: Series): Array<PnfColumnValue>
   boxSize(): number
   reversal(): number
   reset(): void
@@ -3608,7 +3899,10 @@ export type PointAndFigureBarsNode = PointAndFigureBars
 export declare class POLARIZED_FRACTAL_EFFICIENCY {
   constructor(period: Count, smoothing: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3619,7 +3913,10 @@ export type PolarizedFractalEfficiencyNode = POLARIZED_FRACTAL_EFFICIENCY
 export declare class PPO {
   constructor(fast: Count, slow: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3630,7 +3927,10 @@ export type PpoNode = PPO
 export declare class PpoHistogram {
   constructor(fast: Count, slow: Count, signal: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3641,7 +3941,7 @@ export type PpoHistogramNode = PpoHistogram
 export declare class ProfileShape {
   constructor(period: Count, binCount: Count)
   update(high: number, low: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3652,7 +3952,10 @@ export type ProfileShapeNode = ProfileShape
 export declare class ProfitFactor {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3663,7 +3966,7 @@ export type ProfitFactorNode = ProfitFactor
 export declare class ProjectionBands {
   constructor(period: Count)
   update(high: number, low: number): ProjectionBandsValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3674,7 +3977,7 @@ export type ProjectionBandsNode = ProjectionBands
 export declare class ProjectionOscillator {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3689,14 +3992,14 @@ export declare class PSAR {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
 }
 export type PsarNode = PSAR
 
 export declare class PVI {
   constructor(baseline?: number | undefined | null)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3707,7 +4010,7 @@ export type PviNode = PVI
 export declare class QQE {
   constructor(rsiPeriod: Count, smoothing: Count, factor: number)
   update(value: number): QqeValue | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3718,7 +4021,7 @@ export type QqeNode = QQE
 export declare class Qstick {
   constructor(period: Count)
   update(open: number, close: number): number | null
-  batch(open: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3729,7 +4032,7 @@ export type QstickNode = Qstick
 export declare class QuartileBands {
   constructor(period: Count)
   update(value: number): QuartileBandsValue | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3751,7 +4054,7 @@ export type QuotedSpreadNode = QuotedSpread
 export declare class RangeBars {
   constructor(range: number)
   update(close: number): Array<RangeBarValue>
-  batch(close: Array<number>): Array<RangeBarValue>
+  batch(close: Series): Array<RangeBarValue>
   range(): number
   reset(): void
   name(): string
@@ -3761,7 +4064,7 @@ export type RangeBarsNode = RangeBars
 export declare class RealizedSpread {
   constructor(horizon: Count)
   update(price: number, size: number, isBuy: boolean, mid: number): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>, mid: Array<number>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>, mid: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3772,7 +4075,10 @@ export type RealizedSpreadNode = RealizedSpread
 export declare class RealizedVolatility {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3783,7 +4089,10 @@ export type RealizedVolatilityNode = RealizedVolatility
 export declare class RecoveryFactor {
   constructor()
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3794,7 +4103,7 @@ export type RecoveryFactorNode = RecoveryFactor
 export declare class RectangleRange {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3805,7 +4114,10 @@ export type RectangleRangeNode = RectangleRange
 export declare class REFLEX {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3816,7 +4128,10 @@ export type ReflexNode = REFLEX
 export declare class RegimeLabel {
   constructor(volPeriod: Count, lookback: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3832,7 +4147,7 @@ export declare class RelativeStrengthAB {
    * `3 * n`, interleaved per row as `[ratio0, ratioMa0, ratioRsi0, ...]`.
    * Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
    */
-  batch(a: Array<number>, b: Array<number>): Array<number>
+  batch(a: Series, b: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3843,7 +4158,7 @@ export type RelativeStrengthABNode = RelativeStrengthAB
 export declare class RenkoBars {
   constructor(boxSize: number)
   update(close: number): Array<RenkoBrickValue>
-  batch(close: Array<number>): Array<RenkoBrickValue>
+  batch(close: Series): Array<RenkoBrickValue>
   boxSize(): number
   reset(): void
   name(): string
@@ -3853,7 +4168,10 @@ export type RenkoBarsNode = RenkoBars
 export declare class RenkoTrailingStop {
   constructor(blockSize: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3887,7 +4205,7 @@ export type ResamplerNode = Resampler
 export declare class RickshawMan {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3898,7 +4216,7 @@ export type RickshawManNode = RickshawMan
 export declare class RisingThreeMethods {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3909,7 +4227,10 @@ export type RisingThreeMethodsNode = RisingThreeMethods
 export declare class RMI {
   constructor(period: Count, momentum: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3920,7 +4241,10 @@ export type RmiNode = RMI
 export declare class ROC {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3931,7 +4255,10 @@ export type RocNode = ROC
 export declare class ROCP {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3942,7 +4269,10 @@ export type RocpNode = ROCP
 export declare class ROCR {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3953,7 +4283,10 @@ export type RocrNode = ROCR
 export declare class ROCR100 {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -3964,7 +4297,7 @@ export type Rocr100Node = ROCR100
 export declare class RogersSatchellVolatility {
   constructor(period: Count, tradingPeriods: Count)
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3979,7 +4312,7 @@ export declare class RollingCorrelation {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3994,7 +4327,7 @@ export declare class RollingCovariance {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4005,7 +4338,10 @@ export type RollingCovarianceNode = RollingCovariance
 export declare class RollingIqr {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4016,7 +4352,10 @@ export type RollingIqrNode = RollingIqr
 export declare class ROLLINGMINMAX {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4027,7 +4366,10 @@ export type RollingMinMaxScalerNode = ROLLINGMINMAX
 export declare class RollingPercentileRank {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4038,7 +4380,10 @@ export type RollingPercentileRankNode = RollingPercentileRank
 export declare class RollingQuantile {
   constructor(period: Count, quantile: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4054,14 +4399,14 @@ export declare class RollingVWAP {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
 }
 export type RollingVwapNode = RollingVWAP
 
 export declare class RollMeasure {
   constructor(period: Count)
   update(price: number, size: number, isBuy: boolean): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4072,7 +4417,10 @@ export type RollMeasureNode = RollMeasure
 export declare class RoofingFilter {
   constructor(lpPeriod: Count, hpPeriod: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4083,7 +4431,10 @@ export type RoofingFilterNode = RoofingFilter
 export declare class RSI {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4094,7 +4445,10 @@ export type RsiNode = RSI
 export declare class RSquared {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4105,7 +4459,10 @@ export type RSquaredNode = RSquared
 export declare class RSX {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4116,7 +4473,7 @@ export type RsxNode = RSX
 export declare class RunBars {
   constructor(runLength: Count)
   update(open: number, high: number, low: number, close: number): Array<RunBarValue>
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<RunBarValue>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<RunBarValue>
   runLength(): number
   reset(): void
   name(): string
@@ -4126,7 +4483,7 @@ export type RunBarsNode = RunBars
 export declare class RVI {
   constructor(period: Count)
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4137,7 +4494,10 @@ export type RviNode = RVI
 export declare class RVIVolatility {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4149,7 +4509,7 @@ export declare class RWI {
   constructor(period: Count)
   update(high: number, low: number, close: number): RwiValue | null
   /** Returns `[high0, low0, high1, low1, ...]`, length `2 * n`. Warmup is NaN. */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4160,7 +4520,10 @@ export type RwiNode = RWI
 export declare class SAMPLEENT {
   constructor(period: Count, m: Count, rFactor: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4171,7 +4534,7 @@ export type SampleEntropyNode = SAMPLEENT
 export declare class SAREXT {
   constructor(startValue: number, offsetOnReverse: number, accelInitLong: number, accelLong: number, accelMaxLong: number, accelInitShort: number, accelShort: number, accelMaxShort: number)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4182,7 +4545,7 @@ export type SarExtNode = SAREXT
 export declare class SeasonalZScore {
   constructor(utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4194,7 +4557,7 @@ export type SeasonalZScoreNode = SeasonalZScore
 export declare class SeparatingLines {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4205,7 +4568,7 @@ export type SeparatingLinesNode = SeparatingLines
 export declare class SessionHighLow {
   constructor(utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): SessionHighLowValue | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4216,7 +4579,7 @@ export type SessionHighLowNode = SessionHighLow
 export declare class SessionRange {
   constructor(utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): SessionRangeValue | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4227,7 +4590,7 @@ export type SessionRangeNode = SessionRange
 export declare class SessionVwap {
   constructor(utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4239,7 +4602,10 @@ export type SessionVwapNode = SessionVwap
 export declare class SHANNONENT {
   constructor(period: Count, bins: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4250,7 +4616,7 @@ export type ShannonEntropyNode = SHANNONENT
 export declare class Shark {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4261,7 +4627,10 @@ export type SharkNode = Shark
 export declare class SharpeRatio {
   constructor(period: Count, riskFree: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4272,7 +4641,7 @@ export type SharpeRatioNode = SharpeRatio
 export declare class ShootingStar {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4283,7 +4652,7 @@ export type ShootingStarNode = ShootingStar
 export declare class ShortLine {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4294,7 +4663,7 @@ export type ShortLineNode = ShortLine
 export declare class SignedVolume {
   constructor()
   update(price: number, size: number, isBuy: boolean): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4305,7 +4674,10 @@ export type SignedVolumeNode = SignedVolume
 export declare class SineWave {
   constructor()
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   lead(): number
   reset(): void
   name(): string
@@ -4317,7 +4689,7 @@ export type SineWaveNode = SineWave
 export declare class SinglePrints {
   constructor(period: Count, binCount: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4328,7 +4700,10 @@ export type SinglePrintsNode = SinglePrints
 export declare class Skewness {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4339,7 +4714,10 @@ export type SkewnessNode = Skewness
 export declare class SMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4350,7 +4728,7 @@ export type SmaNode = SMA
 export declare class SMI {
   constructor(period: Count, dPeriod: Count, d2Period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4361,7 +4739,10 @@ export type SmiNode = SMI
 export declare class SMMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4372,7 +4753,7 @@ export type SmmaNode = SMMA
 export declare class SmoothedHeikinAshi {
   constructor(period: Count)
   update(open: number, high: number, low: number, close: number): SmoothedHeikinAshiValue | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4383,7 +4764,10 @@ export type SmoothedHeikinAshiNode = SmoothedHeikinAshi
 export declare class SortinoRatio {
   constructor(period: Count, mar: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4398,7 +4782,7 @@ export declare class SpearmanCorrelation {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4409,7 +4793,7 @@ export type SpearmanCorrelationNode = SpearmanCorrelation
 export declare class SpinningTop {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4424,7 +4808,7 @@ export declare class SpreadAr1Coefficient {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4440,7 +4824,7 @@ export declare class SpreadBollingerBands {
    * `4 * n`, interleaved per row as `[middle0, upper0, lower0, percentB0, ...]`.
    * Read column `j` of row `i` as `result[i * 4 + j]`. Warmup rows are `NaN`.
    */
-  batch(a: Array<number>, b: Array<number>): Array<number>
+  batch(a: Series, b: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4455,7 +4839,7 @@ export declare class SpreadHurst {
    * Batch over two equally-sized arrays. Returns a length-`n` array
    * with `NaN` for warmup positions.
    */
-  batch(x: Array<number>, y: Array<number>): Array<number>
+  batch(x: Series, y: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4466,7 +4850,7 @@ export type SpreadHurstNode = SpreadHurst
 export declare class StalledPattern {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4477,7 +4861,10 @@ export type StalledPatternNode = StalledPattern
 export declare class StandardError {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4488,7 +4875,7 @@ export type StandardErrorNode = StandardError
 export declare class StandardErrorBands {
   constructor(period: Count, multiplier: number)
   update(value: number): StandardErrorBandsValue | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4499,7 +4886,7 @@ export type StandardErrorBandsNode = StandardErrorBands
 export declare class StarcBands {
   constructor(smaPeriod: Count, atrPeriod: Count, multiplier: number)
   update(high: number, low: number, close: number): StarcBandsValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4510,7 +4897,10 @@ export type StarcBandsNode = StarcBands
 export declare class STC {
   constructor(fast: Count, slow: Count, schaffPeriod: Count, factor: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4521,7 +4911,10 @@ export type StcNode = STC
 export declare class StdDev {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4532,7 +4925,10 @@ export type StdDevNode = StdDev
 export declare class StepTrailingStop {
   constructor(stepSize: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4543,7 +4939,10 @@ export type StepTrailingStopNode = StepTrailingStop
 export declare class SterlingRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4554,7 +4953,7 @@ export type SterlingRatioNode = SterlingRatio
 export declare class StickSandwich {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4565,7 +4964,7 @@ export type StickSandwichNode = StickSandwich
 export declare class Stochastic {
   constructor(kPeriod: Count, dPeriod: Count)
   update(high: number, low: number, close: number): StochValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4576,7 +4975,7 @@ export type StochNode = Stochastic
 export declare class StochasticCCI {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4587,7 +4986,10 @@ export type StochasticCciNode = StochasticCCI
 export declare class StochRSI {
   constructor(rsiPeriod: Count, stochPeriod: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4598,7 +5000,10 @@ export type StochRsiNode = StochRSI
 export declare class SuperSmoother {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4613,7 +5018,7 @@ export declare class SuperTrend {
    * Returns `[value0, direction0, value1, direction1, ...]`, length `2 * n`.
    * Warmup positions are `NaN`.
    */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4624,7 +5029,10 @@ export type SuperTrendNode = SuperTrend
 export declare class SWMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4635,7 +5043,10 @@ export type SineWeightedMaNode = SWMA
 export declare class T3 {
   constructor(period: Count, v: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4646,7 +5057,10 @@ export type T3Node = T3
 export declare class TailRatio {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4657,7 +5071,7 @@ export type TailRatioNode = TailRatio
 export declare class TakerBuySellRatio {
   constructor()
   update(takerBuyVolume: number, takerSellVolume: number): number | null
-  batch(takerBuyVolume: Array<number>, takerSellVolume: Array<number>): Array<number>
+  batch(takerBuyVolume: Series, takerSellVolume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4668,7 +5082,7 @@ export type TakerBuySellRatioNode = TakerBuySellRatio
 export declare class Takuri {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4679,7 +5093,7 @@ export type TakuriNode = Takuri
 export declare class TasukiGap {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4690,7 +5104,7 @@ export type TasukiGapNode = TasukiGap
 export declare class TDCamouflage {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4701,7 +5115,7 @@ export type TdCamouflageNode = TDCamouflage
 export declare class TDClop {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4712,7 +5126,7 @@ export type TdClopNode = TDClop
 export declare class TDClopwin {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4723,7 +5137,7 @@ export type TdClopwinNode = TDClopwin
 export declare class TDCombo {
   constructor(setupLookback: Count, setupTarget: Count, countdownLookback: Count, countdownTarget: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4734,7 +5148,7 @@ export type TdComboNode = TDCombo
 export declare class TDCountdown {
   constructor(setupLookback: Count, setupTarget: Count, countdownLookback: Count, countdownTarget: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4745,7 +5159,7 @@ export type TdCountdownNode = TDCountdown
 export declare class TDDeMarker {
   constructor(period: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4756,7 +5170,7 @@ export type TdDeMarkerNode = TDDeMarker
 export declare class TDDifferential {
   constructor()
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4767,7 +5181,7 @@ export type TdDifferentialNode = TDDifferential
 export declare class TDDWave {
   constructor(strength: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4779,7 +5193,7 @@ export declare class TDLines {
   constructor(lookback: Count, target: Count)
   update(high: number, low: number, close: number): TdLinesValue | null
   /** Batch returns a flat array `[resistance0, support0, resistance1, ...]`. */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4790,7 +5204,7 @@ export type TdLinesNode = TDLines
 export declare class TDMovingAverage {
   constructor(periodSt1: Count, periodSt2: Count)
   update(high: number, low: number): TdMovingAverageValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4801,7 +5215,7 @@ export type TdMovingAverageNode = TDMovingAverage
 export declare class TDOpen {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4812,7 +5226,7 @@ export type TdOpenNode = TDOpen
 export declare class TDPressure {
   constructor(period: Count)
   update(open: number, high: number, low: number, close: number, volume: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4823,7 +5237,7 @@ export type TdPressureNode = TDPressure
 export declare class TDPropulsion {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4835,7 +5249,7 @@ export declare class TDRangeProjection {
   constructor()
   update(open: number, high: number, low: number, close: number): TdRangeProjectionValue | null
   /** Batch returns a flat array `[high0, low0, high1, low1, ...]`. */
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4846,7 +5260,7 @@ export type TdRangeProjectionNode = TDRangeProjection
 export declare class TDREI {
   constructor(period: Count)
   update(high: number, low: number): number | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4858,7 +5272,7 @@ export declare class TDRiskLevel {
   constructor(lookback: Count, target: Count)
   update(high: number, low: number, close: number): TdRiskLevelValue | null
   /** Batch returns a flat array `[buyRisk0, sellRisk0, buyRisk1, ...]`. */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4870,7 +5284,7 @@ export declare class TDSequential {
   constructor(setupLookback: Count, setupTarget: Count, countdownLookback: Count, countdownTarget: Count)
   update(high: number, low: number, close: number): TdSequentialValue | null
   /** Batch returns a flat array `[setup0, countdown0, direction0, setup1, ...]`. */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4881,7 +5295,7 @@ export type TdSequentialNode = TDSequential
 export declare class TDSetup {
   constructor(lookback: Count, target: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4892,7 +5306,7 @@ export type TdSetupNode = TDSetup
 export declare class TDTrap {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4903,7 +5317,10 @@ export type TdTrapNode = TDTrap
 export declare class TEMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -4914,7 +5331,7 @@ export type TemaNode = TEMA
 export declare class TermStructureBasis {
   constructor()
   update(futuresPrice: number, indexPrice: number): number | null
-  batch(futuresPrice: Array<number>, indexPrice: Array<number>): Array<number>
+  batch(futuresPrice: Series, indexPrice: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4925,7 +5342,7 @@ export type TermStructureBasisNode = TermStructureBasis
 export declare class ThreeDrives {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4936,7 +5353,7 @@ export type ThreeDrivesNode = ThreeDrives
 export declare class ThreeInside {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4947,7 +5364,7 @@ export type ThreeInsideNode = ThreeInside
 export declare class ThreeLineBreak {
   constructor(lines: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4958,7 +5375,7 @@ export type ThreeLineBreakNode = ThreeLineBreak
 export declare class ThreeLineBreakBars {
   constructor(lines: Count)
   update(close: number): Array<LineBreakBarValue>
-  batch(close: Array<number>): Array<LineBreakBarValue>
+  batch(close: Series): Array<LineBreakBarValue>
   lines(): number
   reset(): void
   name(): string
@@ -4968,7 +5385,7 @@ export type ThreeLineBreakBarsNode = ThreeLineBreakBars
 export declare class ThreeLineStrike {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4979,7 +5396,7 @@ export type ThreeLineStrikeNode = ThreeLineStrike
 export declare class ThreeOutside {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -4990,7 +5407,7 @@ export type ThreeOutsideNode = ThreeOutside
 export declare class ThreeSoldiersOrCrows {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5001,7 +5418,7 @@ export type ThreeSoldiersOrCrowsNode = ThreeSoldiersOrCrows
 export declare class ThreeStarsInSouth {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5012,7 +5429,7 @@ export type ThreeStarsInSouthNode = ThreeStarsInSouth
 export declare class Thrusting {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5042,7 +5459,7 @@ export type TickAggregatorNode = TickAggregator
 export declare class TickBars {
   constructor(ticks: Count)
   update(open: number, high: number, low: number, close: number, volume: number): Array<TickBarValue>
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<TickBarValue>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series): Array<TickBarValue>
   ticks(): number
   reset(): void
   name(): string
@@ -5063,7 +5480,10 @@ export type TickIndexNode = TickIndex
 export declare class TII {
   constructor(smaPeriod: Count, devPeriod: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5074,7 +5494,7 @@ export type TiiNode = TII
 export declare class TimeBasedStop {
   constructor(maxBars: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5085,7 +5505,7 @@ export type TimeBasedStopNode = TimeBasedStop
 export declare class TimeOfDayReturnProfile {
   constructor(buckets: Count, utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): Array<number> | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5098,7 +5518,7 @@ export type TimeOfDayReturnProfileNode = TimeOfDayReturnProfile
 export declare class TowerTopBottom {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5113,14 +5533,14 @@ export declare class TpoProfile {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number): TpoProfileValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
 }
 export type TpoProfileNode = TpoProfile
 
 export declare class TradeImbalance {
   constructor(window: Count)
   update(price: number, size: number, isBuy: boolean): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5131,7 +5551,7 @@ export type TradeImbalanceNode = TradeImbalance
 export declare class TradeSignAutocorrelation {
   constructor(period: Count)
   update(price: number, size: number, isBuy: boolean): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5142,7 +5562,7 @@ export type TradeSignAutocorrelationNode = TradeSignAutocorrelation
 export declare class TradeVolumeIndex {
   constructor(minTick: number)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5153,7 +5573,10 @@ export type TradeVolumeIndexNode = TradeVolumeIndex
 export declare class TREND_STRENGTH_INDEX {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5164,7 +5587,10 @@ export type TrendStrengthIndexNode = TREND_STRENGTH_INDEX
 export declare class TRENDFLEX {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5175,7 +5601,10 @@ export type TrendflexNode = TRENDFLEX
 export declare class TrendLabel {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5186,7 +5615,7 @@ export type TrendLabelNode = TrendLabel
 export declare class TreynorRatio {
   constructor(period: Count, riskFree: number)
   update(asset: number, benchmark: number): number | null
-  batch(asset: Array<number>, benchmark: Array<number>): Array<number>
+  batch(asset: Series, benchmark: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5197,7 +5626,7 @@ export type TreynorRatioNode = TreynorRatio
 export declare class Triangle {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5208,7 +5637,10 @@ export type TriangleNode = Triangle
 export declare class TRIMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5230,7 +5662,7 @@ export type TrinNode = Trin
 export declare class TripleTopBottom {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5241,7 +5673,7 @@ export type TripleTopBottomNode = TripleTopBottom
 export declare class Tristar {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5252,7 +5684,10 @@ export type TristarNode = Tristar
 export declare class TRIX {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5263,7 +5698,7 @@ export type TrixNode = TRIX
 export declare class TrueRange {
   constructor()
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5274,7 +5709,10 @@ export type TrueRangeNode = TrueRange
 export declare class TSF {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5285,7 +5723,10 @@ export type TsfNode = TSF
 export declare class TsfOscillator {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5296,7 +5737,10 @@ export type TsfOscillatorNode = TsfOscillator
 export declare class TSI {
   constructor(long: Count, short: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5307,7 +5751,7 @@ export type TsiNode = TSI
 export declare class TSV {
   constructor(period: Count)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5318,7 +5762,7 @@ export type TsvNode = TSV
 export declare class TTM_TREND {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5330,7 +5774,7 @@ export declare class TtmSqueeze {
   constructor(period: Count, bbMult: number, kcMult: number)
   update(high: number, low: number, close: number): TtmSqueezeValue | null
   /** Flat `[sq0, mom0, sq1, mom1, ...]`, length `2 * n`. */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5341,7 +5785,7 @@ export type TtmSqueezeNode = TtmSqueeze
 export declare class TurnOfMonth {
   constructor(nFirst: Count, nLast: Count, utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5352,7 +5796,7 @@ export type TurnOfMonthNode = TurnOfMonth
 export declare class Tweezer {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5363,7 +5807,7 @@ export type TweezerNode = Tweezer
 export declare class TwiggsMoneyFlow {
   constructor(period: Count)
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5374,7 +5818,7 @@ export type TwiggsMoneyFlowNode = TwiggsMoneyFlow
 export declare class TwoCrows {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5385,7 +5829,7 @@ export type TwoCrowsNode = TwoCrows
 export declare class TypicalPrice {
   constructor()
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5396,7 +5840,10 @@ export type TypicalPriceNode = TypicalPrice
 export declare class UlcerIndex {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5407,7 +5854,7 @@ export type UlcerIndexNode = UlcerIndex
 export declare class UltimateOscillator {
   constructor(short: Count, mid: Count, long: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5418,7 +5865,7 @@ export type UltimateOscillatorNode = UltimateOscillator
 export declare class UniqueThreeRiver {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5429,7 +5876,10 @@ export type UniqueThreeRiverNode = UniqueThreeRiver
 export declare class UNIVERSALOSC {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5451,7 +5901,7 @@ export type UpDownVolumeRatioNode = UpDownVolumeRatio
 export declare class UpsideGapThreeMethods {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5462,7 +5912,7 @@ export type UpsideGapThreeMethodsNode = UpsideGapThreeMethods
 export declare class UpsideGapTwoCrows {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5473,7 +5923,10 @@ export type UpsideGapTwoCrowsNode = UpsideGapTwoCrows
 export declare class UpsidePotentialRatio {
   constructor(period: Count, mar: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5488,14 +5941,17 @@ export declare class ValueArea {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, volume: number): ValueAreaValue | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
 }
 export type ValueAreaNode = ValueArea
 
 export declare class ValueAtRisk {
   constructor(period: Count, confidence: number)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5506,7 +5962,10 @@ export type ValueAtRiskNode = ValueAtRisk
 export declare class Variance {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5525,7 +5984,7 @@ export declare class VarianceRatio {
    * Batch over two equally-sized arrays. Returns a length-`n` array with
    * `NaN` for warmup positions.
    */
-  batch(a: Array<number>, b: Array<number>): Array<number>
+  batch(a: Series, b: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5536,7 +5995,10 @@ export type VarianceRatioNode = VarianceRatio
 export declare class VerticalHorizontalFilter {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5551,14 +6013,17 @@ export declare class VIDYA {
   isReady(): boolean
   warmupPeriod(): number
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
 }
 export type VidyaNode = VIDYA
 
 export declare class VolatilityCone {
   constructor(window: Count, lookback: Count)
   update(high: number, low: number, close: number): VolatilityConeValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5569,7 +6034,10 @@ export type VolatilityConeNode = VolatilityCone
 export declare class VolatilityOfVolatility {
   constructor(volWindow: Count, vovWindow: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5580,7 +6048,7 @@ export type VolatilityOfVolatilityNode = VolatilityOfVolatility
 export declare class VolatilityRatio {
   constructor(period: Count)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5591,7 +6059,7 @@ export type VolatilityRatioNode = VolatilityRatio
 export declare class VoltyStop {
   constructor(atrPeriod: Count, multiplier: number)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5602,7 +6070,7 @@ export type VoltyStopNode = VoltyStop
 export declare class VolumeBars {
   constructor(volumePerBar: number)
   update(open: number, high: number, low: number, close: number, volume: number): Array<VolumeBarValue>
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<VolumeBarValue>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series): Array<VolumeBarValue>
   volumePerBar(): number
   reset(): void
   name(): string
@@ -5612,7 +6080,7 @@ export type VolumeBarsNode = VolumeBars
 export declare class VolumeByTimeProfile {
   constructor(buckets: Count, utcOffsetMinutes: number)
   update(open: number, high: number, low: number, close: number, volume: number, timestamp: number): Array<number> | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>, timestamp: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series, timestamp: Array<number>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5625,7 +6093,7 @@ export type VolumeByTimeProfileNode = VolumeByTimeProfile
 export declare class VolumeOscillator {
   constructor(fast: Count, slow: Count)
   update(volume: number): number | null
-  batch(volume: Array<number>): Array<number>
+  batch(volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5636,7 +6104,7 @@ export type VolumeOscillatorNode = VolumeOscillator
 export declare class VolumePriceTrend {
   constructor()
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5651,14 +6119,14 @@ export declare class VolumeProfile {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, volume: number): VolumeProfileValue | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
 }
 export type VolumeProfileNode = VolumeProfile
 
 export declare class VolumeRsi {
   constructor(period: Count)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5673,7 +6141,7 @@ export declare class VolumeWeightedMacd {
    * Returns `[macd0, signal0, histogram0, macd1, ...]`, length `3 * n`.
    * Warmup positions are `NaN`.
    */
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5684,7 +6152,7 @@ export type VolumeWeightedMacdNode = VolumeWeightedMacd
 export declare class VolumeWeightedSr {
   constructor(period: Count)
   update(high: number, low: number, volume: number): VolumeWeightedSrValue | null
-  batch(high: Array<number>, low: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5696,7 +6164,7 @@ export declare class Vortex {
   constructor(period: Count)
   update(high: number, low: number, close: number): VortexValue | null
   /** Returns `[plus0, minus0, plus1, minus1, ...]`, length `2 * n`. Warmup is NaN. */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5707,7 +6175,7 @@ export type VortexNode = Vortex
 export declare class Vpin {
   constructor(bucketVolume: number, numBuckets: Count)
   update(price: number, size: number, isBuy: boolean): number | null
-  batch(price: Array<number>, size: Array<number>, isBuy: Array<boolean>): Array<number>
+  batch(price: Series, size: Series, isBuy: Array<boolean>): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5722,7 +6190,7 @@ export declare class VWAP {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
 }
 export type VwapNode = VWAP
 
@@ -5730,7 +6198,7 @@ export declare class VwapStdDevBands {
   constructor(multiplier: number)
   update(high: number, low: number, close: number, volume: number): VwapStdDevBandsValue | null
   /** Flat `[u0, m0, l0, sd0, ...]`, length `4 * n`. */
-  batch(high: Array<number>, low: Array<number>, close: Array<number>, volume: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5741,7 +6209,7 @@ export type VwapStdDevBandsNode = VwapStdDevBands
 export declare class VWMA {
   constructor(period: Count)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5752,7 +6220,7 @@ export type VwmaNode = VWMA
 export declare class VZO {
   constructor(period: Count)
   update(close: number, volume: number): number | null
-  batch(close: Array<number>, volume: Array<number>): Array<number>
+  batch(close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5763,7 +6231,7 @@ export type VzoNode = VZO
 export declare class Wad {
   constructor()
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5774,7 +6242,10 @@ export type WadNode = Wad
 export declare class WAVE_PM {
   constructor(length: Count, smoothing: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5786,7 +6257,7 @@ export declare class WaveTrend {
   constructor(channelPeriod: Count, averagePeriod: Count, signalPeriod: Count)
   static classic(): WaveTrend
   update(high: number, low: number, close: number): WaveTrendValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5797,7 +6268,7 @@ export type WaveTrendNode = WaveTrend
 export declare class Wedge {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5808,7 +6279,7 @@ export type WedgeNode = Wedge
 export declare class WeightedClose {
   constructor()
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5819,7 +6290,7 @@ export type WeightedCloseNode = WeightedClose
 export declare class WickRatio {
   constructor()
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5830,7 +6301,7 @@ export type WickRatioNode = WickRatio
 export declare class WilliamsFractals {
   constructor()
   update(high: number, low: number): WilliamsFractalsValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5845,14 +6316,17 @@ export declare class WilliamsR {
   isReady(): boolean
   warmupPeriod(): number
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
 }
 export type WilliamsRNode = WilliamsR
 
 export declare class WinRate {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5863,7 +6337,10 @@ export type WinRateNode = WinRate
 export declare class WMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5874,7 +6351,7 @@ export type WmaNode = WMA
 export declare class WoodiePivots {
   constructor()
   update(high: number, low: number, close: number): WoodiePivotsValue | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5885,7 +6362,7 @@ export type WoodiePivotsNode = WoodiePivots
 export declare class YangZhangVolatility {
   constructor(period: Count, tradingPeriods: Count)
   update(open: number, high: number, low: number, close: number): number | null
-  batch(open: Array<number>, high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(open: Series, high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5896,7 +6373,7 @@ export type YangZhangVolatilityNode = YangZhangVolatility
 export declare class YoyoExit {
   constructor(atrPeriod: Count, multiplier: number)
   update(high: number, low: number, close: number): number | null
-  batch(high: Array<number>, low: Array<number>, close: Array<number>): Array<number>
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5908,7 +6385,7 @@ export type YoyoExitNode = YoyoExit
 export declare class ZeroLagMACD {
   constructor(fast: Count, slow: Count, signal: Count)
   update(value: number): ZeroLagMacdValue | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -5919,7 +6396,7 @@ export type ZeroLagMacdNode = ZeroLagMACD
 export declare class ZigZag {
   constructor(threshold: number)
   update(high: number, low: number): ZigZagValue | null
-  batch(high: Array<number>, low: Array<number>): Array<number>
+  batch(high: Series, low: Series): Array<number>
   get threshold(): number
   reset(): void
   name(): string
@@ -5931,7 +6408,10 @@ export type ZigZagNode = ZigZag
 export declare class ZLEMA {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5942,7 +6422,10 @@ export type ZlemaNode = ZLEMA
 export declare class ZScore {
   constructor(period: Count)
   update(value: number): number | null
-  batch(prices: Array<number>): Array<number>
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean

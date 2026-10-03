@@ -11,6 +11,10 @@ use crate::traits::Indicator;
 /// Number of bars averaged into each lagged correlation (Ehlers' `AvgLength`).
 const AVG_LENGTH: usize = 3;
 
+/// Largest cosine/sine table kept, in `(period, lag)` pairs (1 MiB). Beyond it
+/// the terms are computed where they are used, as before the table existed.
+const TABLE_LIMIT: usize = 1 << 16;
+
 /// Ehlers' **Autocorrelation Periodogram** — measures the **dominant cycle
 /// period** of the market by correlating a roofing-filtered price with lagged
 /// copies of itself and reading off the spectral peak.
@@ -35,7 +39,8 @@ const AVG_LENGTH: usize = 3;
 /// output is a period in bars within `[min_period, max_period]`.
 ///
 /// The first value lands after `max_period + AvgLength` inputs. Each `update` is
-/// O(`max_period²`).
+/// O(`max_period²`); the cosines and sines it weighs the correlations by depend
+/// only on the configuration, so they are computed once, at construction.
 ///
 /// # Example
 ///
@@ -59,6 +64,11 @@ pub struct AutocorrelationPeriodogram {
     r: Vec<f64>,
     max_pwr: f64,
     last: Option<f64>,
+    /// `(cos, sin)` of `2π·n/period` for every candidate period (rows) and lag
+    /// `n` in `AvgLength..=max_period` (columns); `None` above [`TABLE_LIMIT`].
+    trig: Option<Box<[(f64, f64)]>>,
+    /// Scratch for the lagged correlations, reused across updates.
+    corr: Vec<f64>,
 }
 
 impl AutocorrelationPeriodogram {
@@ -87,6 +97,8 @@ impl AutocorrelationPeriodogram {
             r: vec![0.0; max_period + 1],
             max_pwr: 0.0,
             last: None,
+            trig: trig_table(min_period, max_period),
+            corr: vec![0.0; max_period + 1],
         })
     }
 
@@ -125,6 +137,24 @@ impl AutocorrelationPeriodogram {
     }
 }
 
+/// `(cos, sin)` of `2π·n/period`, the periodogram's weight for lag `n`.
+fn trig_term(n: usize, period: usize) -> (f64, f64) {
+    let angle = TAU * n as f64 / period as f64;
+    (angle.cos(), angle.sin())
+}
+
+/// Every [`trig_term`] the periodogram uses, period-major, unless that is more
+/// than [`TABLE_LIMIT`] pairs. The same function on the same arguments, so the
+/// table holds exactly the values computed in place.
+fn trig_table(min_period: usize, max_period: usize) -> Option<Box<[(f64, f64)]>> {
+    let pairs = (max_period + 1 - min_period) * (max_period + 1 - AVG_LENGTH);
+    (pairs <= TABLE_LIMIT).then(|| {
+        (min_period..=max_period)
+            .flat_map(|period| (AVG_LENGTH..=max_period).map(move |n| trig_term(n, period)))
+            .collect()
+    })
+}
+
 impl Indicator for AutocorrelationPeriodogram {
     type Input = f64;
     type Output = f64;
@@ -143,25 +173,29 @@ impl Indicator for AutocorrelationPeriodogram {
         }
 
         // Autocorrelation across lags.
-        let mut corr = vec![0.0; self.max_period + 1];
+        let mut corr = std::mem::take(&mut self.corr);
         for (lag, c) in corr.iter_mut().enumerate() {
             *c = self.correlation(lag);
         }
 
         // Periodogram: spectral power for each candidate period, EMA'd over time.
         self.max_pwr *= 0.995;
-        for period in self.min_period..=self.max_period {
+        let lags = self.max_period + 1 - AVG_LENGTH;
+        for (row, period) in (self.min_period..=self.max_period).enumerate() {
             let mut cosine = 0.0;
             let mut sine = 0.0;
-            for (n, &cn) in corr
-                .iter()
-                .enumerate()
-                .take(self.max_period + 1)
-                .skip(AVG_LENGTH)
-            {
-                let angle = TAU * n as f64 / period as f64;
-                cosine += cn * angle.cos();
-                sine += cn * angle.sin();
+            if let Some(table) = &self.trig {
+                let weights = &table[row * lags..(row + 1) * lags];
+                for (&cn, &(cos, sin)) in corr[AVG_LENGTH..].iter().zip(weights) {
+                    cosine += cn * cos;
+                    sine += cn * sin;
+                }
+            } else {
+                for (n, &cn) in corr.iter().enumerate().skip(AVG_LENGTH) {
+                    let (cos, sin) = trig_term(n, period);
+                    cosine += cn * cos;
+                    sine += cn * sin;
+                }
             }
             let power = cosine * cosine + sine * sine;
             self.r[period] = 0.2 * power + 0.8 * self.r[period];
@@ -189,6 +223,7 @@ impl Indicator for AutocorrelationPeriodogram {
         } else {
             self.min_period as f64
         };
+        self.corr = corr;
         self.last = Some(dominant);
         Some(dominant)
     }
@@ -221,6 +256,29 @@ impl Indicator for AutocorrelationPeriodogram {
 mod tests {
     use super::*;
     use crate::traits::BatchExt;
+
+    #[test]
+    fn the_trig_table_gives_the_bits_of_the_terms_computed_in_place() {
+        let prices: Vec<f64> = (0..600)
+            .map(|i| {
+                let t = f64::from(i);
+                100.0 + (TAU * t / 23.0).sin() * 5.0 + (t * 0.37).cos()
+            })
+            .collect();
+        let mut table = AutocorrelationPeriodogram::new(10, 48).unwrap();
+        let mut in_place = table.clone();
+        assert!(table.trig.is_some());
+        in_place.trig = None;
+        for &price in &prices {
+            let (a, b) = (table.update(price), in_place.update(price));
+            assert_eq!(a.map(f64::to_bits), b.map(f64::to_bits));
+        }
+        // A range whose table would pass the limit computes its terms in place.
+        assert!(AutocorrelationPeriodogram::new(10, 300)
+            .unwrap()
+            .trig
+            .is_none());
+    }
 
     #[test]
     fn rejects_invalid_periods() {

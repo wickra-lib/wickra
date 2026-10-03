@@ -83,6 +83,11 @@ impl Sma {
         self.period
     }
 
+    /// Whether the SMA has taken no input since construction or reset.
+    pub(crate) fn is_fresh(&self) -> bool {
+        self.count == 0 && self.updates_since_recompute == 0
+    }
+
     /// Current value if available.
     pub fn value(&self) -> Option<f64> {
         if self.count == self.period {
@@ -94,85 +99,11 @@ impl Sma {
 
     /// Vectorized batch returning one `f64` per input (`NaN` during warmup).
     ///
-    /// Shadows the generic [`BatchNanExt::batch_nan`](crate::BatchNanExt) blanket
-    /// default via inherent-method resolution. For a fresh, all-finite slice it
-    /// inlines `update`'s rolling sum and drift-reseed, writing the mean as a bare
-    /// `f64` (warmup → `NaN`) instead of allocating an `Option<f64>` per element
-    /// and walking the result a second time. Same add/subtract order, same reseed
-    /// cadence, same `sum / period` division — so it is *bit-for-bit* equal to
-    /// replaying `update`, including the long-stream drift bound. Any other state,
-    /// or a non-finite element, defers to the exact `update` replay.
+    /// Kept as an inherent method so existing callers need no trait import; it
+    /// allocates the result and fills it through
+    /// [`batch_nan_into`](Indicator::batch_nan_into), which carries the fast path.
     pub fn batch_nan(&mut self, inputs: &[f64]) -> Vec<f64> {
-        let p = self.period;
-        if self.count != 0
-            || self.updates_since_recompute != 0
-            || !inputs.iter().all(|x| x.is_finite())
-        {
-            return inputs
-                .iter()
-                .map(|&x| self.update(x).unwrap_or(f64::NAN))
-                .collect();
-        }
-
-        let p_f64 = p as f64;
-        let mut out = vec![f64::NAN; inputs.len()];
-        // Walk the ring one lap at a time and step through it with an iterator
-        // rather than indexing. Indexing put a bounds check in the hot loop,
-        // which under `panic = "unwind"` becomes an unwind edge carrying drop
-        // glue for `out` and blocks vectorisation; the same loop is roughly 40%
-        // faster without it.
-        //
-        // A lap is exactly `period` inputs, which is what makes this equivalent:
-        // the fast path only runs from a fresh state, so `head` is 0 at every
-        // lap boundary, and `RECOMPUTE_EVERY * period` is a whole multiple of
-        // `period`, so the drift reseed can only ever fall on one. At a reseed
-        // `head` is therefore 0 and the chronological order the reseed needs is
-        // simply the buffer in order. Only the final lap can be partial, since
-        // any shorter chunk means the input ran out.
-        let mut rest = inputs;
-        let mut written: &mut [f64] = &mut out;
-        let mut lap = 0_usize;
-        while !rest.is_empty() {
-            let take = rest.len().min(p);
-            let (chunk, tail) = rest.split_at(take);
-            rest = tail;
-            let (lap_out, out_tail) = written.split_at_mut(take);
-            written = out_tail;
-            if lap == 0 {
-                for ((slot, &x), cell) in self.buf.iter_mut().zip(chunk).zip(lap_out.iter_mut()) {
-                    *slot = x;
-                    self.sum += x;
-                    self.count += 1;
-                    if self.count == p {
-                        *cell = self.sum / p_f64;
-                    }
-                }
-            } else {
-                for ((slot, &x), cell) in self.buf.iter_mut().zip(chunk).zip(lap_out.iter_mut()) {
-                    self.sum -= *slot;
-                    *slot = x;
-                    self.sum += x;
-                    *cell = self.sum / p_f64;
-                }
-            }
-            self.updates_since_recompute += take;
-            if self.updates_since_recompute >= RECOMPUTE_EVERY * p {
-                self.sum = self.buf.iter().copied().sum();
-                self.updates_since_recompute = 0;
-                // `update` reseeds *before* emitting the value for the input
-                // that tripped it, so this lap's last value has to come from
-                // the reseeded sum rather than the incremental one. The reseed
-                // cannot fire before `RECOMPUTE_EVERY` complete laps, so the
-                // window is full and this lap wrote a value for every input.
-                *lap_out
-                    .last_mut()
-                    .expect("a lap writes at least one value before it can reseed") =
-                    self.sum / p_f64;
-            }
-            lap += 1;
-        }
-        self.head = inputs.len() % p;
-        out
+        crate::traits::BatchNanExt::batch_nan(self, inputs)
     }
 }
 
@@ -236,6 +167,133 @@ impl Indicator for Sma {
     #[inline]
     fn name(&self) -> &'static str {
         "SMA"
+    }
+
+    /// For a fresh, all-finite slice this inlines `update`'s rolling sum and
+    /// drift-reseed, writing the mean as a bare `f64` (warmup → `NaN`) straight
+    /// into `out`. Same add/subtract order, same reseed cadence, same
+    /// `sum / period` division — so it is *bit-for-bit* equal to replaying
+    /// `update`, including the long-stream drift bound. Any other state, or a
+    /// non-finite element, defers to the exact `update` replay.
+    fn batch_nan_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        if self.count != 0
+            || self.updates_since_recompute != 0
+            || !inputs.iter().all(|x| x.is_finite())
+        {
+            for (slot, &x) in out.iter_mut().zip(inputs) {
+                *slot = self.update(x).unwrap_or(f64::NAN);
+            }
+            return;
+        }
+
+        let p_f64 = p as f64;
+        // Walk the ring one lap at a time and step through it with an iterator
+        // rather than indexing. Indexing put a bounds check in the hot loop,
+        // which under `panic = "unwind"` becomes an unwind edge carrying drop
+        // glue for `out` and blocks vectorisation; the same loop is roughly 40%
+        // faster without it.
+        //
+        // A lap is exactly `period` inputs, which is what makes this equivalent:
+        // the fast path only runs from a fresh state, so `head` is 0 at every
+        // lap boundary, and `RECOMPUTE_EVERY * period` is a whole multiple of
+        // `period`, so the drift reseed can only ever fall on one. At a reseed
+        // `head` is therefore 0 and the chronological order the reseed needs is
+        // simply the buffer in order. Only the final lap can be partial, since
+        // any shorter chunk means the input ran out.
+        let mut rest = inputs;
+        let mut written: &mut [f64] = out;
+        let mut lap = 0_usize;
+        while !rest.is_empty() {
+            let take = rest.len().min(p);
+            let (chunk, tail) = rest.split_at(take);
+            rest = tail;
+            let (lap_out, out_tail) = written.split_at_mut(take);
+            written = out_tail;
+            if lap == 0 {
+                for ((slot, &x), cell) in self.buf.iter_mut().zip(chunk).zip(lap_out.iter_mut()) {
+                    *slot = x;
+                    self.sum += x;
+                    self.count += 1;
+                    *cell = if self.count == p {
+                        self.sum / p_f64
+                    } else {
+                        f64::NAN
+                    };
+                }
+            } else {
+                for ((slot, &x), cell) in self.buf.iter_mut().zip(chunk).zip(lap_out.iter_mut()) {
+                    self.sum -= *slot;
+                    *slot = x;
+                    self.sum += x;
+                    *cell = self.sum / p_f64;
+                }
+            }
+            self.updates_since_recompute += take;
+            if self.updates_since_recompute >= RECOMPUTE_EVERY * p {
+                self.sum = self.buf.iter().copied().sum();
+                self.updates_since_recompute = 0;
+                // `update` reseeds *before* emitting the value for the input
+                // that tripped it, so this lap's last value has to come from
+                // the reseeded sum rather than the incremental one. The reseed
+                // cannot fire before `RECOMPUTE_EVERY` complete laps, so the
+                // window is full and this lap wrote a value for every input.
+                *lap_out
+                    .last_mut()
+                    .expect("a lap writes at least one value before it can reseed") =
+                    self.sum / p_f64;
+            }
+            lap += 1;
+        }
+        self.head = inputs.len() % p;
+    }
+
+    /// SIMD kernel: rolling sums as a prefix scan of `x[i] - x[i - period]`,
+    /// re-anchored on an exact window sum every `16 · period` values like the
+    /// exact path's reseed, each sum scaled by `1 / period`. Agrees with the
+    /// exact batch to within a few units in the last place (a multiply by the
+    /// reciprocal replaces the division, and the running sum is reassociated);
+    /// warmup `NaN`s and length are identical. Afterwards the window holds the
+    /// last `period` inputs and its sum is recomputed exactly, so streaming
+    /// continues from a freshly reseeded state.
+    fn batch_fast_into(&mut self, inputs: &[f64], out: &mut [f64]) {
+        assert_eq!(
+            inputs.len(),
+            out.len(),
+            "batch output length must equal input length"
+        );
+        let p = self.period;
+        let n = inputs.len();
+        if self.count != 0
+            || self.updates_since_recompute != 0
+            || n < p
+            || !crate::fast::in_range(inputs)
+        {
+            self.batch_nan_into(inputs, out);
+            return;
+        }
+        wickra_simd::dispatch(crate::fast::SmaFast {
+            x: inputs,
+            period: p,
+            out,
+            _borrow: std::marker::PhantomData,
+        });
+        for (idx, &x) in inputs.iter().enumerate().skip(n - p) {
+            self.buf[idx % p] = x;
+        }
+        self.head = n % p;
+        self.count = p;
+        self.sum = self.buf[self.head..]
+            .iter()
+            .chain(&self.buf[..self.head])
+            .copied()
+            .sum();
+        self.updates_since_recompute = 0;
     }
 }
 
@@ -384,6 +442,16 @@ mod tests {
             ref_sma.update(x);
         }
         assert_eq!(sma.update(42.0), ref_sma.update(42.0));
+    }
+
+    /// Into a caller buffer that already holds values, the fast path must write
+    /// every cell — warmup positions included — exactly as the replay would.
+    #[test]
+    fn batch_nan_into_overwrites_a_dirty_buffer() {
+        let series: Vec<f64> = (0..300).map(|i| f64::from(i % 17) * 1.5 + 3.0).collect();
+        let mut out = vec![123.0; series.len()];
+        Sma::new(9).unwrap().batch_nan_into(&series, &mut out);
+        assert!(bits_eq(&out, &sma_replay(9, &series)));
     }
 
     #[test]
