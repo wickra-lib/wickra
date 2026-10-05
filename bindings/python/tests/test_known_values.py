@@ -83,16 +83,16 @@ def test_anchored_rsi_cumulative_reference():
     assert math.isclose(out[3], 100.0 - 100.0 / 3.0, abs_tol=1e-6)
 
 
-def test_inertia_constant_rvi_passes_through_linreg():
-    # Every bar identical (open, high, low, close) = (10, 11, 9, 10.5):
-    # RVI = (c-o) / (h-l) = 0.5 / 2 = 0.25 every bar. LinReg of a constant
-    # series equals that constant after warmup.
+def test_inertia_constant_close_passes_through_linreg():
+    # Every bar identical (open, high, low, close) = (10, 11, 9, 10.5): the
+    # close never moves, so the Relative Volatility Index sits at its neutral
+    # 50, and LinReg of a constant series equals that constant after warmup.
     n = 60
     out = _to_np(ta.Inertia(3, 4).batch(
         np.full(n, 10.0), np.full(n, 11.0), np.full(n, 9.0), np.full(n, 10.5)
     ))
-    # warmup_period = 3 + 4 - 1 = 6.
-    np.testing.assert_allclose(out[5:], 0.25, atol=1e-12)
+    # warmup_period = (2·3 − 1) + 4 − 1 = 8.
+    np.testing.assert_allclose(out[7:], 50.0, atol=1e-12)
 
 
 def test_connors_rsi_output_is_bounded():
@@ -148,16 +148,17 @@ def test_pgo_flat_close_yields_zero():
 
 
 def test_rvi_reference_value_period_2():
-    # Two bars: (open, high, low, close) = (10, 11, 9, 10.5), (10.5, 11.5, 10, 11).
-    #   num = (0.5 + 0.5) = 1.0; den = (2.0 + 1.5) = 3.5; RVI = 1 / 3.5.
+    # Four bars (open, high, low, close) = (10, 11, 9, 10.5), then
+    # (10.5, 11.5, 10, 11.5). With Ehlers' 1-2-2-1 weighting:
+    #   RVI = (0.5 + 3.5/6) / (2 + 11.5/6) = 6.5 / 23.5.
     out = _to_np(ta.RVI(2).batch(
-        np.array([10.0, 10.5]),
-        np.array([11.0, 11.5]),
-        np.array([9.0, 10.0]),
-        np.array([10.5, 11.0]),
+        np.array([10.0, 10.0, 10.0, 10.0, 10.5]),
+        np.array([11.0, 11.0, 11.0, 11.0, 11.5]),
+        np.array([9.0, 9.0, 9.0, 9.0, 10.0]),
+        np.array([10.5, 10.5, 10.5, 10.5, 11.5]),
     ))
-    assert math.isnan(out[0])
-    assert math.isclose(out[1], 1.0 / 3.5, abs_tol=1e-12)
+    assert all(math.isnan(x) for x in out[:4])
+    assert math.isclose(out[4], 6.5 / 23.5, abs_tol=1e-12)
 
 
 def test_alma_constant_series_yields_the_constant():
@@ -679,12 +680,13 @@ def test_td_open_sell_signal_reference():
 
 
 def test_td_differential_sell_signal_reference():
-    # Prev high=10, low=8, close=9: buying=1, selling=1.
-    # Curr high=12, low=9.8, close=10.5: close>prev.close, selling=1.5>1,
-    # buying=0.7<1 -> sell signal -1.
+    # Closes 8 -> 9 -> 9.8 (two higher closes).
+    # Bar 1: TrueLow = min(8, 8) = 8 -> buying 1; TrueHigh = max(10, 8) = 10 -> selling 1.
+    # Bar 2: TrueLow = min(9.5, 9) = 9 -> buying 0.8 < 1; TrueHigh = 11.5 -> selling 1.7 > 1.
     td = ta.TDDifferential()
-    assert td.update((9.0, 10.0, 8.0, 9.0, 1.0, 0)) is None
-    assert td.update((10.5, 12.0, 9.8, 10.5, 1.0, 1)) == pytest.approx(-1.0)
+    assert td.update((8.0, 9.0, 7.0, 8.0, 1.0, 0)) is None
+    assert td.update((9.0, 10.0, 8.0, 9.0, 1.0, 1)) is None
+    assert td.update((9.8, 11.5, 9.5, 9.8, 1.0, 2)) == pytest.approx(-1.0)
 
 
 def test_td_lines_uptrend_support_reference():

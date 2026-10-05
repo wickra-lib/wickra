@@ -155,7 +155,7 @@ export declare class ADL {
 }
 export type AdlNode = ADL
 
-export declare class ADOSC {
+export declare class AdOscillator {
   constructor()
   update(high: number, low: number, close: number): number | null
   batch(high: Series, low: Series, close: Series): Array<number>
@@ -164,7 +164,7 @@ export declare class ADOSC {
   isReady(): boolean
   warmupPeriod(): number
 }
-export type AdOscillatorNode = ADOSC
+export type AdOscillatorNode = AdOscillator
 
 export declare class AdvanceBlock {
   constructor()
@@ -580,8 +580,8 @@ export type BetaNeutralSpreadNode = BetaNeutralSpread
 
 export declare class BetterVolume {
   constructor(period: Count)
-  update(high: number, low: number, close: number, volume: number): number | null
-  batch(high: Series, low: Series, close: Series, volume: Series): Array<number>
+  update(open: number, high: number, low: number, close: number, volume: number): number | null
+  batch(open: Series, high: Series, low: Series, close: Series, volume: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -1592,6 +1592,10 @@ export type EmaNode = EMA
 
 export declare class EmpiricalModeDecomposition {
   constructor(period: Count, fraction: number)
+  /** Upper trend threshold `fraction · SMA(peak, 50)` after the last update. */
+  get upper(): number
+  /** Lower trend threshold `fraction · SMA(valley, 50)` after the last update. */
+  get lower(): number
   update(value: number): number | null
   batch(prices: Series): Array<number>
   batchFast(prices: Series): Float64Array
@@ -1628,8 +1632,8 @@ export type EquivolumeNode = Equivolume
 
 export declare class EstimatedLeverageRatio {
   constructor()
-  update(openInterest: number, longSize: number, shortSize: number): number | null
-  batch(openInterest: Series, longSize: Series, shortSize: Series): Array<number>
+  update(openInterest: number, exchangeReserve: number): number | null
+  batch(openInterest: Series, exchangeReserve: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean
@@ -3064,8 +3068,13 @@ export declare class MACDFIX {
   /**
    * Batch over a price array. Returns a flat array of length `3 * n`,
    * interleaved per row as `[macd0, signal0, histogram0, macd1, ...]`.
+   * Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
    */
   batch(prices: Series): Array<number>
+  /** Opt-in fast batch, flat `[macd, signal, histogram]` rows like `batch`. */
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
   reset(): void
   name(): string
   isReady(): boolean
@@ -5259,8 +5268,8 @@ export type TdRangeProjectionNode = TDRangeProjection
 
 export declare class TDREI {
   constructor(period: Count)
-  update(high: number, low: number): number | null
-  batch(high: Series, low: Series): Array<number>
+  update(high: number, low: number, close: number): number | null
+  batch(high: Series, low: Series, close: Series): Array<number>
   reset(): void
   name(): string
   isReady(): boolean

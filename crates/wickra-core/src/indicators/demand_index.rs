@@ -1,31 +1,44 @@
 //! Demand Index (James Sibbet).
 
+use std::collections::VecDeque;
+
 use crate::error::{Error, Result};
 use crate::indicators::ema::Ema;
 use crate::ohlcv::Candle;
 use crate::traits::Indicator;
 
-/// James Sibbet's Demand Index — a smoothed ratio of buying pressure to
-/// selling pressure, classifying each bar's volume by whether the close rose
-/// or fell relative to the previous close.
+/// Cap on the exponent of the pressure ratio (as in the `TradeStation` function),
+/// keeping `exp` finite on a violent bar.
+const MAX_EXPONENT: f64 = 88.0;
+
+/// James Sibbet's Demand Index — the ratio of buying pressure to selling
+/// pressure, bounded in `[−100, +100]`.
 ///
-/// Sibbet's original 1970s formulation runs the raw buying/selling pressure
-/// through several smoothings and yields a number that swings in `[−100, 100]`.
-/// This implementation uses the textbook simplified form that captures the same
-/// signal in a streaming-friendly shape:
+/// Each bar's volume (relative to its `period` average) is assigned in full to
+/// the side the weighted close moved towards, and the other side receives that
+/// volume damped exponentially by the size of the move against the market's
+/// typical range. Both pressures are exponentially smoothed and compared. This is
+/// Sibbet's construction as published in the `TradeStation` `DemandIndex`
+/// function:
 ///
 /// ```text
-/// pressure_t = volume_t · ((close_t − close_{t−1}) / max(close_{t−1}, ε))
-///              · (1 + (high_t − low_t) / max(close_{t−1}, ε))
-/// DI_t       = EMA(pressure, period)_t
+/// WC     = (high + low + 2·close) / 4
+/// ratio  = (WC_t − WC_{t−1}) / min(WC_t, WC_{t−1})
+/// vol    = volume / SMA(volume, period)
+/// K      = 3·WC / SMA(max(high, high_{t−1}) − min(low, low_{t−1}), period)
+/// damped = vol / exp(min(K · |ratio|, 88))
+/// ratio > 0:  BP = vol,     SP = damped
+/// otherwise:  BP = damped,  SP = vol
+/// B, S   = EMA(BP, period), EMA(SP, period)     (seeded with the first value)
+/// DI     = +100 · (1 − S / B)   if B > S
+///          −100 · (1 − B / S)   if B < S
+///          0                    if B = S
 /// ```
 ///
-/// Positive readings mean the smoothed money flow is leaning to the buy side
-/// (up-day volume dominates), negative to the sell side. The first candle only
-/// establishes the previous close, so the first non-`None` value lands once the
-/// EMA has accumulated `period` pressure samples. A previous close of zero
-/// contributes no signal (avoids division by zero). The output is unbounded;
-/// what matters is the sign and the divergence against price.
+/// Positive readings mean buying pressure dominates, negative selling pressure;
+/// the magnitude says by how much. A bar whose averages or weighted closes are
+/// zero carries no measurable pressure and repeats the previous reading. The
+/// first value lands once the two-bar range average is full, on bar `period + 1`.
 ///
 /// # Example
 ///
@@ -45,12 +58,19 @@ use crate::traits::Indicator;
 #[derive(Debug, Clone)]
 pub struct DemandIndex {
     period: usize,
-    ema: Ema,
-    prev_close: Option<f64>,
+    buy: Ema,
+    sell: Ema,
+    prev: Option<Candle>,
+    volumes: VecDeque<f64>,
+    volume_sum: f64,
+    ranges: VecDeque<f64>,
+    range_sum: f64,
+    last: f64,
+    ready: bool,
 }
 
 impl DemandIndex {
-    /// Construct a new Demand Index with the given EMA smoothing period.
+    /// Construct a new Demand Index with the given averaging period.
     ///
     /// # Errors
     /// Returns [`Error::PeriodZero`] if `period == 0`.
@@ -63,17 +83,39 @@ impl DemandIndex {
                 message: crate::error::PERIOD_ABOVE_MAX,
             });
         }
+        let alpha = 2.0 / (period as f64 + 1.0);
         Ok(Self {
             period,
-            ema: Ema::new(period)?,
-            prev_close: None,
+            buy: Ema::with_alpha(alpha)?,
+            sell: Ema::with_alpha(alpha)?,
+            prev: None,
+            volumes: VecDeque::with_capacity(period),
+            volume_sum: 0.0,
+            ranges: VecDeque::with_capacity(period),
+            range_sum: 0.0,
+            last: 0.0,
+            ready: false,
         })
     }
 
-    /// Configured EMA smoothing period.
+    /// Configured averaging period.
     pub const fn period(&self) -> usize {
         self.period
     }
+
+    /// Push `x` into a fixed-length window with a running sum.
+    fn push(window: &mut VecDeque<f64>, sum: &mut f64, len: usize, x: f64) {
+        if window.len() == len {
+            *sum -= window.pop_front().expect("window is non-empty");
+        }
+        window.push_back(x);
+        *sum += x;
+    }
+}
+
+/// The weighted close `(high + low + 2·close) / 4`.
+fn weighted_close(c: &Candle) -> f64 {
+    (c.high + c.low + 2.0 * c.close) * 0.25
 }
 
 impl Indicator for DemandIndex {
@@ -82,37 +124,69 @@ impl Indicator for DemandIndex {
 
     #[inline]
     fn update(&mut self, candle: Candle) -> Option<f64> {
-        let Some(prev) = self.prev_close else {
-            self.prev_close = Some(candle.close);
+        let period = self.period;
+        Self::push(
+            &mut self.volumes,
+            &mut self.volume_sum,
+            period,
+            candle.volume,
+        );
+        let prev = self.prev.replace(candle)?;
+        let two_bar_range = candle.high.max(prev.high) - candle.low.min(prev.low);
+        Self::push(&mut self.ranges, &mut self.range_sum, period, two_bar_range);
+        if self.ranges.len() < period {
             return None;
-        };
-        let pressure = if prev == 0.0 {
-            // No prior baseline -> can't normalise; treat as no flow.
-            0.0
-        } else {
-            let ret = (candle.close - prev) / prev;
-            let range_norm = (candle.high - candle.low) / prev;
-            candle.volume * ret * (1.0 + range_norm)
-        };
-        self.prev_close = Some(candle.close);
-        self.ema.update(pressure)
+        }
+        let n = period as f64;
+        let avg_range = self.range_sum / n;
+        let avg_volume = self.volume_sum / n;
+        let wc = weighted_close(&candle);
+        let wc_prev = weighted_close(&prev);
+        if wc != 0.0 && wc_prev != 0.0 && avg_range != 0.0 && avg_volume != 0.0 {
+            let ratio = (wc - wc_prev) / wc.min(wc_prev);
+            let vol = candle.volume / avg_volume;
+            let exponent = ((3.0 * wc / avg_range) * ratio.abs()).min(MAX_EXPONENT);
+            let damped = vol / exponent.exp();
+            let (bp, sp) = if ratio > 0.0 {
+                (vol, damped)
+            } else {
+                (damped, vol)
+            };
+            let b = self.buy.update(bp).unwrap_or(bp);
+            let s = self.sell.update(sp).unwrap_or(sp);
+            self.last = if b > s {
+                100.0 * (1.0 - s / b)
+            } else if b < s {
+                -100.0 * (1.0 - b / s)
+            } else {
+                0.0
+            };
+        }
+        self.ready = true;
+        Some(self.last)
     }
 
     fn reset(&mut self) {
-        self.ema.reset();
-        self.prev_close = None;
+        self.buy.reset();
+        self.sell.reset();
+        self.prev = None;
+        self.volumes.clear();
+        self.volume_sum = 0.0;
+        self.ranges.clear();
+        self.range_sum = 0.0;
+        self.last = 0.0;
+        self.ready = false;
     }
 
     #[inline]
     fn warmup_period(&self) -> usize {
-        // One seed bar to establish the previous close, then the EMA needs
-        // `period` samples to seed.
+        // One seed bar for the previous candle, then `period` two-bar ranges.
         self.period + 1
     }
 
     #[inline]
     fn is_ready(&self) -> bool {
-        self.ema.is_ready()
+        self.ready
     }
 
     #[inline]
@@ -146,7 +220,7 @@ mod tests {
 
     #[test]
     fn constant_series_yields_zero() {
-        // No close change -> pressure = 0 on every bar -> EMA stays at 0.
+        // Flat bars have no range -> no measurable pressure -> DI stays at 0.
         let candles: Vec<Candle> = (0..40)
             .map(|i| c(10.0, 10.0, 10.0, 10.0, 100.0, i))
             .collect();
@@ -169,10 +243,7 @@ mod tests {
         let mut di = DemandIndex::new(5).unwrap();
         let out = di.batch(&candles);
         let last = out.iter().filter_map(|x| *x).next_back().unwrap();
-        assert!(
-            last > 0.0,
-            "rising series must yield positive DI, got {last}"
-        );
+        assert!(last > 0.0, "rising series must yield positive DI");
     }
 
     #[test]
@@ -186,24 +257,20 @@ mod tests {
         let mut di = DemandIndex::new(5).unwrap();
         let out = di.batch(&candles);
         let last = out.iter().filter_map(|x| *x).next_back().unwrap();
-        assert!(
-            last < 0.0,
-            "falling series must yield negative DI, got {last}"
-        );
+        assert!(last < 0.0, "falling series must yield negative DI");
     }
 
     #[test]
-    fn zero_prev_close_contributes_no_signal() {
-        // First two bars: prev close is exactly zero -> pressure clipped to 0.
+    fn zero_weighted_close_contributes_no_signal() {
+        // The first bars have a zero weighted close -> no pressure is measured.
         // We then continue with a non-zero series and confirm output behaves.
         let mut di = DemandIndex::new(3).unwrap();
         di.update(c(0.0, 0.0, 0.0, 0.0, 100.0, 0));
-        // Bar 2 sees prev_close == 0 -> pressure = 0.
+        // Bar 2 sees a zero previous weighted close -> no pressure.
         di.update(c(0.0, 1.0, 0.0, 1.0, 100.0, 1));
         // Subsequent bars now have non-zero prev_close.
         di.update(c(1.0, 2.0, 1.0, 2.0, 100.0, 2));
-        // Just check that nothing exploded; an EMA(3) needs 3 samples post-seed.
-        // The first sample at bar 2 was zero, the second at bar 3 positive.
+        // Just check that nothing exploded; the range average fills on bar 4.
         let v = di.update(c(2.0, 3.0, 2.0, 3.0, 100.0, 3));
         assert!(v.is_some());
         assert!(v.unwrap().is_finite());
@@ -247,5 +314,179 @@ mod tests {
         di.reset();
         assert!(!di.is_ready());
         assert_eq!(di.update(candles[0]), None);
+    }
+
+    fn wavy_series() -> Vec<Candle> {
+        (0..60i64)
+            .map(|i| {
+                let f = i as f64;
+                let mid = 100.0 + (f * 0.37).sin() * 4.0 + f * 0.05;
+                c(
+                    mid,
+                    mid + 1.0 + (f * 0.11).cos().abs(),
+                    mid - 1.2,
+                    mid + (f * 0.5).sin() * 0.8,
+                    50.0 + (i % 7) as f64 * 10.0,
+                    i,
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            DemandIndex::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup_minus_one() {
+        let candles = wavy_series();
+        for period in [1usize, 3, 7] {
+            let mut di = DemandIndex::new(period).unwrap();
+            let out = di.batch(&candles);
+            let warm = di.warmup_period();
+            assert_eq!(warm, period + 1);
+            assert!(out[..warm - 1].iter().all(Option::is_none));
+            assert!(out[warm - 1].is_some());
+        }
+    }
+
+    #[test]
+    fn not_ready_before_warmup_completes() {
+        let candles = wavy_series();
+        let mut di = DemandIndex::new(4).unwrap();
+        for candle in &candles[..4] {
+            assert_eq!(di.update(*candle), None);
+            assert!(!di.is_ready());
+        }
+        assert!(di.update(candles[4]).is_some());
+        assert!(di.is_ready());
+    }
+
+    #[test]
+    fn reset_replays_identically_to_fresh_instance() {
+        let candles = wavy_series();
+        let mut di = DemandIndex::new(5).unwrap();
+        let first = di.batch(&candles);
+        di.reset();
+        let second = di.batch(&candles);
+        let fresh = DemandIndex::new(5).unwrap().batch(&candles);
+        assert_eq!(first, second);
+        assert_eq!(second, fresh);
+    }
+
+    #[test]
+    fn batch_nan_into_is_bit_identical_to_streaming() {
+        let candles = wavy_series();
+        let mut batch_di = DemandIndex::new(6).unwrap();
+        let mut out = vec![0.0; candles.len()];
+        batch_di.batch_nan_into(&candles, &mut out);
+        let mut stream_di = DemandIndex::new(6).unwrap();
+        let streamed: Vec<f64> = candles
+            .iter()
+            .map(|x| stream_di.update(*x).unwrap_or(f64::NAN))
+            .collect();
+        assert!(out
+            .iter()
+            .zip(&streamed)
+            .all(|(a, b)| a.to_bits() == b.to_bits()));
+    }
+
+    #[test]
+    fn hand_computed_period_one_up_then_down() {
+        // period 1 -> EMA alpha = 2 / 2 = 1, so B and S equal the raw pressures.
+        let mut di = DemandIndex::new(1).unwrap();
+        // Bar 0: WC = (11 + 9 + 2*10) / 4 = 10. Seed bar -> None.
+        assert_eq!(di.update(c(10.0, 11.0, 9.0, 10.0, 100.0, 0)), None);
+        // Bar 1: WC = (12 + 10 + 2*11.5) / 4 = 11.25.
+        // ratio = (11.25 - 10) / min(11.25, 10) = 0.125
+        // range = max(12, 11) - min(10, 9) = 3, avg_range = 3; avg_volume = 200 -> vol = 1
+        // K = 3 * 11.25 / 3 = 11.25; exponent = 11.25 * 0.125 = 1.40625
+        // ratio > 0 -> BP = 1, SP = exp(-1.40625)
+        // B > S -> DI = 100 * (1 - exp(-1.40625)) = 75.493_946...
+        let up = di.update(c(10.0, 12.0, 10.0, 11.5, 200.0, 1)).unwrap();
+        assert_relative_eq!(up, 100.0 * (1.0 - (-1.40625f64).exp()), epsilon = 1e-12);
+        assert_relative_eq!(up, 75.493_946_075_447_41, epsilon = 1e-9);
+        // Bar 2: WC = (11.5 + 9.5 + 2*10) / 4 = 10.25.
+        // ratio = (10.25 - 11.25) / 10.25 = -1 / 10.25
+        // range = max(11.5, 12) - min(9.5, 10) = 2.5; avg_volume = 50 -> vol = 1
+        // K = 3 * 10.25 / 2.5 = 12.3; exponent = 12.3 / 10.25 = 1.2
+        // ratio <= 0 -> BP = exp(-1.2), SP = 1
+        // B < S -> DI = -100 * (1 - exp(-1.2)) = -69.880_578...
+        let down = di.update(c(11.0, 11.5, 9.5, 10.0, 50.0, 2)).unwrap();
+        assert_relative_eq!(down, -100.0 * (1.0 - (-1.2f64).exp()), epsilon = 1e-9);
+        assert_relative_eq!(down, -69.880_578_808_779_77, epsilon = 1e-9);
+    }
+
+    #[test]
+    fn equal_pressure_returns_exact_zero() {
+        // Identical candles with a non-zero range and volume: the weighted close
+        // is unchanged -> ratio = 0 -> exponent 0 -> damped = vol, so BP = SP and
+        // B == S, which yields exactly 0 (not a repeat of the previous reading).
+        let mut di = DemandIndex::new(1).unwrap();
+        di.update(c(10.0, 11.0, 9.0, 10.0, 100.0, 0));
+        let up = di.update(c(10.0, 12.0, 10.0, 11.5, 200.0, 1)).unwrap();
+        assert!(up > 0.0);
+        let flat = di.update(c(10.0, 12.0, 10.0, 11.5, 200.0, 2)).unwrap();
+        assert_eq!(flat.to_bits(), 0.0f64.to_bits());
+        // Longer period: a constant non-degenerate bar feeds equal pressures into
+        // both EMAs, so they stay equal.
+        let mut di5 = DemandIndex::new(5).unwrap();
+        let candle = c(10.0, 12.0, 8.0, 10.0, 100.0, 0);
+        let out = di5.batch(&[candle; 12]);
+        assert!(out
+            .iter()
+            .flatten()
+            .all(|v| v.to_bits() == 0.0f64.to_bits()));
+    }
+
+    #[test]
+    fn zero_volume_repeats_previous_reading() {
+        // avg_volume == 0 -> no measurable pressure -> the last value is repeated.
+        let mut di = DemandIndex::new(1).unwrap();
+        di.update(c(10.0, 11.0, 9.0, 10.0, 100.0, 0));
+        let up = di.update(c(10.0, 12.0, 10.0, 11.5, 200.0, 1)).unwrap();
+        let held = di.update(c(11.0, 11.5, 9.5, 10.0, 0.0, 2)).unwrap();
+        assert_eq!(held.to_bits(), up.to_bits());
+        // Zero volume from the start: the reading stays at its initial 0.
+        let mut quiet = DemandIndex::new(2).unwrap();
+        let candles: Vec<Candle> = (0..6)
+            .map(|i| {
+                c(
+                    10.0 + i as f64,
+                    11.0 + i as f64,
+                    9.0 + i as f64,
+                    10.5 + i as f64,
+                    0.0,
+                    i,
+                )
+            })
+            .collect();
+        assert!(quiet
+            .batch(&candles)
+            .iter()
+            .flatten()
+            .all(|v| v.to_bits() == 0.0f64.to_bits()));
+    }
+
+    #[test]
+    fn exponent_is_capped_at_max_exponent() {
+        // Bar 0: flat at 1 -> WC = 1. Bar 1: flat at 1000 -> WC = 1000.
+        // ratio = 999 / 1 = 999; range = 1000 - 1 = 999; K = 3 * 1000 / 999
+        // K * |ratio| = 3000 > 88 -> capped at 88 -> SP = 1 / exp(88), a
+        // positive value (uncapped, exp(-3000) would underflow to 0).
+        let mut di = DemandIndex::new(1).unwrap();
+        di.update(c(1.0, 1.0, 1.0, 1.0, 100.0, 0));
+        let v = di
+            .update(c(1000.0, 1000.0, 1000.0, 1000.0, 100.0, 1))
+            .unwrap();
+        let sell = di.sell.value().unwrap();
+        assert_eq!(sell.to_bits(), (1.0 / MAX_EXPONENT.exp()).to_bits());
+        assert!(sell > 0.0);
+        assert_eq!(di.buy.value(), Some(1.0));
+        assert_relative_eq!(v, 100.0, epsilon = 1e-12);
     }
 }

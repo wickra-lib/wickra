@@ -61,6 +61,9 @@ function deriv(o, h, l, c, v) {
 // them. The same construction `gen_golden` uses on the Rust side.
 function resolveArg(arg, o, h, l, c, v, i) {
   const n = arg.name;
+  // A pair with domain-named arguments: the golden feeds (close, open).
+  if (arg.role === 'x') return c;
+  if (arg.role === 'y') return o;
   if (arg.array) {
     const j5 = [0, 1, 2, 3, 4];
     switch (n) {

@@ -29,12 +29,15 @@ library for every platform, so `go get` + `go build` works with no extra steps
 (a C compiler is still required, as the binding uses cgo):
 
 ```bash
-go get github.com/wickra-lib/wickra-go
+go get github.com/wickra-lib/wickra-go/v2
 ```
 
 ```go
-import wickra "github.com/wickra-lib/wickra-go"
+import wickra "github.com/wickra-lib/wickra-go/v2"
 ```
+
+From 2.0 the module path carries the major version (`/v2`), as Go's semantic
+import versioning requires; 1.x stays at the bare path.
 
 `wickra-go` is generated from this directory by the release pipeline: it mirrors
 the Go sources, the vendored C ABI header (`include/wickra.h`) and the prebuilt

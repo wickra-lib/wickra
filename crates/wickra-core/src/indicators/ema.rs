@@ -71,6 +71,22 @@ impl Ema {
         })
     }
 
+    /// An EMA seeded with the simple mean of the first `period` inputs (as
+    /// [`new`](Self::new)) but smoothing with a fixed `alpha` instead of
+    /// `2 / (period + 1)` — TA-Lib's `MACDFIX` runs its 12/26 EMAs with the
+    /// rounded constants `0.15` / `0.075`. The caller validates both arguments.
+    pub(crate) fn with_period_and_alpha(period: usize, alpha: f64) -> Self {
+        Self {
+            period,
+            alpha,
+            one_minus_alpha: 1.0 - alpha,
+            current: 0.0,
+            seeded: false,
+            warmup_sum: -0.0,
+            warmup_count: 0,
+        }
+    }
+
     /// Construct an EMA with a custom smoothing factor `alpha in (0, 1]`.
     ///
     /// The reported `period` is derived from `alpha` via `2/alpha - 1` and rounded;
@@ -551,6 +567,65 @@ mod tests {
             &[ema.update(3.0).unwrap_or(f64::NAN)],
             &[ema_replay(5, &[1.0, 2.0, 3.0])[2]]
         ));
+    }
+
+    #[test]
+    fn with_period_and_alpha_sets_fields_and_warmup() {
+        let ema = Ema::with_period_and_alpha(12, 0.15);
+        assert_eq!(ema.period(), 12);
+        assert_eq!(ema.alpha().to_bits(), 0.15f64.to_bits());
+        assert_eq!(ema.one_minus_alpha().to_bits(), (1.0f64 - 0.15).to_bits());
+        assert_eq!(ema.warmup_period(), 12);
+        assert!(ema.is_fresh());
+        assert!(!ema.is_ready());
+        assert_eq!(ema.value(), None);
+    }
+
+    #[test]
+    fn with_period_and_alpha_hand_computed() {
+        // period 3, alpha 0.15: seed = mean(1, 2, 3) = 2 at index 2 (= warmup - 1),
+        // then 0.15 * 10 + 0.85 * 2 = 1.5 + 1.7 = 3.2,
+        // then 0.15 * 0 + 0.85 * 3.2 = 2.72.
+        let mut ema = Ema::with_period_and_alpha(3, 0.15);
+        assert_eq!(ema.update(1.0), None);
+        assert_eq!(ema.update(2.0), None);
+        assert_eq!(ema.update(3.0), Some(2.0));
+        assert_relative_eq!(ema.update(10.0).unwrap(), 3.2, epsilon = 1e-12);
+        assert_relative_eq!(ema.update(0.0).unwrap(), 2.72, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn with_period_and_alpha_matches_new_when_alpha_is_standard() {
+        // With alpha = 2 / (period + 1) the constructor is identical to `new`.
+        let series: Vec<f64> = (0..80)
+            .map(|i| (f64::from(i) * 0.3).sin() * 5.0 + 50.0)
+            .collect();
+        let got = Ema::with_period_and_alpha(9, 2.0 / 10.0).batch_nan(&series);
+        assert!(bits_eq(&got, &ema_replay(9, &series)));
+    }
+
+    #[test]
+    fn with_period_and_alpha_batch_equals_streaming_and_reset() {
+        let series: Vec<f64> = (0..120)
+            .map(|i| (f64::from(i) * 0.21).cos() * 7.0 + 30.0)
+            .collect();
+        let mut stream = Ema::with_period_and_alpha(26, 0.075);
+        let streamed: Vec<f64> = series
+            .iter()
+            .map(|&x| stream.update(x).unwrap_or(f64::NAN))
+            .collect();
+        let mut batch = Ema::with_period_and_alpha(26, 0.075);
+        assert!(bits_eq(&batch.batch_nan(&series), &streamed));
+        assert_eq!(batch.update(12.5), stream.update(12.5));
+        let opt = Ema::with_period_and_alpha(26, 0.075).batch(&series);
+        assert!(opt
+            .iter()
+            .zip(&streamed)
+            .all(|(o, s)| o.unwrap_or(f64::NAN).to_bits() == s.to_bits()));
+        assert!(opt[..25].iter().all(Option::is_none));
+        assert!(opt[25].is_some());
+        batch.reset();
+        assert!(bits_eq(&batch.batch_nan(&series), &streamed));
     }
 
     proptest::proptest! {

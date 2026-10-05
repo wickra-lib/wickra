@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 use crate::indicators::super_smoother::SuperSmoother;
 use crate::traits::Indicator;
 
-/// Ehlers' Roofing Filter — a bandpass formed by feeding a 2-pole high-pass
+/// Ehlers' Roofing Filter — a bandpass formed by feeding a 1-pole high-pass
 /// into a [`SuperSmoother`].
 ///
 /// Defined in *Cycle Analytics for Traders* (Ehlers 2013, ch. 7) as the
@@ -204,5 +204,87 @@ mod tests {
         assert!(rf.is_ready());
         rf.reset();
         assert!(!rf.is_ready());
+    }
+
+    use crate::traits::BatchNanExt;
+
+    #[test]
+    fn new_propagates_smoother_period_error() {
+        // Both periods pass the zero and ordering checks, but the
+        // SuperSmoother rejects an lp_period above MAX_PERIOD.
+        let max = crate::error::MAX_PERIOD;
+        assert!(matches!(
+            RoofingFilter::new(max + 1, max + 2),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup() {
+        let mut rf = RoofingFilter::new(10, 48).unwrap();
+        let out = rf.batch(&[5.0, 6.0, 7.0]);
+        assert_eq!(rf.warmup_period(), 1);
+        // No previous input: the high-pass seeds at 0 and the smoother passes it.
+        assert_eq!(out[0], Some(0.0));
+    }
+
+    #[test]
+    fn reset_replays_identically() {
+        let prices: Vec<f64> = (0..200)
+            .map(|i| 100.0 + (f64::from(i) * 0.15).sin() * 5.0)
+            .collect();
+        let fresh = RoofingFilter::new(10, 48).unwrap().batch(&prices);
+        let mut rf = RoofingFilter::new(10, 48).unwrap();
+        let first = rf.batch(&prices);
+        rf.reset();
+        let second = rf.batch(&prices);
+        assert_eq!(first, fresh);
+        assert_eq!(second, fresh);
+    }
+
+    #[test]
+    fn batch_nan_paths_match_streaming_bitwise() {
+        let prices: Vec<f64> = (0..200)
+            .map(|i| 100.0 + (f64::from(i) * 0.15).sin() * 5.0)
+            .collect();
+        let mut out = vec![0.0; prices.len()];
+        RoofingFilter::new(10, 48)
+            .unwrap()
+            .batch_nan_into(&prices, &mut out);
+        let nan = RoofingFilter::new(10, 48).unwrap().batch_nan(&prices);
+        let fast = RoofingFilter::new(10, 48).unwrap().batch_fast(&prices);
+        let mut stream = RoofingFilter::new(10, 48).unwrap();
+        let expected: Vec<u64> = prices
+            .iter()
+            .map(|&p| stream.update(p).unwrap_or(f64::NAN).to_bits())
+            .collect();
+        assert!(out.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(nan.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(fast.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+    }
+
+    #[test]
+    fn step_response_hand_computed() {
+        // hp_period = 6: arg = pi/3, cos = 0.5, sin = sqrt(3)/2, so
+        // alpha = (0.5 + sqrt(3)/2 - 1) / 0.5 = sqrt(3) - 1 = 0.732_050_8.
+        let mut rf = RoofingFilter::new(2, 6).unwrap();
+        assert_relative_eq!(rf.alpha, 3.0_f64.sqrt() - 1.0, epsilon = 1e-12);
+        let (c1, c2, _) = SuperSmoother::new(2).unwrap().coefficients();
+        // Inputs 0, 10, 10:
+        //   hp0 = 0 (no previous input)                   -> out0 = 0
+        //   hp1 = (1 - alpha/2) * (10 - 0) = 6.339_746     -> out1 = hp1 (seed)
+        //   hp2 = (1 - alpha/2) * 0 + (1 - alpha) * hp1 = 0.267_949 * 6.339_746 = 1.698_730
+        //   out2 = c1 * (hp2 + hp1)/2 + c2 * out1 + c3 * out0, where out0 = 0
+        let out = rf.batch(&[0.0, 10.0, 10.0]);
+        let hp1 = 6.339_745_962_156;
+        let hp2 = 1.698_729_810_778;
+        assert_eq!(out[0], Some(0.0));
+        assert_relative_eq!(out[1].unwrap(), hp1, epsilon = 1e-12);
+        assert_relative_eq!(rf.prev_hp_1, hp2, epsilon = 1e-12);
+        assert_relative_eq!(
+            out[2].unwrap(),
+            c1 * f64::midpoint(hp2, hp1) + c2 * hp1,
+            epsilon = 1e-12
+        );
     }
 }

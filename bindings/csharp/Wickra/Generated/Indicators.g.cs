@@ -15314,9 +15314,9 @@ public sealed class EstimatedLeverageRatio : IDisposable
         _handle = new WickraHandle(ptr, NativeMethods.wickra_estimated_leverage_ratio_free);
     }
 
-    public double Update(double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp)
+    public double Update(double x, double y)
     {
-        var result = NativeMethods.wickra_estimated_leverage_ratio_update(_handle.Live, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp);
+        var result = NativeMethods.wickra_estimated_leverage_ratio_update(_handle.Live, x, y);
         GC.KeepAlive(_handle);
         return result;
     }
@@ -15325,10 +15325,10 @@ public sealed class EstimatedLeverageRatio : IDisposable
     /// Runs the indicator over whole spans in one native call, one output per input
     /// (NaN during warmup), bit for bit what feeding them one by one gives.
     /// </summary>
-    public double[] Batch(ReadOnlySpan<double> fundingRate, ReadOnlySpan<double> markPrice, ReadOnlySpan<double> indexPrice, ReadOnlySpan<double> futuresPrice, ReadOnlySpan<double> openInterest, ReadOnlySpan<double> longSize, ReadOnlySpan<double> shortSize, ReadOnlySpan<double> takerBuyVolume, ReadOnlySpan<double> takerSellVolume, ReadOnlySpan<double> longLiquidation, ReadOnlySpan<double> shortLiquidation, ReadOnlySpan<long> timestamp)
+    public double[] Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y)
     {
-        var output = GC.AllocateUninitializedArray<double>(fundingRate.Length);
-        Batch(fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp, output);
+        var output = GC.AllocateUninitializedArray<double>(x.Length);
+        Batch(x, y, output);
         return output;
     }
 
@@ -15338,50 +15338,10 @@ public sealed class EstimatedLeverageRatio : IDisposable
     /// Writes into <paramref name="output"/>, which must be as long as the input,
     /// so a caller that reuses its buffer allocates nothing.
     /// </summary>
-    public void Batch(ReadOnlySpan<double> fundingRate, ReadOnlySpan<double> markPrice, ReadOnlySpan<double> indexPrice, ReadOnlySpan<double> futuresPrice, ReadOnlySpan<double> openInterest, ReadOnlySpan<double> longSize, ReadOnlySpan<double> shortSize, ReadOnlySpan<double> takerBuyVolume, ReadOnlySpan<double> takerSellVolume, ReadOnlySpan<double> longLiquidation, ReadOnlySpan<double> shortLiquidation, ReadOnlySpan<long> timestamp, Span<double> output)
+    public void Batch(ReadOnlySpan<double> x, ReadOnlySpan<double> y, Span<double> output)
     {
-        var n = fundingRate.Length;
-        if (markPrice.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (indexPrice.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (futuresPrice.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (openInterest.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (longSize.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (shortSize.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (takerBuyVolume.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (takerSellVolume.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (longLiquidation.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (shortLiquidation.Length != n)
-        {
-            throw new ArgumentException("all input spans must have the same length");
-        }
-        if (timestamp.Length != n)
+        var n = x.Length;
+        if (y.Length != n)
         {
             throw new ArgumentException("all input spans must have the same length");
         }
@@ -15392,21 +15352,11 @@ public sealed class EstimatedLeverageRatio : IDisposable
 
         unsafe
         {
-            fixed (double* fundingRatePtr = fundingRate)
-            fixed (double* markPricePtr = markPrice)
-            fixed (double* indexPricePtr = indexPrice)
-            fixed (double* futuresPricePtr = futuresPrice)
-            fixed (double* openInterestPtr = openInterest)
-            fixed (double* longSizePtr = longSize)
-            fixed (double* shortSizePtr = shortSize)
-            fixed (double* takerBuyVolumePtr = takerBuyVolume)
-            fixed (double* takerSellVolumePtr = takerSellVolume)
-            fixed (double* longLiquidationPtr = longLiquidation)
-            fixed (double* shortLiquidationPtr = shortLiquidation)
-            fixed (long* timestampPtr = timestamp)
+            fixed (double* xPtr = x)
+            fixed (double* yPtr = y)
             fixed (double* outputPtr = output)
             {
-                NativeMethods.wickra_estimated_leverage_ratio_batch(_handle, fundingRatePtr, markPricePtr, indexPricePtr, futuresPricePtr, openInterestPtr, longSizePtr, shortSizePtr, takerBuyVolumePtr, takerSellVolumePtr, longLiquidationPtr, shortLiquidationPtr, timestampPtr, outputPtr, (nuint)n);
+                NativeMethods.wickra_estimated_leverage_ratio_batch(_handle, xPtr, yPtr, outputPtr, (nuint)n);
             }
         }
     }
@@ -29113,6 +29063,45 @@ public sealed class MacdFix : IDisposable
             fixed (MacdOutput* outputPtr = output)
             {
                 NativeMethods.wickra_macd_fix_batch(_handle, inputPtr, (WickraMacdOutput*)outputPtr, (nuint)n);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opt-in fast batch: the SIMD kernel reassociates the arithmetic, so each
+    /// field agrees with Batch to within a few units in the last place rather
+    /// than bit for bit; warmup rows and length are identical, and the result
+    /// is the same on every platform.
+    /// </summary>
+    public MacdOutput[] BatchFast(ReadOnlySpan<double> input)
+    {
+        var output = GC.AllocateUninitializedArray<MacdOutput>(input.Length);
+        BatchFast(input, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Opt-in fast batch: the SIMD kernel reassociates the arithmetic, so each
+    /// field agrees with Batch to within a few units in the last place rather
+    /// than bit for bit; warmup rows and length are identical, and the result
+    /// is the same on every platform.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void BatchFast(ReadOnlySpan<double> input, Span<MacdOutput> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
+        unsafe
+        {
+            fixed (double* inputPtr = input)
+            fixed (MacdOutput* outputPtr = output)
+            {
+                NativeMethods.wickra_macd_fix_batch_fast(_handle, inputPtr, (WickraMacdOutput*)outputPtr, (nuint)n);
             }
         }
     }

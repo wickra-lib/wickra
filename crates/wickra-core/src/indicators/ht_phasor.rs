@@ -39,6 +39,9 @@ pub struct HtPhasorOutput {
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct HtPhasor {
+    // Raw input window for the 4-bar WMA.
+    price_buf: Vec<f64>,
+    // WMA-smoothed price history feeding the Hilbert detrender taps.
     smooth_buf: Vec<f64>,
     detrender_buf: Vec<f64>,
     q1_buf: Vec<f64>,
@@ -74,19 +77,23 @@ impl Indicator for HtPhasor {
             return None;
         }
 
-        Self::push_front(&mut self.smooth_buf, input, 7);
-        if self.smooth_buf.len() < 7 {
+        Self::push_front(&mut self.price_buf, input, 4);
+        if self.price_buf.len() < 4 {
             return None;
         }
-        let smooth = (4.0 * self.smooth_buf[0]
-            + 3.0 * self.smooth_buf[1]
-            + 2.0 * self.smooth_buf[2]
-            + self.smooth_buf[3])
+        let smooth = (4.0 * self.price_buf[0]
+            + 3.0 * self.price_buf[1]
+            + 2.0 * self.price_buf[2]
+            + self.price_buf[3])
             / 10.0;
+        Self::push_front(&mut self.smooth_buf, smooth, 7);
 
         let period = self.prev_period.max(6.0).min(50.0);
         let adj = 0.075 * period + 0.54;
 
+        if self.smooth_buf.len() < 7 {
+            return None;
+        }
         let s0 = smooth;
         let s2 = self.smooth_buf[2];
         let s4 = self.smooth_buf[4];
@@ -153,6 +160,7 @@ impl Indicator for HtPhasor {
     }
 
     fn reset(&mut self) {
+        self.price_buf.clear();
         self.smooth_buf.clear();
         self.detrender_buf.clear();
         self.q1_buf.clear();
@@ -167,7 +175,7 @@ impl Indicator for HtPhasor {
 
     #[inline]
     fn warmup_period(&self) -> usize {
-        19
+        22
     }
 
     #[inline]
@@ -195,7 +203,7 @@ mod tests {
     #[test]
     fn accessors_and_metadata() {
         let ht = HtPhasor::new();
-        assert_eq!(ht.warmup_period(), 19);
+        assert_eq!(ht.warmup_period(), 22);
         assert_eq!(ht.name(), "HT_PHASOR");
         assert!(!ht.is_ready());
     }
@@ -206,7 +214,7 @@ mod tests {
         let out: Vec<Option<HtPhasorOutput>> = ht.batch(&sine_prices(120));
         assert_eq!(out[0], None);
         let first = out.iter().position(Option::is_some).expect("emits");
-        assert!(first <= 19, "first phasor at index {first}");
+        assert!(first <= 21, "first phasor at index {first}");
         for o in out.into_iter().flatten() {
             assert!(o.inphase.is_finite() && o.quadrature.is_finite());
         }
@@ -239,5 +247,86 @@ mod tests {
         ht.reset();
         assert!(!ht.is_ready());
         assert_eq!(ht.update(100.0), None);
+    }
+
+    use approx::assert_relative_eq;
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup() {
+        // 4 inputs fill the WMA, 7 smoothed values the detrender taps, 7
+        // detrender values the I/Q taps and 7 more of those the second Hilbert
+        // pass: 3 + 6 + 6 + 6 = 21 -> first value at index 21.
+        let mut ht = HtPhasor::new();
+        let out = ht.batch(&sine_prices(60));
+        let warmup = ht.warmup_period();
+        assert_eq!(warmup, 22);
+        assert!(out[..warmup - 1].iter().all(Option::is_none));
+        assert!(out[warmup - 1].is_some());
+    }
+
+    #[test]
+    fn reset_replays_identically() {
+        let prices = sine_prices(150);
+        let fresh = HtPhasor::new().batch(&prices);
+        let mut ht = HtPhasor::new();
+        let first = ht.batch(&prices);
+        ht.reset();
+        let second = ht.batch(&prices);
+        assert_eq!(first, fresh);
+        assert_eq!(second, fresh);
+    }
+
+    #[test]
+    fn wma_of_raw_inputs_feeds_detrender_taps() {
+        let mut ht = HtPhasor::new();
+        // After exactly 4 inputs the WMA is (4*40 + 3*30 + 2*20 + 10) / 10 = 30.
+        for p in [10.0, 20.0, 30.0, 40.0] {
+            assert_eq!(ht.update(p), None);
+        }
+        assert_eq!(ht.smooth_buf, vec![30.0]);
+
+        // Spike of 10 at index 7 in a zero series: smoothed values 4, 3, 2 at
+        // indices 7, 8, 9, so the smooth history is [2, 3, 4, 0, 0, 0, 0].
+        // adj = 0.075*6 + 0.54 = 0.99 and the detrender reads the smoothed taps:
+        //   (0.0962*2 + 0.5769*4 - 0.5769*0 - 0.0962*0) * 0.99 = 2.475.
+        let mut ht = HtPhasor::new();
+        let mut series = [0.0; 10];
+        series[7] = 10.0;
+        let _ = ht.batch(&series);
+        assert_eq!(ht.smooth_buf, vec![2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0]);
+        assert_eq!(ht.detrender_buf.len(), 1);
+        assert_relative_eq!(ht.detrender_buf[0], 2.475, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn inphase_is_detrender_three_bars_back() {
+        // I1 is the detrender delayed by 3 bars; Q1 is the Hilbert transform of
+        // the detrender history scaled by the same adj.
+        let mut ht = HtPhasor::new();
+        let prices = sine_prices(60);
+        let _ = ht.batch(&prices[..59]);
+        let out = ht.update(prices[59]).unwrap();
+        assert_eq!(out.inphase.to_bits(), ht.detrender_buf[3].to_bits());
+        assert_eq!(out.quadrature.to_bits(), ht.q1_buf[0].to_bits());
+    }
+
+    #[test]
+    fn constant_input_stays_finite_and_period_clamps_to_six() {
+        // Zero input: every I/Q term is exactly 0, re == im == 0, and the period
+        // falls back and is clamped up to 6 by the EMA chain.
+        let mut ht = HtPhasor::new();
+        let out = ht.batch(&[0.0; 200]);
+        assert!(out
+            .iter()
+            .flatten()
+            .all(|o| o.inphase.abs().to_bits() == 0 && o.quadrature.abs().to_bits() == 0));
+        assert_relative_eq!(ht.prev_period, 6.0, epsilon = 1e-9);
+        let mut ht = HtPhasor::new();
+        let out = ht.batch(&[100.0; 200]);
+        assert!(out
+            .iter()
+            .flatten()
+            .all(|o| o.inphase.is_finite() && o.quadrature.is_finite()));
+        assert_eq!(out.iter().flatten().count(), 200 - 21);
     }
 }

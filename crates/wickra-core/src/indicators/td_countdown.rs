@@ -15,6 +15,10 @@
 //!   `countdown_target` (13 in DeMark's classic configuration).
 //! - **Sell countdown** advances on bars where `close[i] >= high[i -
 //!   countdown_lookback]`.
+//! - **Bar-13 qualifier:** the final countdown bar must also trade through the
+//!   close of countdown bar `countdown_target − 5` (bar 8 of 13): its low at or
+//!   below that close for a buy, its high at or above it for a sell. A bar that
+//!   meets the comparison but not the qualifier is deferred, not counted.
 //! - An opposite-direction setup completion invalidates the active
 //!   countdown (count resets to zero in the new direction).
 //!
@@ -67,6 +71,9 @@ pub struct TdCountdown {
     sell_setup: usize,
     buy_countdown: usize,
     sell_countdown: usize,
+    /// Close of countdown bar `countdown_target − 5` (bar 8 of 13), which bar
+    /// 13 must reach; `NaN` until that bar is counted.
+    qualifier_close: f64,
     direction: Direction,
     ready: bool,
 }
@@ -103,6 +110,7 @@ impl TdCountdown {
             sell_setup: 0,
             buy_countdown: 0,
             sell_countdown: 0,
+            qualifier_close: f64::NAN,
             direction: Direction::None,
             ready: false,
         })
@@ -159,12 +167,14 @@ impl Indicator for TdCountdown {
             if self.direction != Direction::Buy {
                 self.buy_countdown = 0;
                 self.sell_countdown = 0;
+                self.qualifier_close = f64::NAN;
             }
             self.direction = Direction::Buy;
         } else if self.sell_setup == self.setup_target {
             if self.direction != Direction::Sell {
                 self.buy_countdown = 0;
                 self.sell_countdown = 0;
+                self.qualifier_close = f64::NAN;
             }
             self.direction = Direction::Sell;
         }
@@ -173,12 +183,32 @@ impl Indicator for TdCountdown {
         match self.direction {
             Direction::Buy => {
                 if candle.close <= cd_ref.low && self.buy_countdown < self.countdown_target {
-                    self.buy_countdown += 1;
+                    // The final bar must also trade at or below the close of
+                    // countdown bar 8; otherwise it is deferred.
+                    let next = self.buy_countdown + 1;
+                    if next < self.countdown_target
+                        || (self.qualifier_close.is_nan() || candle.low <= self.qualifier_close)
+                    {
+                        self.buy_countdown = next;
+                        if next + 5 == self.countdown_target {
+                            self.qualifier_close = candle.close;
+                        }
+                    }
                 }
             }
             Direction::Sell => {
                 if candle.close >= cd_ref.high && self.sell_countdown < self.countdown_target {
-                    self.sell_countdown += 1;
+                    // The final bar must also trade at or above the close of
+                    // countdown bar 8; otherwise it is deferred.
+                    let next = self.sell_countdown + 1;
+                    if next < self.countdown_target
+                        || (self.qualifier_close.is_nan() || candle.high >= self.qualifier_close)
+                    {
+                        self.sell_countdown = next;
+                        if next + 5 == self.countdown_target {
+                            self.qualifier_close = candle.close;
+                        }
+                    }
                 }
             }
             Direction::None => {}
@@ -201,6 +231,7 @@ impl Indicator for TdCountdown {
         self.sell_setup = 0;
         self.buy_countdown = 0;
         self.sell_countdown = 0;
+        self.qualifier_close = f64::NAN;
         self.direction = Direction::None;
         self.ready = false;
     }
@@ -354,5 +385,164 @@ mod tests {
         assert_eq!(td.params(), (4, 9, 2, 13));
         assert_eq!(td.warmup_period(), 5);
         assert_eq!(td.name(), "TDCountdown");
+    }
+
+    /// Candles with a +-0.5 range around each close, timestamped by index.
+    fn from_closes(closes: &[f64]) -> Vec<Candle> {
+        closes
+            .iter()
+            .enumerate()
+            .map(|(k, &m)| c(m + 0.5, m - 0.5, m, i64::try_from(k).unwrap()))
+            .collect()
+    }
+
+    /// Buy-side deferral series. Closes fall 100 -> 77 (idx 0..=23): the buy
+    /// setup completes at idx 12 (countdown 1), countdown bar 8 is idx 19
+    /// (close 81, the stored qualifier) and idx 23 reaches countdown 12.
+    /// A rally (90, 95, 95) follows, then idx 27 closes at 89 <= low[25] =
+    /// 94.5 (countdown comparison met) but its low 88.5 > 81, so bar 13 is
+    /// deferred. Idx 28 closes at 80 <= low[26] = 94.5 with low 79.5 <= 81,
+    /// which completes the countdown. The rally only builds a sell setup of 4.
+    fn buy_deferral_closes() -> Vec<f64> {
+        let mut closes: Vec<f64> = (77..=100).rev().map(f64::from).collect();
+        closes.extend([90.0, 95.0, 95.0, 89.0, 80.0]);
+        closes
+    }
+
+    /// Mirror image of [`buy_deferral_closes`] around 100: the sell qualifier
+    /// is close 119 at idx 19; idx 27 (high 111.5 < 119) is deferred and idx
+    /// 28 (high 120.5 >= 119) completes the sell countdown.
+    fn sell_deferral_closes() -> Vec<f64> {
+        buy_deferral_closes().iter().map(|x| 200.0 - x).collect()
+    }
+
+    #[test]
+    fn buy_bar_13_is_deferred_until_low_reaches_bar_8_close() {
+        let mut td = TdCountdown::classic();
+        let out = td.batch(&from_closes(&buy_deferral_closes()));
+        assert_eq!(out[19], Some(8.0));
+        assert_eq!(out[23], Some(12.0));
+        // Rally bars and the deferred bar all keep the count at 12.
+        assert!(out[24..28].iter().all(|v| *v == Some(12.0)));
+        assert_eq!(out[28], Some(13.0));
+    }
+
+    #[test]
+    fn sell_bar_13_is_deferred_until_high_reaches_bar_8_close() {
+        let mut td = TdCountdown::classic();
+        let out = td.batch(&from_closes(&sell_deferral_closes()));
+        assert_eq!(out[19], Some(-8.0));
+        assert_eq!(out[23], Some(-12.0));
+        assert!(out[24..28].iter().all(|v| *v == Some(-12.0)));
+        assert_eq!(out[28], Some(-13.0));
+    }
+
+    #[test]
+    fn qualifier_close_is_bar_8_close() {
+        let mut td = TdCountdown::classic();
+        let candles = from_closes(&buy_deferral_closes());
+        for candle in &candles[..19] {
+            td.update(*candle);
+        }
+        assert!(td.qualifier_close.is_nan());
+        td.update(candles[19]);
+        assert_eq!(td.qualifier_close.to_bits(), 81.0_f64.to_bits());
+    }
+
+    #[test]
+    fn short_target_has_no_qualifier() {
+        // countdown_target = 3 <= 5: no bar 8 exists, so the qualifier stays
+        // NaN and the final bar completes unconditionally (idx 12, 13, 14).
+        let closes: Vec<f64> = (70..=100).rev().map(f64::from).collect();
+        let candles = from_closes(&closes);
+        let mut buy = TdCountdown::new(4, 9, 2, 3).unwrap();
+        let out = buy.batch(&candles);
+        assert_eq!(out[12], Some(1.0));
+        assert_eq!(out[14], Some(3.0));
+        assert_eq!(out[30], Some(3.0));
+        assert!(buy.qualifier_close.is_nan());
+
+        let rising: Vec<f64> = closes.iter().map(|x| 200.0 - x).collect();
+        let mut sell = TdCountdown::new(4, 9, 2, 3).unwrap();
+        let out = sell.batch(&from_closes(&rising));
+        assert_eq!(out[14], Some(-3.0));
+        assert_eq!(out[30], Some(-3.0));
+        assert!(sell.qualifier_close.is_nan());
+    }
+
+    #[test]
+    fn opposite_setup_invalidates_and_clears_qualifier() {
+        // Buy countdown reaches 12 at idx 23 with the qualifier stored (81);
+        // then closes rise 78, 79, ... Idx 24 (78 < 80) and idx 25 (79 == 79)
+        // do not count, so the sell setup runs idx 26..=34 and completes at
+        // idx 34 (close 88), resetting everything.
+        let mut closes: Vec<f64> = (77..=100).rev().map(f64::from).collect();
+        closes.extend((78..=120).map(f64::from));
+        let candles = from_closes(&closes);
+        let mut td = TdCountdown::classic();
+        let out: Vec<Option<f64>> = candles.iter().map(|x| td.update(*x)).collect();
+        assert_eq!(out[23], Some(12.0));
+        assert_eq!(out[33], Some(12.0));
+        // idx 34: invalidated; close 88 >= high[32] = 86.5 so the sell
+        // countdown starts at 1 on the same bar and reaches 13 at idx 46.
+        assert_eq!(out[34], Some(-1.0));
+        assert_eq!(out[46], Some(-13.0));
+
+        let mut probe = TdCountdown::classic();
+        for candle in &candles[..34] {
+            probe.update(*candle);
+        }
+        assert_eq!(probe.qualifier_close.to_bits(), 81.0_f64.to_bits());
+        probe.update(candles[34]);
+        assert!(probe.qualifier_close.is_nan());
+
+        // And back again: a buy setup after the sell countdown re-arms buy.
+        let mut back = closes.clone();
+        back.extend((60..=119).rev().map(f64::from));
+        let mut td2 = TdCountdown::classic();
+        let out2 = td2.batch(&from_closes(&back));
+        let last = out2.last().copied().flatten().unwrap();
+        assert_eq!(last.to_bits(), 13.0_f64.to_bits());
+    }
+
+    #[test]
+    fn first_value_lands_at_warmup_minus_one() {
+        let candles = from_closes(&buy_deferral_closes());
+        for (sl, cl) in [(4, 2), (2, 6), (1, 1)] {
+            let mut td = TdCountdown::new(sl, 9, cl, 13).unwrap();
+            let warm = td.warmup_period();
+            let out = td.batch(&candles);
+            assert!(out[..warm - 1].iter().all(Option::is_none));
+            assert!(out[warm - 1].is_some());
+        }
+    }
+
+    #[test]
+    fn reset_reproduces_fresh_run() {
+        let candles = from_closes(&sell_deferral_closes());
+        let mut fresh = TdCountdown::classic();
+        let expected = fresh.batch(&candles);
+        let mut td = TdCountdown::classic();
+        td.batch(&from_closes(&buy_deferral_closes()));
+        td.reset();
+        assert!(td.qualifier_close.is_nan());
+        assert_eq!(td.batch(&candles), expected);
+    }
+
+    #[test]
+    fn batch_nan_into_matches_streaming() {
+        let candles = from_closes(&buy_deferral_closes());
+        let mut a = TdCountdown::classic();
+        let mut out = vec![0.0; candles.len()];
+        a.batch_nan_into(&candles, &mut out);
+        let mut b = TdCountdown::classic();
+        let streamed: Vec<f64> = candles
+            .iter()
+            .map(|x| b.update(*x).unwrap_or(f64::NAN))
+            .collect();
+        assert!(out
+            .iter()
+            .zip(&streamed)
+            .all(|(x, y)| x.to_bits() == y.to_bits()));
     }
 }

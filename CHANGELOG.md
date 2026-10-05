@@ -7,6 +7,133 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-06
+
+Formula audit. Every one of the 514 indicators was checked against its published
+definition; 39 departed from it. They now follow the source each page cites, and
+the indicators that claim TA-Lib compatibility are compared with TA-Lib itself in
+the test suite.
+
+### Breaking
+
+- **`ADOSC` removed; `AdOscillator` is the Williams A/D oscillator.** TA-Lib's
+  `ADOSC` is the Chaikin A/D oscillator. Python, Node and WASM exported the
+  Williams oscillator under that name; it is now `AdOscillator` everywhere and
+  reports `WilliamsAdOscillator` from `name()`. Migration: code that ported
+  `talib.ADOSC(high, low, close, volume, fast, slow)` uses
+  `ChaikinOscillator(fast, slow)`; code that wanted the Williams oscillator
+  renames `ADOSC()` to `AdOscillator()`.
+- **`EstimatedLeverageRatio` takes `(open_interest, exchange_reserve)`.**
+  CryptoQuant's ratio divides open interest by the exchange's coin reserve, which
+  `DerivativesTick` does not carry. Migration: call
+  `update(open_interest, exchange_reserve)` / `batch(open_interest,
+  exchange_reserve)` in every binding instead of passing a derivatives tick.
+- **`TDREI` takes a `close` column** in Python, Node and WASM (its alternative
+  condition compares against the closes seven and eight bars back). Migration:
+  `batch(high, low)` becomes `batch(high, low, close)`, `update(high, low)`
+  becomes `update(high, low, close)`.
+- **`BetterVolume` classifies bars** (Barry Taylor's emini-watch rules): `0`
+  neutral, `1` low volume, `2` high churn, `±3` climax up/down, `4` climax +
+  churn, instead of a continuous effort/result oscillator. Its Python, Node and
+  WASM batch takes an `open` column. Migration: `batch(high, low, close,
+  volume)` becomes `batch(open, high, low, close, volume)`; treat the output as
+  a category code.
+- **Python `deriv_oi_long_short` removed.** It fed the old
+  `EstimatedLeverageRatio` input; build the `(open_interest, exchange_reserve)`
+  pair instead.
+- **`HasbrouckInformationShare` needs `period >= 6`** (a VECM with four
+  regressors); smaller periods return `InvalidPeriod`.
+- **New defaults.** `AccelerationBands` uses `factor = 4` (Headley / TA-Lib
+  `ACCBANDS`; `0.001` belonged to Headley's ×1000-scaled spelling).
+  `EmpiricalModeDecomposition` uses `fraction = 0.1` (Ehlers) and the fraction is
+  now the trend-threshold fraction. Migration: pass the old value explicitly to
+  keep the old bands, or drop it to get the published default.
+- **Go module path is `github.com/wickra-lib/wickra-go/v2`.** Go's semantic
+  import versioning puts the major version into the module path from v2 on; the
+  1.x releases stay at the bare path. Migration: `go get
+  github.com/wickra-lib/wickra-go/v2` and import
+  `"github.com/wickra-lib/wickra-go/v2"`.
+- **Warmup changes.** The first value now arrives after these many inputs:
+
+  | Indicator | Before | Now |
+  |---|---|---|
+  | `Rvi(10)` | 10 | 13 (`period + 3`) |
+  | `Inertia(14, 20)` | 33 | 46 (`2·rvi − 1 + linreg − 1`) |
+  | `EmpiricalModeDecomposition(20, 0.1)` | `period · fraction` | 50 (`max(2·period, 50)`) |
+  | `TdRei(5)` | 11 | 13 (`period + 8`) |
+  | `TdDifferential` | 2 | 3 |
+  | `HikkakeModified` | 3 | 4 |
+  | `HasbrouckInformationShare(20)` | 21 | 22 (`period + 2`) |
+  | `HtPhasor` | 19 | 22 |
+
+### Changed
+
+- **`Keltner` uses the modern definition**: the middle line is an EMA of the
+  close (Raschke; StockCharts, TradingView), not of the typical price. Values
+  differ from earlier releases; the channel width (`multiplier · ATR`) is
+  unchanged.
+- **Candlestick rules follow TA-Lib.** `MorningEveningStar` needs bar 3 to close
+  30% into bar 1's body (TA-Lib's default penetration) rather than past its
+  midpoint, and the three middle bars of `RisingThreeMethods` /
+  `FallingThreeMethods` only need their real body to overlap bar 1's range.
+  Body and shadow sizes are still judged against the pattern's own bars, where
+  TA-Lib uses rolling averages of the previous bars.
+
+### Fixed
+
+- Ehlers (*Cycle Analytics for Traders*, *Rocket Science for Traders*, S&C):
+  `AdaptiveLaguerreFilter` (alpha is the median of the last five normalised
+  errors, not `1 −` it), `AutocorrelationPeriodogram` (`R = 0.2·SqSum² + 0.8·R`),
+  `FisherTransform` (`+ 0.5 · Fisher[1]`, the clamped value recurs), `Reflex` /
+  `Trendflex` (SuperSmoother at half the period), `SineWave` (the dominant-cycle
+  phase of TA-Lib `HT_SINE`), `EmpiricalModeDecomposition` (Ehlers & Way:
+  `Mean = SMA(BP, 2·period)` against peak / valley thresholds), `Rvi` (Ehlers'
+  Relative Vigor Index with the 1-2-2-1 weighting).
+- Hilbert family (`HilbertDominantCycle`, `HtDcPhase`, `HtPhasor`,
+  `HtTrendMode`, `Mama`): all four detrender taps read the WMA-smoothed price,
+  as Ehlers and TA-Lib do; the lagged taps used to read the raw input.
+  `HtTrendMode` averages the raw price for its instantaneous trendline, as TA-Lib
+  `HT_TRENDMODE` does.
+- Wilder / TA-Lib `SAR`, `SAREXT`: `Psar` and `SarExt` clamp the SAR with the
+  two previous bars, seed the direction from the first two bars' directional
+  movement with the extreme point on the second bar, and keep a reversal SAR
+  outside the reversal bar's and the previous bar's range.
+- Volume: `Kvo` (Klinger: `dm = high − low`, trend from `high + low + close`),
+  `DemandIndex` (Sibbet's buying / selling pressure, bounded to ±100),
+  `CumulativeVolumeIndex` (unnormalised net advancing volume), `BreadthThrust`
+  (Zweig's 10-period EMA).
+- `Inertia` builds on Dorsey's Relative Volatility Index.
+- `MACDFIX` uses TA-Lib's 0.15 / 0.075 smoothing constants.
+- Risk (Bacon, *Practical Portfolio Performance*): `SterlingRatio` and
+  `BurkeRatio` measure drawdown episodes, not every bar under water.
+- DeMark (Perl, *DeMark Indicators*): `TdDifferential` (two consecutive closes,
+  true high / low pressure), `TdRei` (the alternative close condition, clamped
+  to ±100), `TdSequential` / `TdCountdown` (the bar-13 qualifier against
+  countdown bar 8).
+- Patterns (Nison; TA-Lib `CDL*`): `MorningEveningStar` (the star's body gap),
+  `Tristar` (the middle doji's body gap), `LadderBottom` (`close5 > high4`),
+  `HikkakeModified` (Chesler's double inside bar), `FibFan` (retracements
+  measured from the end of the leg).
+- `HasbrouckInformationShare` estimates the information share from a VECM with
+  Cholesky bounds (Hasbrouck 1995) instead of a return-variance ratio.
+- `DemandIndex` is listed among the libm-dependent golden fixtures (it calls
+  `exp`), so the cross-platform golden runners compare it with a tolerance.
+
+### Added
+
+- **TA-Lib reference tests** (`crates/wickra-core/tests/talib_reference.rs`):
+  `ACCBANDS`, `SAR`, `SAREXT`, `MACDFIX`, `ADOSC` (↔ `ChaikinOscillator`),
+  `HT_DCPERIOD`, `HT_DCPHASE`, `HT_PHASOR`, `HT_SINE`, `HT_TRENDMODE`, `MAMA`
+  and six candlestick patterns are compared with TA-Lib 0.8.1 to `1e-9`, on
+  fixtures generated by `scripts/gen_talib_reference.py` into `testdata/talib/`.
+  `MACDFIX`, `ADOSC`, the Hilbert family and `MAMA` match once their start-up
+  has settled (Wickra seeds each EMA with the SMA of its first window and waits
+  for its Hilbert taps to fill; TA-Lib seeds differently); the settle bar of
+  each is recorded in the test.
+- **`MACDFIX` fast batch everywhere**: the fused exact batch and the SIMD fast
+  batch of `MACD` in Rust, the C ABI family (C, C++, C#, Go, Java, R), Python
+  (`batch_fast`), Node and WASM (`batchFast`, `batchInto`, `batchFastInto`).
+
 ## [1.0.7] - 2026-10-03
 
 Throughput. Every batch the library had gets faster without a bit of its output
@@ -3883,7 +4010,8 @@ public API changes.
   optional Binance live feed.
 - Bindings for Python, Node.js, and WebAssembly.
 
-[Unreleased]: https://github.com/wickra-lib/wickra/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/wickra-lib/wickra/compare/v1.0.7...v2.0.0
 [1.0.7]: https://github.com/wickra-lib/wickra/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/wickra-lib/wickra/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/wickra-lib/wickra/compare/v1.0.4...v1.0.5

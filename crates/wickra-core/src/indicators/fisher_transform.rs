@@ -9,7 +9,8 @@ use crate::traits::Indicator;
 ///
 /// Normalises the most recent price to `[-1, +1]` via min/max over a `period`
 /// window, smooths the normalised value with a 0.33 / 0.67 IIR step, and
-/// applies the Fisher transform `0.5 * ln((1+x)/(1-x))`. The result has a
+/// applies the Fisher transform with Ehlers' own output smoothing,
+/// `Fisher_t = 0.5 * ln((1+x)/(1-x)) + 0.5 * Fisher_{t-1}`. The result has a
 /// near-Gaussian distribution, so extreme readings stand out cleanly. A
 /// secondary signal is produced by lagging the Fisher value by one bar (the
 /// classic trigger), making the indicator a two-line crossover system in
@@ -101,11 +102,15 @@ impl Indicator for FisherTransform {
         } else {
             0.0
         };
-        // Ehlers IIR: 0.33 * raw + 0.67 * prev_smoothed, then clamp.
-        self.smoothed = 0.33f64.mul_add(raw, 0.67 * self.smoothed);
-        // Clamp strictly inside (-1, +1) to keep the log finite.
-        let clamped = self.smoothed.clamp(-0.999, 0.999);
-        let fisher = 0.5 * ((1.0 + clamped) / (1.0 - clamped)).ln();
+        // Ehlers IIR: 0.33 * raw + 0.67 * prev_smoothed, then clamp. The clamped
+        // value is what recurs, as in Ehlers' code (Value1 is overwritten).
+        let clamped = 0.33f64
+            .mul_add(raw, 0.67 * self.smoothed)
+            .clamp(-0.999, 0.999);
+        self.smoothed = clamped;
+        // Fisher transform plus Ehlers' half-weight carry of the previous value.
+        let prev = self.last_fisher.unwrap_or(0.0);
+        let fisher = 0.5f64.mul_add(((1.0 + clamped) / (1.0 - clamped)).ln(), 0.5 * prev);
         self.last_fisher = Some(fisher);
         Some(fisher)
     }
@@ -136,6 +141,7 @@ impl Indicator for FisherTransform {
 mod tests {
     use super::*;
     use crate::traits::BatchExt;
+    use approx::assert_relative_eq;
 
     #[test]
     fn new_rejects_zero_period() {
@@ -204,5 +210,131 @@ mod tests {
         ft.reset();
         assert!(!ft.is_ready());
         assert_eq!(ft.update(1.0), None);
+    }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            FisherTransform::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup_minus_one() {
+        let prices: Vec<f64> = (0..40)
+            .map(|i| 50.0 + (f64::from(i) * 0.4).sin() * 3.0)
+            .collect();
+        for period in [1usize, 4, 9] {
+            let mut ft = FisherTransform::new(period).unwrap();
+            let out = ft.batch(&prices);
+            let warm = ft.warmup_period();
+            assert!(out[..warm - 1].iter().all(Option::is_none));
+            assert!(out[warm - 1].is_some());
+        }
+    }
+
+    #[test]
+    fn hand_computed_recursive_values() {
+        let mut ft = FisherTransform::new(3).unwrap();
+        assert_eq!(ft.update(1.0), None);
+        assert_eq!(ft.update(2.0), None);
+        // Window [1, 2, 3], input 3 is the max -> raw = 2 * 1 - 1 = 1.
+        // x1 = 0.33 * 1 + 0.67 * 0 = 0.33
+        // F1 = 0.5 * ln(1.33 / 0.67) + 0.5 * 0 = 0.342_828_254...
+        let f1 = ft.update(3.0).unwrap();
+        assert_relative_eq!(f1, 0.5 * (1.33f64 / 0.67).ln(), epsilon = 1e-12);
+        assert_relative_eq!(f1, 0.342_828_254_415_393_8, epsilon = 1e-12);
+        // Window [2, 3, 3], input 3 is the max -> raw = 1.
+        // x2 = 0.33 + 0.67 * 0.33 = 0.5511
+        // F2 = 0.5 * ln(1.5511 / 0.4489) + 0.5 * F1 = 0.791_373_872...
+        let f2 = ft.update(3.0).unwrap();
+        assert_relative_eq!(
+            f2,
+            0.5 * (1.5511f64 / 0.4489).ln() + 0.5 * f1,
+            epsilon = 1e-12
+        );
+        assert_relative_eq!(f2, 0.791_373_872_129_106_3, epsilon = 1e-12);
+        // Window [3, 3, 1], input 1 is the min -> raw = -1.
+        // x3 = -0.33 + 0.67 * 0.5511 = 0.039_237
+        // F3 = 0.5 * ln(1.039_237 / 0.960_763) + 0.5 * F2 = 0.434_944_090...
+        let f3 = ft.update(1.0).unwrap();
+        assert_relative_eq!(f3, 0.434_944_090_356_889_4, epsilon = 1e-12);
+        assert_eq!(ft.value(), Some(f3));
+    }
+
+    #[test]
+    fn clamped_value_is_what_recurs() {
+        // A strictly rising series keeps raw = 1, so the smoothed value climbs
+        // toward 1 and is clamped at 0.999; the clamped value is stored.
+        let mut ft = FisherTransform::new(3).unwrap();
+        for i in 0..60 {
+            ft.update(f64::from(i));
+        }
+        assert_eq!(ft.smoothed.to_bits(), 0.999f64.to_bits());
+        let prev = ft.value().unwrap();
+        // Steady state: F = 0.5 * ln(1.999 / 0.001) + 0.5 * F -> F -> ln(1999) = 7.600_402.
+        assert_relative_eq!(prev, 1999f64.ln(), epsilon = 1e-9);
+        // A drop to the window minimum: raw = -1,
+        // x = -0.33 + 0.67 * 0.999 = 0.339_33 (recurring from the clamped 0.999).
+        let next = ft.update(-100.0).unwrap();
+        assert_relative_eq!(ft.smoothed, 0.339_33, epsilon = 1e-12);
+        assert_relative_eq!(
+            next,
+            0.5 * (1.339_33f64 / 0.660_67).ln() + 0.5 * prev,
+            epsilon = 1e-12
+        );
+    }
+
+    #[test]
+    fn falling_series_clamps_at_lower_bound() {
+        let mut ft = FisherTransform::new(3).unwrap();
+        for i in 0..60 {
+            ft.update(-f64::from(i));
+        }
+        assert_eq!(ft.smoothed.to_bits(), (-0.999f64).to_bits());
+        assert_relative_eq!(ft.value().unwrap(), -(1999f64.ln()), epsilon = 1e-9);
+    }
+
+    #[test]
+    fn flat_window_decays_previous_reading() {
+        // range == 0 -> raw = 0: x_t = 0.67 * x_{t-1}, and F carries half of its
+        // previous value, so a flat stretch decays toward zero.
+        let mut ft = FisherTransform::new(2).unwrap();
+        ft.update(1.0);
+        let f1 = ft.update(2.0).unwrap();
+        // Window [2, 2]: raw = 0 -> x = 0.67 * 0.33 = 0.2211.
+        let f2 = ft.update(2.0).unwrap();
+        assert_relative_eq!(
+            f2,
+            0.5 * (1.2211f64 / 0.7789).ln() + 0.5 * f1,
+            epsilon = 1e-12
+        );
+        // F2 = 0.5 * 0.449_6 + 0.5 * 0.342_8 = 0.396; then a long flat stretch decays.
+        assert!(f2 > f1);
+        let tail = ft.batch(&[2.0; 40]);
+        assert!(tail.iter().flatten().all(|v| *v > 0.0));
+        assert!(ft.value().unwrap() < 1e-6);
+    }
+
+    #[test]
+    fn reset_replays_identically_and_batch_nan_into_matches() {
+        let prices: Vec<f64> = (0..80)
+            .map(|i| 100.0 + (f64::from(i) * 0.27).sin() * 6.0 + f64::from(i % 3))
+            .collect();
+        let mut ft = FisherTransform::new(8).unwrap();
+        let first = ft.batch(&prices);
+        ft.reset();
+        let second = ft.batch(&prices);
+        assert_eq!(first, second);
+        assert_eq!(second, FisherTransform::new(8).unwrap().batch(&prices));
+        let mut out = vec![0.0; prices.len()];
+        FisherTransform::new(8)
+            .unwrap()
+            .batch_nan_into(&prices, &mut out);
+        assert!(out
+            .iter()
+            .zip(&first)
+            .all(|(a, b)| a.to_bits() == b.unwrap_or(f64::NAN).to_bits()));
     }
 }

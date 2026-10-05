@@ -481,7 +481,7 @@ public class GoldenAllTests
     public void Golden_AdOscillator()
     {
         using var ind = new Wickra.AdOscillator();
-        Assert.Equal("ADOSC", ind.Name());
+        Assert.Equal("WilliamsAdOscillator", ind.Name());
         Compare("AdOscillator", Drive_AdOscillator(ind));
     }
     [Fact]
@@ -4712,8 +4712,7 @@ public class GoldenAllTests
         for (var i = 0; i < Rows.Length; i++)
         {
             var r = Rows[i];
-            var d = DerivFields(r);
-            got.Add(new[] { ind.Update(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], i) });
+            got.Add(new[] { ind.Update(r[3], r[0]) });
         }
         return got;
     }
@@ -4728,7 +4727,7 @@ public class GoldenAllTests
     public void Batch_EstimatedLeverageRatio()
     {
         using var ind = new Wickra.EstimatedLeverageRatio();
-        CompareBatchRows("EstimatedLeverageRatio", ScalarRows(ind.Batch(DerivColumn(0), DerivColumn(1), DerivColumn(2), DerivColumn(3), DerivColumn(4), DerivColumn(5), DerivColumn(6), DerivColumn(7), DerivColumn(8), DerivColumn(9), DerivColumn(10), Stamps)));
+        CompareBatchRows("EstimatedLeverageRatio", ScalarRows(ind.Batch(Close, Open)));
     }
     [Fact]
     public void Lifecycle_EstimatedLeverageRatio()

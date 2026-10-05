@@ -33,6 +33,9 @@ use crate::traits::Indicator;
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct HtDcPhase {
+    // Raw input window for the 4-bar WMA.
+    price_buf: Vec<f64>,
+    // WMA-smoothed price history feeding the Hilbert detrender taps.
     smooth_buf: Vec<f64>,
     detrender_buf: Vec<f64>,
     q1_buf: Vec<f64>,
@@ -79,20 +82,24 @@ impl Indicator for HtDcPhase {
         }
         self.count += 1;
 
-        Self::push_front(&mut self.smooth_buf, input, 7);
-        if self.smooth_buf.len() < 7 {
+        Self::push_front(&mut self.price_buf, input, 4);
+        if self.price_buf.len() < 4 {
             return None;
         }
-        let smooth = (4.0 * self.smooth_buf[0]
-            + 3.0 * self.smooth_buf[1]
-            + 2.0 * self.smooth_buf[2]
-            + self.smooth_buf[3])
+        let smooth = (4.0 * self.price_buf[0]
+            + 3.0 * self.price_buf[1]
+            + 2.0 * self.price_buf[2]
+            + self.price_buf[3])
             / 10.0;
+        Self::push_front(&mut self.smooth_buf, smooth, 7);
         Self::push_front(&mut self.smooth_price, smooth, MAX_DC_PERIOD);
 
         let period = self.prev_period.max(6.0).min(50.0);
         let adj = 0.075 * period + 0.54;
 
+        if self.smooth_buf.len() < 7 {
+            return None;
+        }
         let s0 = smooth;
         let s2 = self.smooth_buf[2];
         let s4 = self.smooth_buf[4];
@@ -173,6 +180,7 @@ impl Indicator for HtDcPhase {
     }
 
     fn reset(&mut self) {
+        self.price_buf.clear();
         self.smooth_buf.clear();
         self.detrender_buf.clear();
         self.q1_buf.clear();
@@ -303,5 +311,98 @@ mod tests {
         ht.reset();
         assert!(!ht.is_ready());
         assert_eq!(ht.update(100.0), None);
+    }
+
+    use crate::traits::BatchNanExt;
+    use approx::assert_relative_eq;
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup() {
+        let mut ht = HtDcPhase::new();
+        let out = ht.batch(&sine_prices(120));
+        let warmup = ht.warmup_period();
+        assert!(out[..warmup - 1].iter().all(Option::is_none));
+        assert!(out[warmup - 1].is_some());
+    }
+
+    #[test]
+    fn reset_replays_identically() {
+        let prices = sine_prices(150);
+        let fresh = HtDcPhase::new().batch(&prices);
+        let mut ht = HtDcPhase::new();
+        let first = ht.batch(&prices);
+        ht.reset();
+        let second = ht.batch(&prices);
+        assert_eq!(first, fresh);
+        assert_eq!(second, fresh);
+    }
+
+    #[test]
+    fn batch_nan_paths_match_streaming_bitwise() {
+        let prices = sine_prices(150);
+        let mut out = vec![0.0; prices.len()];
+        HtDcPhase::new().batch_nan_into(&prices, &mut out);
+        let nan = HtDcPhase::new().batch_nan(&prices);
+        let fast = HtDcPhase::new().batch_fast(&prices);
+        let mut stream = HtDcPhase::new();
+        let expected: Vec<u64> = prices
+            .iter()
+            .map(|&p| stream.update(p).unwrap_or(f64::NAN).to_bits())
+            .collect();
+        assert!(out.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(nan.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(fast.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+    }
+
+    #[test]
+    fn wma_of_raw_inputs_feeds_detrender_taps() {
+        let mut ht = HtDcPhase::new();
+        // After exactly 4 inputs the WMA is (4*40 + 3*30 + 2*20 + 10) / 10 = 30.
+        for p in [10.0, 20.0, 30.0, 40.0] {
+            assert_eq!(ht.update(p), None);
+        }
+        assert_eq!(ht.smooth_buf, vec![30.0]);
+        assert_eq!(ht.smooth_price, vec![30.0]);
+
+        // Spike of 10 at index 7 in a zero series: smoothed values 4, 3, 2 at
+        // indices 7, 8, 9, so the smooth history is [2, 3, 4, 0, 0, 0, 0].
+        // adj = 0.075*6 + 0.54 = 0.99 and the detrender reads the smoothed taps:
+        //   (0.0962*2 + 0.5769*4 - 0.5769*0 - 0.0962*0) * 0.99 = 2.475.
+        let mut ht = HtDcPhase::new();
+        let mut series = [0.0; 10];
+        series[7] = 10.0;
+        let _ = ht.batch(&series);
+        assert_eq!(ht.smooth_buf, vec![2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0]);
+        assert_eq!(ht.detrender_buf.len(), 1);
+        assert_relative_eq!(ht.detrender_buf[0], 2.475, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn dc_phase_quadrant_and_wrap_hand_computed() {
+        // real = 1, imag = -1, period 20: atan(-1) = -45; -45 + 90 + 360/20 = 63;
+        // imag < 0 adds 180 -> 243 (no wrap, 243 <= 315).
+        assert_relative_eq!(compute_dc_phase(1.0, -1.0, 20.0), 243.0, epsilon = 1e-9);
+        // real = -1, imag = -1, period 20: atan(1) = 45; 45 + 90 + 18 = 153;
+        // imag < 0 adds 180 -> 333 > 315, so it wraps to 333 - 360 = -27.
+        assert_relative_eq!(compute_dc_phase(-1.0, -1.0, 20.0), -27.0, epsilon = 1e-9);
+        // real = 0, imag = 0, period 6: degenerate -> 90; 90 + 90 + 60 = 240.
+        assert_relative_eq!(compute_dc_phase(0.0, 0.0, 6.0), 240.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn zero_series_phase_converges_to_degenerate_value() {
+        // Zero input: real = imag = 0 so the phase is 90 + 90 + 360/period, and
+        // the smoothed period converges on the lower clamp of 6 -> 240 degrees.
+        let mut ht = HtDcPhase::new();
+        let out = ht.batch(&[0.0; 400]);
+        assert!(out.iter().flatten().all(|v| v.is_finite()));
+        assert_relative_eq!(ht.value().unwrap(), 240.0, epsilon = 1e-6);
+        // A non-zero flat series stays finite.
+        let mut ht = HtDcPhase::new();
+        let out = ht.batch(&[100.0; 400]);
+        assert_eq!(
+            out.iter().flatten().filter(|v| v.is_finite()).count(),
+            400 - 49
+        );
     }
 }

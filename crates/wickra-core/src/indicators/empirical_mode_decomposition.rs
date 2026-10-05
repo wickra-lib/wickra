@@ -1,33 +1,43 @@
-//! Ehlers Empirical Mode Decomposition (bandpass + envelope).
+//! Ehlers Empirical Mode Decomposition (bandpass trend component).
 
 use std::collections::VecDeque;
 use std::f64::consts::PI;
 
 use crate::error::{Error, Result};
-use crate::indicators::super_smoother::SuperSmoother;
 use crate::traits::Indicator;
+
+/// Ehlers' half-bandwidth `Delta` of the bandpass (his published default).
+const DELTA: f64 = 0.1;
+
+/// Length of the peak / valley averages.
+const PEAK_AVG_LEN: usize = 50;
 
 /// Ehlers' adaptation of Empirical Mode Decomposition (EMD).
 ///
-/// Implementation per *Cycle Analytics for Traders* (Ehlers 2013, ch. 14).
-/// The procedure is:
+/// From John Ehlers & Ric Way, *"Empirical Mode Decomposition"*, Technical
+/// Analysis of Stocks & Commodities, March 2010:
 ///
-/// 1. Apply a bandpass filter centred on `period` to the price.
-/// 2. Detect peaks and valleys of the bandpassed signal over a `fraction`
-///    of the period.
-/// 3. Average the peaks and valleys separately to form an upper / lower
-///    envelope, then return the centred bandpass minus the envelope mean
-///    (the "EMD" line).
+/// ```text
+/// β  = cos(2π / Period),  γ = 1 / cos(4π · Delta / Period),  α = γ − √(γ² − 1)
+/// BP = 0.5·(1 − α)·(Price − Price[2]) + β·(1 + α)·BP[1] − α·BP[2]
+/// Mean   = SMA(BP, 2 · Period)                          (the trend component)
+/// Peak   = BP[1] at a local maximum of BP, otherwise the previous Peak
+/// Valley = BP[1] at a local minimum of BP, otherwise the previous Valley
+/// Upper  = Fraction · SMA(Peak, 50)
+/// Lower  = Fraction · SMA(Valley, 50)
+/// ```
 ///
-/// The output crosses zero at trend changes and stays near zero in
-/// non-trending markets — the classic visual cue Ehlers documents.
+/// `Delta` is Ehlers' `0.1`. The output is `Mean`; the two thresholds are
+/// available from [`upper`](Self::upper) and [`lower`](Self::lower) after each
+/// update. The market is in a trend mode while `Mean` sits above `Upper`
+/// (bullish) or below `Lower` (bearish), and in a cycle mode between them.
 ///
 /// # Example
 ///
 /// ```
 /// use wickra_core::{Indicator, EmpiricalModeDecomposition};
 ///
-/// let mut emd = EmpiricalModeDecomposition::new(20, 0.5).unwrap();
+/// let mut emd = EmpiricalModeDecomposition::new(20, 0.1).unwrap();
 /// let mut last = None;
 /// for i in 0..200 {
 ///     last = emd.update(100.0 + (f64::from(i) * 0.3).sin() * 5.0);
@@ -38,32 +48,35 @@ use crate::traits::Indicator;
 pub struct EmpiricalModeDecomposition {
     period: usize,
     fraction: f64,
-    bandpass: f64,
-    prev_bp_1: f64,
-    prev_bp_2: f64,
-    prev_in_1: Option<f64>,
-    prev_in_2: Option<f64>,
     beta: f64,
     alpha: f64,
-    smoother: SuperSmoother,
-    peak_smoother: SuperSmoother,
-    valley_smoother: SuperSmoother,
-    bp_buf: VecDeque<f64>,
-    bp_history_len: usize,
+    prev_in_1: Option<f64>,
+    prev_in_2: Option<f64>,
+    prev_bp_1: f64,
+    prev_bp_2: f64,
+    peak: f64,
+    valley: f64,
+    bp_window: VecDeque<f64>,
+    bp_sum: f64,
+    peak_window: VecDeque<f64>,
+    peak_sum: f64,
+    valley_window: VecDeque<f64>,
+    valley_sum: f64,
+    upper: f64,
+    lower: f64,
     last_value: Option<f64>,
 }
 
 impl EmpiricalModeDecomposition {
-    /// Construct with the bandpass centre period and the peak-detection
-    /// window fraction.
+    /// Construct with the bandpass centre period and the threshold fraction.
     ///
-    /// `fraction` is multiplied by `period` to size the rolling peak/valley
-    /// window; Ehlers recommends `0.5`. Both must be positive.
+    /// `fraction` scales the averaged peaks and valleys into the trend-mode
+    /// thresholds; Ehlers uses `0.1`.
     ///
     /// # Errors
     ///
     /// Returns [`Error::PeriodZero`] if `period == 0`, and
-    /// [`Error::InvalidPeriod`] if `fraction <= 0` or non-finite.
+    /// [`Error::InvalidPeriod`] if `fraction` is not in `(0, 1]`.
     pub fn new(period: usize, fraction: f64) -> Result<Self> {
         if period == 0 {
             return Err(Error::PeriodZero);
@@ -79,24 +92,27 @@ impl EmpiricalModeDecomposition {
             });
         }
         let beta = (2.0 * PI / period as f64).cos();
-        let gamma = 1.0 / (2.0 * PI * 0.25 / period as f64).cos();
+        let gamma = 1.0 / (4.0 * PI * DELTA / period as f64).cos();
         let alpha = gamma - (gamma * gamma - 1.0).sqrt();
-        let history = (period as f64 * fraction).round().max(1.0) as usize;
         Ok(Self {
             period,
             fraction,
-            bandpass: 0.0,
-            prev_bp_1: 0.0,
-            prev_bp_2: 0.0,
-            prev_in_1: None,
-            prev_in_2: None,
             beta,
             alpha,
-            smoother: SuperSmoother::new(period.max(2))?,
-            peak_smoother: SuperSmoother::new(period.max(2))?,
-            valley_smoother: SuperSmoother::new(period.max(2))?,
-            bp_buf: VecDeque::with_capacity(history),
-            bp_history_len: history,
+            prev_in_1: None,
+            prev_in_2: None,
+            prev_bp_1: 0.0,
+            prev_bp_2: 0.0,
+            peak: 0.0,
+            valley: 0.0,
+            bp_window: VecDeque::with_capacity(2 * period),
+            bp_sum: 0.0,
+            peak_window: VecDeque::with_capacity(PEAK_AVG_LEN),
+            peak_sum: 0.0,
+            valley_window: VecDeque::with_capacity(PEAK_AVG_LEN),
+            valley_sum: 0.0,
+            upper: 0.0,
+            lower: 0.0,
             last_value: None,
         })
     }
@@ -111,9 +127,28 @@ impl EmpiricalModeDecomposition {
         self.fraction
     }
 
-    /// Current value if available.
+    /// Current value (the trend component `Mean`) if available.
     pub const fn value(&self) -> Option<f64> {
         self.last_value
+    }
+
+    /// Upper trend threshold `Fraction · SMA(Peak, 50)` after the last update.
+    pub const fn upper(&self) -> f64 {
+        self.upper
+    }
+
+    /// Lower trend threshold `Fraction · SMA(Valley, 50)` after the last update.
+    pub const fn lower(&self) -> f64 {
+        self.lower
+    }
+
+    /// Push `x` into a fixed-length window with a running sum.
+    fn push(window: &mut VecDeque<f64>, sum: &mut f64, len: usize, x: f64) {
+        if window.len() == len {
+            *sum -= window.pop_front().expect("window is non-empty");
+        }
+        window.push_back(x);
+        *sum += x;
     }
 }
 
@@ -125,63 +160,71 @@ impl Indicator for EmpiricalModeDecomposition {
         if !input.is_finite() {
             return None;
         }
-        // 2nd-order resonant bandpass per Ehlers ch. 6.
-        let bp = if let (Some(_x1), Some(x2)) = (self.prev_in_1, self.prev_in_2) {
+        // 2nd-order resonant bandpass.
+        let bp = if let Some(x2) = self.prev_in_2 {
             0.5 * (1.0 - self.alpha) * (input - x2)
                 + self.beta * (1.0 + self.alpha) * self.prev_bp_1
                 - self.alpha * self.prev_bp_2
         } else {
             0.0
         };
+        // Peak / valley of the previous bandpass value.
+        if self.prev_bp_1 > bp && self.prev_bp_1 > self.prev_bp_2 {
+            self.peak = self.prev_bp_1;
+        }
+        if self.prev_bp_1 < bp && self.prev_bp_1 < self.prev_bp_2 {
+            self.valley = self.prev_bp_1;
+        }
         self.prev_bp_2 = self.prev_bp_1;
         self.prev_bp_1 = bp;
-        self.bandpass = bp;
         self.prev_in_2 = self.prev_in_1;
         self.prev_in_1 = Some(input);
 
-        if self.bp_buf.len() == self.bp_history_len {
-            self.bp_buf.pop_front();
-        }
-        self.bp_buf.push_back(bp);
-        if self.bp_buf.len() < self.bp_history_len {
+        Self::push(&mut self.bp_window, &mut self.bp_sum, 2 * self.period, bp);
+        Self::push(
+            &mut self.peak_window,
+            &mut self.peak_sum,
+            PEAK_AVG_LEN,
+            self.peak,
+        );
+        Self::push(
+            &mut self.valley_window,
+            &mut self.valley_sum,
+            PEAK_AVG_LEN,
+            self.valley,
+        );
+        if self.bp_window.len() < 2 * self.period || self.peak_window.len() < PEAK_AVG_LEN {
             return None;
         }
-
-        // Identify the current peak (largest), valley (smallest) within the window.
-        let peak = self
-            .bp_buf
-            .iter()
-            .copied()
-            .fold(f64::NEG_INFINITY, f64::max);
-        let valley = self.bp_buf.iter().copied().fold(f64::INFINITY, f64::min);
-
-        let avg_peak = self.peak_smoother.update(peak)?;
-        let avg_valley = self.valley_smoother.update(valley)?;
-
-        // The EMD line is the bandpass minus the smoothed mean envelope.
-        let mean = f64::midpoint(avg_peak, avg_valley);
-        let raw = bp - mean;
-        let v = self.smoother.update(raw)?;
-        self.last_value = Some(v);
-        Some(v)
+        let n = PEAK_AVG_LEN as f64;
+        self.upper = self.fraction * self.peak_sum / n;
+        self.lower = self.fraction * self.valley_sum / n;
+        let mean = self.bp_sum / (2 * self.period) as f64;
+        self.last_value = Some(mean);
+        Some(mean)
     }
 
     fn reset(&mut self) {
-        self.bandpass = 0.0;
-        self.prev_bp_1 = 0.0;
-        self.prev_bp_2 = 0.0;
         self.prev_in_1 = None;
         self.prev_in_2 = None;
-        self.smoother.reset();
-        self.peak_smoother.reset();
-        self.valley_smoother.reset();
-        self.bp_buf.clear();
+        self.prev_bp_1 = 0.0;
+        self.prev_bp_2 = 0.0;
+        self.peak = 0.0;
+        self.valley = 0.0;
+        self.bp_window.clear();
+        self.bp_sum = 0.0;
+        self.peak_window.clear();
+        self.peak_sum = 0.0;
+        self.valley_window.clear();
+        self.valley_sum = 0.0;
+        self.upper = 0.0;
+        self.lower = 0.0;
         self.last_value = None;
     }
 
     #[inline]
     fn warmup_period(&self) -> usize {
-        self.bp_history_len
+        (2 * self.period).max(PEAK_AVG_LEN)
     }
 
     #[inline]
@@ -270,5 +313,145 @@ mod tests {
         assert!(emd.is_ready());
         emd.reset();
         assert!(!emd.is_ready());
+    }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            EmpiricalModeDecomposition::new(crate::error::MAX_PERIOD + 1, 0.5),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        assert!(matches!(
+            EmpiricalModeDecomposition::new(20, -0.1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        assert!(matches!(
+            EmpiricalModeDecomposition::new(20, f64::INFINITY),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        // fraction == 1 is the inclusive upper bound.
+        assert!(EmpiricalModeDecomposition::new(20, 1.0).is_ok());
+    }
+
+    #[test]
+    fn warmup_is_max_of_two_period_and_fifty() {
+        let prices: Vec<f64> = (0..150)
+            .map(|i| 100.0 + (f64::from(i) * 0.3).sin() * 5.0)
+            .collect();
+        for (period, expected) in [(1usize, 50usize), (10, 50), (25, 50), (26, 52), (40, 80)] {
+            let mut emd = EmpiricalModeDecomposition::new(period, 0.1).unwrap();
+            assert_eq!(emd.warmup_period(), expected);
+            let out = emd.batch(&prices);
+            assert!(out[..expected - 1].iter().all(Option::is_none));
+            assert!(out[expected - 1].is_some());
+        }
+    }
+
+    #[test]
+    fn constant_series_has_zero_mean_and_thresholds() {
+        // Price - Price[2] == 0 every bar -> BP == 0 -> Mean, Peak, Valley all 0.
+        let mut emd = EmpiricalModeDecomposition::new(10, 0.5).unwrap();
+        let out = emd.batch(&[42.0; 80]);
+        assert!(out
+            .iter()
+            .flatten()
+            .all(|v| v.to_bits() == 0.0f64.to_bits()));
+        assert_eq!(emd.upper().to_bits(), 0.0f64.to_bits());
+        assert_eq!(emd.lower().to_bits(), 0.0f64.to_bits());
+    }
+
+    #[test]
+    fn hand_computed_step_peak_valley_and_thresholds() {
+        // period 5: beta = cos(2*pi/5) = 0.309_017; gamma = 1 / cos(4*pi*0.1/5) = 1.032_436;
+        // alpha = gamma - sqrt(gamma^2 - 1) = 0.775_680.
+        let mut emd = EmpiricalModeDecomposition::new(5, 0.5).unwrap();
+        let (alpha, beta) = (emd.alpha, emd.beta);
+        assert!((beta - 0.309_016_994_374_947_45).abs() < 1e-15);
+        assert!((alpha - 0.775_679_511_049_613_4).abs() < 1e-12);
+        // 60 flat bars at 0 -> BP == 0, warmup (50) complete, thresholds 0.
+        for _ in 0..60 {
+            emd.update(0.0);
+        }
+        assert_eq!(emd.upper().to_bits(), 0.0f64.to_bits());
+        assert_eq!(emd.lower().to_bits(), 0.0f64.to_bits());
+        // Step to 1 at bar 60. With c = 0.5 * (1 - alpha) and k = beta * (1 + alpha):
+        // bp60 = c * (1 - 0)                         = 0.112_160
+        // bp61 = c * (1 - 0) + k * bp60              = 0.173_704
+        // bp62 = c * (1 - 1) + k * bp61 - alpha*bp60 = 0.008_314
+        // bp63 = k * bp62 - alpha * bp61             = -0.130_177
+        // bp64 = k * bp63 - alpha * bp62             = -0.077_879
+        let c = 0.5 * (1.0 - alpha);
+        let k = beta * (1.0 + alpha);
+        let bp60 = c;
+        let bp61 = c + k * bp60;
+        let bp62 = k * bp61 - alpha * bp60;
+        let bp63 = k * bp62 - alpha * bp61;
+        let bp64 = k * bp63 - alpha * bp62;
+        assert!((bp61 - 0.173_704_269_339_216_5).abs() < 1e-12);
+        assert!((bp63 + 0.130_176_956_775_418_27).abs() < 1e-12);
+        // Bar 60: BP rises from a flat 0 -> neither a peak nor a valley.
+        let m60 = emd.update(1.0).unwrap();
+        assert!((m60 - bp60 / 10.0).abs() < 1e-15);
+        assert_eq!(emd.upper().to_bits(), 0.0f64.to_bits());
+        assert_eq!(emd.lower().to_bits(), 0.0f64.to_bits());
+        emd.update(1.0);
+        // Bar 62: bp61 > bp62 and bp61 > bp60 -> Peak = bp61. One of the 50 peak
+        // slots holds it -> Upper = 0.5 * bp61 / 50 = 0.001_737; no valley yet.
+        let m62 = emd.update(1.0).unwrap();
+        assert!((emd.upper() - 0.5 * bp61 / 50.0).abs() < 1e-15);
+        assert!((emd.upper() - 0.001_737_042_693_392_165).abs() < 1e-12);
+        assert_eq!(emd.lower().to_bits(), 0.0f64.to_bits());
+        // Mean = SMA(BP, 10) = (bp60 + bp61 + bp62) / 10.
+        assert!((m62 - (bp60 + bp61 + bp62) / 10.0).abs() < 1e-15);
+        // Bar 63: BP still falling -> no new peak/valley; the peak is held.
+        emd.update(1.0);
+        assert!((emd.upper() - 0.5 * 2.0 * bp61 / 50.0).abs() < 1e-15);
+        assert_eq!(emd.lower().to_bits(), 0.0f64.to_bits());
+        // Bar 64: bp63 < bp64 and bp63 < bp62 -> Valley = bp63.
+        // Upper = 0.5 * 3 * bp61 / 50 = 0.005_211; Lower = 0.5 * bp63 / 50 = -0.001_302.
+        let m64 = emd.update(1.0).unwrap();
+        assert!((emd.upper() - 0.5 * 3.0 * bp61 / 50.0).abs() < 1e-15);
+        assert!((emd.lower() - 0.5 * bp63 / 50.0).abs() < 1e-15);
+        assert!((emd.lower() + 0.001_301_769_567_754_182_7).abs() < 1e-12);
+        assert!((m64 - (bp60 + bp61 + bp62 + bp63 + bp64) / 10.0).abs() < 1e-15);
+        assert_eq!(emd.value(), Some(m64));
+    }
+
+    #[test]
+    fn thresholds_bracket_zero_on_an_oscillation() {
+        // A sine at the centre period produces repeated peaks (> 0) and valleys (< 0).
+        let mut emd = EmpiricalModeDecomposition::new(20, 0.3).unwrap();
+        for i in 0..400 {
+            emd.update((f64::from(i) * 2.0 * PI / 20.0).sin() * 10.0 + 100.0);
+        }
+        assert!(emd.upper() > 0.0);
+        assert!(emd.lower() < 0.0);
+        let mean = emd.value().unwrap();
+        assert!(mean.abs() < emd.upper());
+    }
+
+    #[test]
+    fn reset_replays_identically_and_batch_nan_into_matches() {
+        let prices: Vec<f64> = (0..200)
+            .map(|i| 100.0 + (f64::from(i) * 0.17).sin() * 3.0 + f64::from(i) * 0.02)
+            .collect();
+        let mut emd = EmpiricalModeDecomposition::new(12, 0.2).unwrap();
+        let first = emd.batch(&prices);
+        let (up, lo) = (emd.upper(), emd.lower());
+        emd.reset();
+        assert_eq!(emd.upper().to_bits(), 0.0f64.to_bits());
+        assert_eq!(emd.lower().to_bits(), 0.0f64.to_bits());
+        assert_eq!(emd.value(), None);
+        let second = emd.batch(&prices);
+        assert_eq!(first, second);
+        assert_eq!(emd.upper().to_bits(), up.to_bits());
+        assert_eq!(emd.lower().to_bits(), lo.to_bits());
+        let mut fresh = EmpiricalModeDecomposition::new(12, 0.2).unwrap();
+        let mut out = vec![0.0; prices.len()];
+        fresh.batch_nan_into(&prices, &mut out);
+        assert!(out
+            .iter()
+            .zip(&first)
+            .all(|(a, b)| a.to_bits() == b.unwrap_or(f64::NAN).to_bits()));
     }
 }

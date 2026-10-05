@@ -10,16 +10,6 @@
    ]
   },
   {
-   "canonical": "EstimatedLeverageRatio",
-   "native": "EstimatedLeverageRatio",
-   "params": [],
-   "args": [
-    "open_interest",
-    "long_size",
-    "short_size"
-   ]
-  },
-  {
    "canonical": "FundingBasis",
    "native": "FundingBasis",
    "params": [],

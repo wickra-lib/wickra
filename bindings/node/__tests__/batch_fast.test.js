@@ -38,10 +38,11 @@ const CONSTRUCT = {
   STC: [23, 50, 10, 0.5],
   DerivativeOscillator: [14, 5, 3, 9],
   BANDPASS: [20, 0.3],
-  EmpiricalModeDecomposition: [20, 0.5],
+  EmpiricalModeDecomposition: [20, 0.1],
   SAMPLEENT: [20, 2, 0.2],
   FAMA: [0.5, 0.05],
   MACD: [12, 26, 9],
+  MACDFIX: [9],
   BollingerBands: [20, 2],
   ChaikinOscillator: [3, 10],
   PearsonCorrelation: [20],
@@ -54,7 +55,7 @@ const COLUMNS = {
   PearsonCorrelation: [CLOSE, OTHER],
 };
 // Rows per input for the flat multi-output batches.
-const WIDTH = { MACD: 3, BollingerBands: 4 };
+const WIDTH = { MACD: 3, MACDFIX: 3, BollingerBands: 4 };
 
 const FAST = Object.keys(wickra)
   .filter((n) => wickra[n] && wickra[n].prototype && typeof wickra[n].prototype.batchFast === 'function')
@@ -97,8 +98,8 @@ function assertBits(a, b, label) {
   }
 }
 
-test('batchFast mirrors the 155 C ABI fast entry points', () => {
-  assert.equal(FAST.length, 155);
+test('batchFast mirrors the 156 C ABI fast entry points', () => {
+  assert.equal(FAST.length, 156);
 });
 
 test('batchFast agrees with batch for every indicator that has it', () => {

@@ -26,7 +26,7 @@ const TABLE_LIMIT: usize = 1 << 16;
 /// Corr[lag] = Pearson( Filt[0..AvgLength], Filt[lag..lag+AvgLength] )   for lag = 0..max_period
 /// for each candidate period:
 ///   power[period] = (Σ Corr[N]·cos(2πN/period))² + (Σ Corr[N]·sin(2πN/period))²
-/// R[period]    = 0.2·power[period] + 0.8·R[period]_{t−1}        (EMA across time)
+/// R[period]    = 0.2·power[period]² + 0.8·R[period]_{t−1}       (EMA of SqSum²)
 /// normalise by a decaying max, then
 /// DominantCycle = centre-of-gravity of periods whose normalised power ≥ 0.5
 /// ```
@@ -78,8 +78,9 @@ impl AutocorrelationPeriodogram {
     /// # Errors
     ///
     /// Returns [`Error::PeriodZero`] if either period is `0`, or
-    /// [`Error::InvalidPeriod`] if `min_period < AvgLength + 1` or
-    /// `max_period <= min_period`.
+    /// [`Error::InvalidPeriod`] if `min_period < AvgLength + 1`,
+    /// `max_period <= min_period`, or `max_period <= 10` (the roofing
+    /// pre-filter's 10-bar low-pass cutoff must sit below `max_period`).
     pub fn new(min_period: usize, max_period: usize) -> Result<Self> {
         if min_period == 0 || max_period == 0 {
             return Err(Error::PeriodZero);
@@ -197,8 +198,10 @@ impl Indicator for AutocorrelationPeriodogram {
                     sine += cn * sin;
                 }
             }
-            let power = cosine * cosine + sine * sine;
-            self.r[period] = 0.2 * power + 0.8 * self.r[period];
+            // Ehlers smooths the *square* of the summed power (SqSum²), which
+            // sharpens the dominant peak against the side lobes.
+            let sq_sum = cosine * cosine + sine * sine;
+            self.r[period] = 0.2 * sq_sum * sq_sum + 0.8 * self.r[period];
             if self.r[period] > self.max_pwr {
                 self.max_pwr = self.r[period];
             }
@@ -256,6 +259,7 @@ impl Indicator for AutocorrelationPeriodogram {
 mod tests {
     use super::*;
     use crate::traits::BatchExt;
+    use approx::assert_relative_eq;
 
     #[test]
     fn the_trig_table_gives_the_bits_of_the_terms_computed_in_place() {
@@ -340,10 +344,7 @@ mod tests {
             .map(|i| 100.0 + (TAU * f64::from(i) / 20.0).sin() * 5.0)
             .collect();
         let last = p.batch(&xs).into_iter().flatten().last().unwrap();
-        assert!(
-            (last - 20.0).abs() < 6.0,
-            "expected ~20-bar cycle, got {last}"
-        );
+        assert!((last - 20.0).abs() < 6.0, "expected a ~20-bar cycle");
     }
 
     #[test]
@@ -399,5 +400,134 @@ mod tests {
             .last()
             .unwrap();
         assert_eq!(last, 10.0);
+    }
+
+    #[test]
+    fn rejects_zero_max_period_and_min_period_equal_to_max() {
+        assert!(matches!(
+            AutocorrelationPeriodogram::new(10, 0),
+            Err(Error::PeriodZero)
+        ));
+        assert!(matches!(
+            AutocorrelationPeriodogram::new(10, 10),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        // The internal RoofingFilter(10, max_period) also needs `max_period > 10`.
+        assert!(matches!(
+            AutocorrelationPeriodogram::new(4, 10),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        // `min_period = AvgLength + 1` is the smallest accepted value.
+        assert!(AutocorrelationPeriodogram::new(4, 11).is_ok());
+    }
+
+    fn noisy_cycle(len: i32) -> Vec<f64> {
+        (0..len)
+            .map(|i| {
+                let t = f64::from(i);
+                100.0 + (TAU * t / 17.0).sin() * 4.0 + (t * 0.91).cos() * 0.7
+            })
+            .collect()
+    }
+
+    #[test]
+    fn reset_replays_identically_to_fresh_instance() {
+        let xs = noisy_cycle(150);
+        let mut used = AutocorrelationPeriodogram::new(8, 30).unwrap();
+        used.batch(&xs);
+        used.reset();
+        let replay = used.batch(&xs);
+        assert_eq!(
+            replay,
+            AutocorrelationPeriodogram::new(8, 30).unwrap().batch(&xs)
+        );
+    }
+
+    #[test]
+    fn batch_nan_into_matches_streaming_bits() {
+        let xs = noisy_cycle(160);
+        let mut nan_out = vec![0.0; xs.len()];
+        AutocorrelationPeriodogram::new(8, 30)
+            .unwrap()
+            .batch_nan_into(&xs, &mut nan_out);
+        let mut streamer = AutocorrelationPeriodogram::new(8, 30).unwrap();
+        let identical = xs
+            .iter()
+            .zip(&nan_out)
+            .all(|(x, v)| streamer.update(*x).unwrap_or(f64::NAN).to_bits() == v.to_bits());
+        assert!(identical);
+    }
+
+    /// Hand-computed Pearson correlation on a crafted buffer (oldest first)
+    /// `[3, 1, 2, 1, 2, 3]`, so `filt(0..6) = 3, 2, 1, 2, 1, 3`.
+    /// Lag 3: `x = (3, 2, 1)`, `y = (2, 1, 3)`; `Σx = Σy = 6`, `Σx² = Σy² = 14`,
+    /// `Σxy = 6 + 2 + 3 = 11`. Numerator `3·11 − 6·6 = −3`; denominator
+    /// `sqrt((3·14 − 36)·(3·14 − 36)) = 6`; correlation `−0.5`.
+    /// Lag 0 is the series against itself: `1`.
+    #[test]
+    fn correlation_reference_value() {
+        let mut p = AutocorrelationPeriodogram::new(4, 11).unwrap();
+        p.buffer.extend([3.0, 1.0, 2.0, 1.0, 2.0, 3.0]);
+        assert_relative_eq!(p.correlation(3), -0.5, epsilon = 1e-12);
+        assert_relative_eq!(p.correlation(0), 1.0, epsilon = 1e-12);
+        // A flat lagged slice has zero variance: denominator 0 -> correlation 0.
+        let mut flat = AutocorrelationPeriodogram::new(4, 11).unwrap();
+        flat.buffer.extend([1.0, 1.0, 1.0, 4.0, 5.0, 7.0]);
+        assert_relative_eq!(flat.correlation(3), 0.0, epsilon = 1e-12);
+    }
+
+    /// The periodogram smooths the *square* of the summed power:
+    /// `R_t = 0.2 · SqSum² + 0.8 · R_{t−1}`, with `SqSum = cos² + sin²` of the
+    /// correlation-weighted sums. Replay that recurrence from the correlations the
+    /// indicator itself computed (left in its scratch buffer) and compare.
+    #[test]
+    fn r_is_ema_of_squared_sq_sum() {
+        let (min_period, max_period) = (6, 14);
+        let mut p = AutocorrelationPeriodogram::new(min_period, max_period).unwrap();
+        let mut r_prev = vec![0.0_f64; max_period + 1];
+        let mut steps = 0;
+        for x in noisy_cycle(60) {
+            if p.update(x).is_none() {
+                continue;
+            }
+            steps += 1;
+            for (period, prev) in r_prev.iter_mut().enumerate().skip(min_period) {
+                let (mut cosine, mut sine) = (0.0, 0.0);
+                for (n, corr) in p.corr.iter().enumerate().skip(AVG_LENGTH) {
+                    let (cos, sin) = trig_term(n, period);
+                    cosine += corr * cos;
+                    sine += corr * sin;
+                }
+                let sq_sum = cosine * cosine + sine * sine;
+                let expected = 0.2 * sq_sum * sq_sum + 0.8 * *prev;
+                assert_relative_eq!(p.r[period], expected, epsilon = 1e-12, max_relative = 1e-12);
+                *prev = p.r[period];
+            }
+        }
+        // The first emission starts from `R_{t−1} = 0`, i.e. `R = 0.2 · SqSum²`.
+        assert_ne!(steps, 0);
+        assert!(p.max_pwr > 0.0);
+    }
+
+    #[test]
+    fn dominant_cycle_is_power_weighted_centre_of_gravity() {
+        // Feed a real series, then recompute the centre of gravity of the periods
+        // with normalised power >= 0.5 from the indicator's own `r` / `max_pwr`.
+        let mut p = AutocorrelationPeriodogram::new(8, 30).unwrap();
+        let last = p
+            .batch(&noisy_cycle(200))
+            .into_iter()
+            .flatten()
+            .last()
+            .unwrap();
+        let (mut spx, mut sp) = (0.0, 0.0);
+        for period in 8..=30_u32 {
+            let pwr = p.r[usize::try_from(period).unwrap()] / p.max_pwr;
+            if pwr >= 0.5 {
+                spx += f64::from(period) * pwr;
+                sp += pwr;
+            }
+        }
+        assert_relative_eq!(last, spx / sp, epsilon = 1e-9);
     }
 }

@@ -29,9 +29,11 @@ pub struct AccelerationBandsOutput {
 /// lower  = SMA(raw_lo, period)
 /// ```
 ///
-/// Headley's reference parameters are `period = 20`, `factor = 0.001` for
-/// intraday equity markets — the geometric `ratio` term tends to scale on
-/// fractional moves, so the literal `factor` is small. The bands compress in
+/// Headley's reference parameters are `period = 20`, `factor = 4` — in this
+/// form `raw_up = high · (1 + 4 · (high − low) / (high + low))`, the expression
+/// TA-Lib's `ACCBANDS` uses. (Headley's scaled spelling
+/// `2 · ((H − L) / ((H + L) / 2)) · 1000 · 0.001` is the same factor of 4.) The
+/// bands compress in
 /// quiet markets and flare on impulsive bars, making them a momentum-biased
 /// alternative to the volatility-driven Bollinger or Keltner envelopes.
 ///
@@ -40,7 +42,7 @@ pub struct AccelerationBandsOutput {
 /// ```
 /// use wickra_core::{AccelerationBands, Candle, Indicator};
 ///
-/// let mut indicator = AccelerationBands::new(20, 0.001).unwrap();
+/// let mut indicator = AccelerationBands::new(20, 4.0).unwrap();
 /// let mut last = None;
 /// for i in 0..40 {
 ///     let base = 100.0 + f64::from(i);
@@ -79,9 +81,9 @@ impl AccelerationBands {
         })
     }
 
-    /// Headley's classic configuration: `period = 20`, `factor = 0.001`.
+    /// Headley's classic configuration: `period = 20`, `factor = 4`.
     pub fn classic() -> Self {
-        Self::new(20, 0.001).expect("classic Acceleration Bands parameters are valid")
+        Self::new(20, 4.0).expect("classic Acceleration Bands parameters are valid")
     }
 
     /// Configured `(period, factor)`.
@@ -182,7 +184,7 @@ mod tests {
         let ab = AccelerationBands::classic();
         let (p, f) = ab.parameters();
         assert_eq!(p, 20);
-        assert_relative_eq!(f, 0.001, epsilon = 1e-12);
+        assert_relative_eq!(f, 4.0, epsilon = 1e-12);
         assert_eq!(ab.warmup_period(), 20);
         assert_eq!(ab.name(), "AccelerationBands");
     }
@@ -277,5 +279,80 @@ mod tests {
         assert_relative_eq!(v.upper, 13.2, epsilon = 1e-12);
         assert_relative_eq!(v.middle, 10.0, epsilon = 1e-12);
         assert_relative_eq!(v.lower, 7.2, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn rejects_infinite_factor_and_oversized_period() {
+        assert!(matches!(
+            AccelerationBands::new(20, f64::INFINITY),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        let too_long = crate::error::MAX_PERIOD + 1;
+        assert!(matches!(
+            AccelerationBands::new(too_long, 4.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    fn wavy_candles(len: i32) -> Vec<Candle> {
+        (0..len)
+            .map(|i| {
+                let mid = 100.0 + (f64::from(i) * 0.4).sin() * 6.0;
+                let half = 0.5 + (f64::from(i) * 0.9).cos().abs() * 2.0;
+                c(mid + half, mid - half, mid + 0.3)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup_index() {
+        let candles = wavy_candles(30);
+        let mut ab = AccelerationBands::new(7, 4.0).unwrap();
+        let warmup = ab.warmup_period();
+        let out = ab.batch(&candles);
+        assert!(out.iter().take(warmup - 1).all(Option::is_none));
+        assert!(out.iter().skip(warmup - 1).all(Option::is_some));
+    }
+
+    #[test]
+    fn reset_replays_identically_to_fresh_instance() {
+        let candles = wavy_candles(40);
+        let mut used = AccelerationBands::classic();
+        let first = used.batch(&candles);
+        used.reset();
+        let replay = used.batch(&candles);
+        let fresh = AccelerationBands::classic().batch(&candles);
+        assert_eq!(replay, fresh);
+        assert_eq!(first, fresh);
+    }
+
+    #[test]
+    fn batch_equals_streaming_bit_identical() {
+        let candles = wavy_candles(60);
+        let batch = AccelerationBands::new(9, 4.0).unwrap().batch(&candles);
+        let mut streamer = AccelerationBands::new(9, 4.0).unwrap();
+        let identical = candles.iter().zip(&batch).all(|(candle, b)| {
+            let s = streamer.update(*candle);
+            s.map(|o| (o.upper.to_bits(), o.middle.to_bits(), o.lower.to_bits()))
+                == b.map(|o| (o.upper.to_bits(), o.middle.to_bits(), o.lower.to_bits()))
+        });
+        assert!(identical);
+    }
+
+    /// Hand-computed two-bar reference with Headley's `factor = 4`, `period = 2`.
+    /// Bar 1: `H = 12, L = 8, C = 10` -> `ratio = 4 / 20 = 0.2`,
+    ///   `raw_up = 12 · (1 + 0.8) = 21.6`, `raw_lo = 8 · (1 − 0.8) = 1.6`.
+    /// Bar 2: `H = 22, L = 18, C = 20` -> `ratio = 4 / 40 = 0.1`,
+    ///   `raw_up = 22 · 1.4 = 30.8`, `raw_lo = 18 · 0.6 = 10.8`.
+    /// `upper = (21.6 + 30.8) / 2 = 26.2`, `middle = (10 + 20) / 2 = 15`,
+    /// `lower = (1.6 + 10.8) / 2 = 6.2`.
+    #[test]
+    fn reference_value_two_bars_headley_factor() {
+        let mut ab = AccelerationBands::new(2, 4.0).unwrap();
+        assert_eq!(ab.update(c(12.0, 8.0, 10.0)), None);
+        let v = ab.update(c(22.0, 18.0, 20.0)).unwrap();
+        assert_relative_eq!(v.upper, 26.2, epsilon = 1e-12);
+        assert_relative_eq!(v.middle, 15.0, epsilon = 1e-12);
+        assert_relative_eq!(v.lower, 6.2, epsilon = 1e-12);
     }
 }

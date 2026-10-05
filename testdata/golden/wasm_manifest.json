@@ -134,7 +134,7 @@
  },
  {
   "canonical": "AdOscillator",
-  "js": "ADOSC",
+  "js": "AdOscillator",
   "ctor": [],
   "args": [
    {
@@ -465,12 +465,14 @@
    {
     "name": "asset",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "x"
    },
    {
     "name": "benchmark",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "y"
    }
   ],
   "out": "pairwise"
@@ -1050,6 +1052,11 @@
    14
   ],
   "args": [
+   {
+    "name": "open",
+    "array": false,
+    "bigint": false
+   },
    {
     "name": "high",
     "array": false,
@@ -2888,20 +2895,17 @@
    {
     "name": "open_interest",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "x"
    },
    {
-    "name": "long_size",
+    "name": "exchange_reserve",
     "array": false,
-    "bigint": false
-   },
-   {
-    "name": "short_size",
-    "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "y"
    }
   ],
-  "out": "deriv"
+  "out": "pairwise"
  },
  {
   "canonical": "EvenBetterSinewave",
@@ -3680,12 +3684,14 @@
    {
     "name": "a",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "x"
    },
    {
     "name": "b",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "y"
    }
   ],
   "out": "pairwise"
@@ -4473,12 +4479,14 @@
    {
     "name": "asset",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "x"
    },
    {
     "name": "benchmark",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "y"
    }
   ],
   "out": "pairwise"
@@ -6586,12 +6594,14 @@
    {
     "name": "a",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "x"
    },
    {
     "name": "b",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "y"
    }
   ],
   "out": "pairwise"
@@ -9296,6 +9306,11 @@
     "name": "low",
     "array": false,
     "bigint": false
+   },
+   {
+    "name": "close",
+    "array": false,
+    "bigint": false
    }
   ],
   "out": "scalar_candle"
@@ -10002,12 +10017,14 @@
    {
     "name": "asset",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "x"
    },
    {
     "name": "benchmark",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "y"
    }
   ],
   "out": "pairwise"
@@ -10702,12 +10719,14 @@
    {
     "name": "a",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "x"
    },
    {
     "name": "b",
     "array": false,
-    "bigint": false
+    "bigint": false,
+    "role": "y"
    }
   ],
   "out": "pairwise"

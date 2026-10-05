@@ -63,13 +63,21 @@ impl SuperSmoother {
                 message: crate::error::PERIOD_ABOVE_MAX,
             });
         }
-        let arg = std::f64::consts::SQRT_2 * PI / period as f64;
+        Ok(Self::with_critical_period(period, period as f64))
+    }
+
+    /// Build a SuperSmoother whose coefficients use a fractional `critical`
+    /// period, reporting `period` from [`period`](Self::period). Ehlers' Reflex
+    /// and Trendflex smooth with half their lookback (`0.5 · Length`), which is
+    /// fractional for an odd length. The caller validates `period`.
+    pub(crate) fn with_critical_period(period: usize, critical: f64) -> Self {
+        let arg = std::f64::consts::SQRT_2 * PI / critical;
         let a1 = (-arg).exp();
         let b1 = 2.0 * a1 * arg.cos();
         let c2 = b1;
         let c3 = -a1 * a1;
         let c1 = 1.0 - c2 - c3;
-        Ok(Self {
+        Self {
             period,
             c1,
             c2,
@@ -78,7 +86,7 @@ impl SuperSmoother {
             prev_output_1: None,
             prev_output_2: None,
             count: 0,
-        })
+        }
     }
 
     /// Configured period.
@@ -222,5 +230,96 @@ mod tests {
         ss.reset();
         assert!(!ss.is_ready());
         assert_eq!(ss.update(50.0), Some(50.0));
+    }
+
+    use crate::traits::BatchNanExt;
+
+    #[test]
+    fn new_rejects_period_above_max() {
+        assert!(matches!(
+            SuperSmoother::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup() {
+        let mut ss = SuperSmoother::new(10).unwrap();
+        let out = ss.batch(&[5.0, 6.0, 7.0]);
+        assert_eq!(ss.warmup_period(), 1);
+        assert_eq!(out[0], Some(5.0));
+    }
+
+    #[test]
+    fn reset_replays_identically() {
+        let prices: Vec<f64> = (0..120)
+            .map(|i| 100.0 + (f64::from(i) * 0.2).sin() * 5.0)
+            .collect();
+        let fresh = SuperSmoother::new(12).unwrap().batch(&prices);
+        let mut ss = SuperSmoother::new(12).unwrap();
+        let first = ss.batch(&prices);
+        ss.reset();
+        let second = ss.batch(&prices);
+        assert_eq!(first, fresh);
+        assert_eq!(second, fresh);
+    }
+
+    #[test]
+    fn batch_nan_paths_match_streaming_bitwise() {
+        let prices: Vec<f64> = (0..120)
+            .map(|i| 100.0 + (f64::from(i) * 0.2).sin() * 5.0)
+            .collect();
+        let mut out = vec![0.0; prices.len()];
+        SuperSmoother::new(12)
+            .unwrap()
+            .batch_nan_into(&prices, &mut out);
+        let nan = SuperSmoother::new(12).unwrap().batch_nan(&prices);
+        let fast = SuperSmoother::new(12).unwrap().batch_fast(&prices);
+        let mut stream = SuperSmoother::new(12).unwrap();
+        let expected: Vec<u64> = prices
+            .iter()
+            .map(|&p| stream.update(p).unwrap_or(f64::NAN).to_bits())
+            .collect();
+        assert!(out.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(nan.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(fast.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+    }
+
+    #[test]
+    fn with_critical_period_hand_computed() {
+        // critical = 2*sqrt(2) makes arg = sqrt(2)*pi / (2*sqrt(2)) = pi/2, so
+        // cos(arg) ~ 0 and b1 = c2 ~ 0, a1 = exp(-pi/2) = 0.207_879_576,
+        // c3 = -a1^2 = -0.043_213_918, c1 = 1 - c2 - c3 = 1.043_213_918.
+        let ss = SuperSmoother::with_critical_period(7, 2.0 * std::f64::consts::SQRT_2);
+        assert_eq!(ss.period(), 7);
+        let (c1, c2, c3) = ss.coefficients();
+        assert_relative_eq!(c2, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(c3, -0.043_213_918_264, epsilon = 1e-12);
+        assert_relative_eq!(c1, 1.043_213_918_264, epsilon = 1e-12);
+        // `new(period)` is `with_critical_period(period, period)`.
+        let a = SuperSmoother::new(9).unwrap().coefficients();
+        let b = SuperSmoother::with_critical_period(9, 9.0).coefficients();
+        assert_eq!(
+            (a.0.to_bits(), a.1.to_bits(), a.2.to_bits()),
+            (b.0.to_bits(), b.1.to_bits(), b.2.to_bits())
+        );
+        // A fractional critical period yields different coefficients.
+        let half = SuperSmoother::with_critical_period(9, 4.5).coefficients();
+        assert!((half.0 - a.0).abs() > 1e-3);
+    }
+
+    #[test]
+    fn third_output_is_the_recursion_hand_computed() {
+        // Inputs 100, 101, 102: y0 = 100, y1 = 101 (pass-through seed), then
+        // y2 = c1 * (102 + 101)/2 + c2 * 101 + c3 * 100.
+        let mut ss = SuperSmoother::with_critical_period(7, 2.0 * std::f64::consts::SQRT_2);
+        let (c1, c2, c3) = ss.coefficients();
+        let out = ss.batch(&[100.0, 101.0, 102.0]);
+        assert_eq!(out[0], Some(100.0));
+        assert_eq!(out[1], Some(101.0));
+        let expected = c1 * 101.5 + c2 * 101.0 + c3 * 100.0;
+        assert_eq!(out[2].unwrap().to_bits(), expected.to_bits());
+        // Numerically: 1.043_213_918 * 101.5 - 0.043_213_918 * 100 = 101.564_820_88.
+        assert_relative_eq!(out[2].unwrap(), 101.564_820_877, epsilon = 1e-6);
     }
 }

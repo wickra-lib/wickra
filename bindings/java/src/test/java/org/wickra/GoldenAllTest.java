@@ -172,7 +172,7 @@ class GoldenAllTest {
         new Spec("EmpiricalModeDecomposition", "scalar_f64", new double[]{20.0, 0.1}, 0),
         new Spec("Engulfing", "scalar_candle", new double[]{}, 0),
         new Spec("Equivolume", "multi_candle", new double[]{14.0}, 2),
-        new Spec("EstimatedLeverageRatio", "deriv", new double[]{}, 0),
+        new Spec("EstimatedLeverageRatio", "pairwise", new double[]{}, 0),
         new Spec("EvenBetterSinewave", "scalar_f64", new double[]{40.0, 10.0}, 0),
         new Spec("EveningDojiStar", "scalar_candle", new double[]{}, 0),
         new Spec("Evwma", "scalar_candle", new double[]{14.0}, 0),
@@ -569,7 +569,7 @@ class GoldenAllTest {
         NAMES.put("AbsoluteBreadthIndex", "AbsoluteBreadthIndex");
         NAMES.put("AccelerationBands", "AccelerationBands");
         NAMES.put("AcceleratorOscillator", "AcceleratorOscillator");
-        NAMES.put("AdOscillator", "ADOSC");
+        NAMES.put("AdOscillator", "WilliamsAdOscillator");
         NAMES.put("AdVolumeLine", "AdVolumeLine");
         NAMES.put("AdaptiveCci", "AdaptiveCci");
         NAMES.put("AdaptiveCycle", "AdaptiveCycle");

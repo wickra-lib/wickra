@@ -2814,18 +2814,36 @@ impl WasmMacdFix {
             None => None,
         }
     }
-    /// Returns a flat `Float64Array` of length `3 * n`: `[macd0, sig0, hist0, ...]`.
+    /// Returns a flat `Float64Array` of length `3 * n`: `[macd0, sig0, hist0, macd1, sig1, hist1, ...]`.
+    /// Use `result[3*i + 0/1/2]` to read each column. Warmup positions are NaN.
     pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
-        let n = prices.len();
-        let mut out = vec![f64::NAN; n * 3];
-        for (i, p) in prices.iter().enumerate() {
-            if let Some(o) = self.inner.update(*p) {
-                out[i * 3] = o.macd;
-                out[i * 3 + 1] = o.signal;
-                out[i * 3 + 2] = o.histogram;
-            }
-        }
+        let mut out = vec![0.0; prices.len() * 3];
+        self.inner.batch_macd_into(prices, &mut out);
         Float64Array::from(out.as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each field
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        let mut out = vec![0.0; prices.len() * 3];
+        self.inner.batch_macd_fast_into(prices, &mut out);
+        Float64Array::from(out.as_slice())
+    }
+    /// `batch` into a caller `Float64Array` of `3 * n` values.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len() * 3)?;
+        self.inner.batch_macd_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` of `3 * n` values.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len() * 3)?;
+        self.inner.batch_macd_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -4682,12 +4700,12 @@ impl WasmKvo {
     }
 }
 
-#[wasm_bindgen(js_name = ADOSC)]
+#[wasm_bindgen(js_name = AdOscillator)]
 pub struct WasmAdOscillator {
     inner: wc::AdOscillator,
 }
 
-#[wasm_bindgen(js_class = ADOSC)]
+#[wasm_bindgen(js_class = AdOscillator)]
 impl WasmAdOscillator {
     #[wasm_bindgen(constructor)]
     #[allow(clippy::new_without_default)]
@@ -10151,17 +10169,22 @@ impl WasmTdRei {
             inner: wc::TdRei::new(period).map_err(map_err)?,
         })
     }
-    pub fn update(&mut self, high: f64, low: f64) -> Result<Option<f64>, JsError> {
-        let c = make_candle(high, low, low, 0.0)?;
+    pub fn update(&mut self, high: f64, low: f64, close: f64) -> Result<Option<f64>, JsError> {
+        let c = make_candle(high, low, close, 0.0)?;
         Ok(self.inner.update(c))
     }
-    pub fn batch(&mut self, high: &[f64], low: &[f64]) -> Result<Float64Array, JsError> {
-        if high.len() != low.len() {
-            return Err(JsError::new("high and low must be equal length"));
+    pub fn batch(
+        &mut self,
+        high: &[f64],
+        low: &[f64],
+        close: &[f64],
+    ) -> Result<Float64Array, JsError> {
+        if high.len() != low.len() || low.len() != close.len() {
+            return Err(JsError::new("high, low and close must be equal length"));
         }
         let mut out = Vec::with_capacity(high.len());
         for i in 0..high.len() {
-            let c = make_candle(high[i], low[i], low[i], 0.0)?;
+            let c = make_candle(high[i], low[i], close[i], 0.0)?;
             out.push(self.inner.update(c).unwrap_or(f64::NAN));
         }
         Ok(Float64Array::from(out.as_slice()))
@@ -13292,28 +13315,6 @@ fn deriv_taker(
     .map_err(map_err)
 }
 
-fn deriv_oi_long_short(
-    open_interest: f64,
-    long_size: f64,
-    short_size: f64,
-) -> Result<wc::DerivativesTick, JsError> {
-    wc::DerivativesTick::new(
-        0.0,
-        1.0,
-        1.0,
-        1.0,
-        open_interest,
-        long_size,
-        short_size,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0,
-    )
-    .map_err(map_err)
-}
-
 fn deriv_oi_taker(
     open_interest: f64,
     taker_buy_volume: f64,
@@ -13862,15 +13863,9 @@ impl WasmEstimatedLeverageRatio {
             inner: wc::EstimatedLeverageRatio::new(),
         }
     }
-    pub fn update(
-        &mut self,
-        open_interest: f64,
-        long_size: f64,
-        short_size: f64,
-    ) -> Result<Option<f64>, JsError> {
-        Ok(self
-            .inner
-            .update(deriv_oi_long_short(open_interest, long_size, short_size)?))
+    /// One `(open_interest, exchange_reserve)` pair.
+    pub fn update(&mut self, open_interest: f64, exchange_reserve: f64) -> Option<f64> {
+        self.inner.update((open_interest, exchange_reserve))
     }
     pub fn reset(&mut self) {
         self.inner.reset();
@@ -13893,18 +13888,17 @@ impl WasmEstimatedLeverageRatio {
     pub fn batch(
         &mut self,
         open_interest: &[f64],
-        long_size: &[f64],
-        short_size: &[f64],
+        exchange_reserve: &[f64],
     ) -> Result<Float64Array, JsError> {
-        if long_size.len() != open_interest.len() || short_size.len() != open_interest.len() {
+        if exchange_reserve.len() != open_interest.len() {
             return Err(JsError::new(
-                "open_interest, long_size, short_size must be equal length",
+                "open_interest and exchange_reserve must be equal length",
             ));
         }
         let mut out = Vec::with_capacity(open_interest.len());
         for i in 0..open_interest.len() {
             out.push(
-                self.update(open_interest[i], long_size[i], short_size[i])?
+                self.update(open_interest[i], exchange_reserve[i])
                     .unwrap_or(f64::NAN),
             );
         }
@@ -16572,7 +16566,7 @@ mod tests {
         assert_scalar_stream_eq!(WasmInstantaneousTrendline::new(20).expect("valid"), p);
         assert_scalar_stream_eq!(WasmEhlersStochastic::new(20).expect("valid"), p);
         assert_scalar_stream_eq!(
-            WasmEmpiricalModeDecomposition::new(20, 0.5).expect("valid"),
+            WasmEmpiricalModeDecomposition::new(20, 0.1).expect("valid"),
             p
         );
         assert_scalar_stream_eq!(WasmFama::new(0.5, 0.05).expect("valid"), p);
@@ -19217,29 +19211,36 @@ impl WasmBetterVolume {
     }
     pub fn update(
         &mut self,
+        open: f64,
         high: f64,
         low: f64,
         close: f64,
         volume: f64,
     ) -> Result<Option<f64>, JsError> {
-        let c = make_candle(high, low, close, volume)?;
+        let c = wc::Candle::new(open, high, low, close, volume, 0).map_err(map_err)?;
         Ok(self.inner.update(c))
     }
     pub fn batch(
         &mut self,
+        open: &[f64],
         high: &[f64],
         low: &[f64],
         close: &[f64],
         volume: &[f64],
     ) -> Result<Float64Array, JsError> {
-        if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
+        if open.len() != high.len()
+            || high.len() != low.len()
+            || low.len() != close.len()
+            || close.len() != volume.len()
+        {
             return Err(JsError::new(
-                "high, low, close, volume must be equal length",
+                "open, high, low, close, volume must be equal length",
             ));
         }
         let mut out = Vec::with_capacity(close.len());
         for i in 0..close.len() {
-            let c = make_candle(high[i], low[i], close[i], volume[i])?;
+            let c = wc::Candle::new(open[i], high[i], low[i], close[i], volume[i], 0)
+                .map_err(map_err)?;
             out.push(self.inner.update(c).unwrap_or(f64::NAN));
         }
         Ok(Float64Array::from(out.as_slice()))

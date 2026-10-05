@@ -45,6 +45,17 @@ def test_reset_returns_to_initial_state(cls, args):
         (ta.RSI, (14,), 15),
         (ta.AnchoredRSI, (), 2),
         (ta.BollingerBands, (20, 2.0), 20),
+        # Warmups changed by the formula audit.
+        (ta.RVI, (10,), 13),
+        (ta.Inertia, (14, 20), 46),
+        (ta.EmpiricalModeDecomposition, (20, 0.1), 50),
+        (ta.TDREI, (5,), 13),
+        (ta.TDDifferential, (), 3),
+        (ta.HikkakeModified, (), 4),
+        (ta.HasbrouckInformationShare, (20,), 22),
+        (ta.AdOscillator, (), 14),
+        (ta.KVO, (34, 55), 56),
+        (ta.HT_PHASOR, (), 22),
     ],
 )
 def test_warmup_period(cls, args, period):

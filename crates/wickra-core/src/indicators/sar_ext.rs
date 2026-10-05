@@ -78,6 +78,8 @@ pub struct SarExt {
     has_emitted: bool,
     prev_high: f64,
     prev_low: f64,
+    prev2_high: f64,
+    prev2_low: f64,
     trend: Trend,
     sar: f64,
     ep: f64,
@@ -131,6 +133,8 @@ impl SarExt {
             has_emitted: false,
             prev_high: f64::NAN,
             prev_low: f64::NAN,
+            prev2_high: f64::NAN,
+            prev2_low: f64::NAN,
             trend: Trend::Up,
             sar: f64::NAN,
             ep: f64::NAN,
@@ -159,35 +163,56 @@ impl Indicator for SarExt {
 
     fn update(&mut self, candle: Candle) -> Option<f64> {
         if !self.initialised {
+            // The first candle only seeds the state; the first SAR is emitted
+            // on the second.
             self.prev_high = candle.high;
             self.prev_low = candle.low;
-            if self.start_value > 0.0 {
-                self.trend = Trend::Up;
-                self.sar = self.start_value;
-                self.ep = candle.high;
-                self.af = self.long.init;
-            } else if self.start_value < 0.0 {
-                self.trend = Trend::Down;
-                self.sar = -self.start_value;
-                self.ep = candle.low;
-                self.af = self.short.init;
-            } else {
-                self.trend = Trend::Up;
-                self.sar = candle.low;
-                self.ep = candle.high;
-                self.af = self.long.init;
-            }
             self.initialised = true;
             return None;
         }
 
-        let mut new_sar = self.sar + self.af * (self.ep - self.sar);
+        let new_sar = if self.has_emitted {
+            let predicted = self.sar + self.af * (self.ep - self.sar);
+            match self.trend {
+                Trend::Up => predicted.min(self.prev_low).min(self.prev2_low),
+                Trend::Down => predicted.max(self.prev_high).max(self.prev2_high),
+            }
+        } else {
+            // Second candle: TA-Lib's seed. A zero start value takes the
+            // direction from the one-bar directional movement of the first two
+            // candles (short when the down move dominates) and starts the SAR
+            // at the first candle's opposite extreme; a signed start value
+            // fixes both. The extreme point starts at this candle's extreme,
+            // and TA-Lib's first step treats this candle as both today and
+            // yesterday.
+            let up_move = candle.high - self.prev_high;
+            let down_move = self.prev_low - candle.low;
+            let long = if self.start_value == 0.0 {
+                !(down_move > 0.0 && down_move > up_move)
+            } else {
+                self.start_value > 0.0
+            };
+            let auto_sar = if long { self.prev_low } else { self.prev_high };
+            self.sar = if self.start_value == 0.0 {
+                auto_sar
+            } else {
+                self.start_value.abs()
+            };
+            if long {
+                self.trend = Trend::Up;
+                self.ep = candle.high;
+                self.af = self.long.init;
+            } else {
+                self.trend = Trend::Down;
+                self.ep = candle.low;
+                self.af = self.short.init;
+            }
+            self.prev_high = candle.high;
+            self.prev_low = candle.low;
+            self.sar
+        };
         let prev_h = self.prev_high;
         let prev_l = self.prev_low;
-        new_sar = match self.trend {
-            Trend::Up => new_sar.min(prev_l).min(candle.low),
-            Trend::Down => new_sar.max(prev_h).max(candle.high),
-        };
 
         let mut output_sar = new_sar;
         let reversed = match self.trend {
@@ -196,7 +221,13 @@ impl Indicator for SarExt {
         };
 
         if reversed {
-            output_sar = self.ep;
+            // The new SAR is the prior extreme point, moved outside this bar's
+            // and the previous bar's range if the reversal bar reached past it
+            // (TA-Lib's reversal clamp), then offset.
+            output_sar = match self.trend {
+                Trend::Up => self.ep.max(prev_h).max(candle.high),
+                Trend::Down => self.ep.min(prev_l).min(candle.low),
+            };
             self.trend = match self.trend {
                 Trend::Up => Trend::Down,
                 Trend::Down => Trend::Up,
@@ -231,6 +262,8 @@ impl Indicator for SarExt {
         }
 
         self.sar = output_sar;
+        self.prev2_high = self.prev_high;
+        self.prev2_low = self.prev_low;
         self.prev_high = candle.high;
         self.prev_low = candle.low;
         self.has_emitted = true;
@@ -242,6 +275,8 @@ impl Indicator for SarExt {
         self.has_emitted = false;
         self.prev_high = f64::NAN;
         self.prev_low = f64::NAN;
+        self.prev2_high = f64::NAN;
+        self.prev2_low = f64::NAN;
         self.trend = Trend::Up;
         self.sar = f64::NAN;
         self.ep = f64::NAN;
@@ -417,5 +452,270 @@ mod tests {
         s.reset();
         assert!(!s.is_ready());
         assert_eq!(first, s.batch(&candles));
+    }
+
+    fn hl(high: f64, low: f64) -> Candle {
+        c(high, low, f64::midpoint(high, low))
+    }
+
+    fn run(sar: SarExt, bars: &[(f64, f64)]) -> Vec<Option<f64>> {
+        let mut sar = sar;
+        let candles: Vec<Candle> = bars.iter().map(|&(h, l)| hl(h, l)).collect();
+        sar.batch(&candles)
+    }
+
+    fn with(start: f64, offset: f64) -> SarExt {
+        SarExt::new(start, offset, 0.02, 0.02, 0.2, 0.02, 0.02, 0.2).unwrap()
+    }
+
+    fn assert_series(got: &[Option<f64>], expected: &[Option<f64>]) {
+        assert_eq!(got.len(), expected.len());
+        for (g, e) in got.iter().zip(expected) {
+            assert_eq!(g.is_some(), e.is_some());
+            if let (Some(g), Some(e)) = (g, e) {
+                approx::assert_relative_eq!(*g, *e, epsilon = 1e-12);
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_every_invalid_parameter_with_its_variant() {
+        let nonpos = |r: Result<SarExt>| matches!(r, Err(Error::NonPositiveMultiplier));
+        assert!(nonpos(SarExt::new(
+            f64::INFINITY,
+            0.0,
+            0.02,
+            0.02,
+            0.2,
+            0.02,
+            0.02,
+            0.2
+        )));
+        assert!(nonpos(SarExt::new(
+            0.0,
+            f64::NAN,
+            0.02,
+            0.02,
+            0.2,
+            0.02,
+            0.02,
+            0.2
+        )));
+        assert!(nonpos(SarExt::new(
+            0.0, -0.1, 0.02, 0.02, 0.2, 0.02, 0.02, 0.2
+        )));
+        assert!(nonpos(SarExt::new(
+            0.0,
+            0.0,
+            0.02,
+            0.02,
+            f64::NAN,
+            0.02,
+            0.02,
+            0.2
+        )));
+        assert!(nonpos(SarExt::new(
+            0.0, 0.0, 0.02, 0.0, 0.2, 0.02, 0.02, 0.2
+        )));
+        assert!(nonpos(SarExt::new(
+            0.0, 0.0, 0.02, 0.02, 0.0, 0.02, 0.02, 0.2
+        )));
+        assert!(nonpos(SarExt::new(
+            0.0, 0.0, 0.02, 0.02, 0.2, 0.02, 0.0, 0.2
+        )));
+        assert!(nonpos(SarExt::new(
+            0.0, 0.0, 0.02, 0.02, 0.2, 0.02, 0.02, -0.2
+        )));
+        let invalid = |r: Result<SarExt>| matches!(r, Err(Error::InvalidPeriod { .. }));
+        assert!(invalid(SarExt::new(
+            0.0, 0.0, 0.3, 0.02, 0.2, 0.02, 0.02, 0.2
+        )));
+        assert!(invalid(SarExt::new(
+            0.0, 0.0, 0.02, 0.02, 0.2, 0.3, 0.02, 0.2
+        )));
+    }
+
+    #[test]
+    fn first_value_lands_at_index_one() {
+        let out = run(classic(), &[(10.0, 8.0), (11.0, 9.0), (12.0, 10.0)]);
+        assert!(out[0].is_none());
+        assert!(out[1..].iter().all(Option::is_some));
+    }
+
+    #[test]
+    fn hand_computed_auto_long_seed() {
+        // Identical to Psar: up move 1 > down move −1 -> long, SAR = low0 8, EP 11.
+        //   b2 8 + 0.02·3 = 8.06 (EP 12, AF 0.04); b3 8.06 + 0.04·3.94 = 8.2176
+        //   (EP 13, AF 0.06); b4 8.2176 + 0.06·(13 − 8.2176) = 8.504544. Positive: long.
+        let out = run(
+            classic(),
+            &[
+                (10.0, 8.0),
+                (11.0, 9.0),
+                (12.0, 10.0),
+                (13.0, 11.0),
+                (14.0, 12.0),
+            ],
+        );
+        assert_series(
+            &out,
+            &[None, Some(8.0), Some(8.06), Some(8.2176), Some(8.504_544)],
+        );
+    }
+
+    #[test]
+    fn hand_computed_auto_short_seed() {
+        // down move 1 > 0 and > up move −1 -> short, SAR = high0 12, EP 9.
+        //   b2 12 + 0.02·(9 − 12) = 11.94 (EP 8, AF 0.04)
+        //   b3 11.94 + 0.04·(8 − 11.94) = 11.7824. Negative: short.
+        let out = run(
+            classic(),
+            &[(12.0, 10.0), (11.0, 9.0), (10.0, 8.0), (9.0, 7.0)],
+        );
+        assert_series(&out, &[None, Some(-12.0), Some(-11.94), Some(-11.7824)]);
+    }
+
+    #[test]
+    fn hand_computed_immediate_reversals() {
+        // Long seed reversing on b1: down move 0 is not > 0 -> long, SAR 8, EP 9;
+        // low 8 <= 8 -> short at max(9, 9, 9) = 9. b2: 9 + 0.02·(8 − 9) = 8.98,
+        // clamp max(9, 9) = 9; high 9.5 >= 9 -> long at min(8, 8, 7.5) = 7.5.
+        // b3: 7.5 + 0.02·2 = 7.54, clamp min(7.5, 8) = 7.5.
+        let out = run(
+            classic(),
+            &[(10.0, 8.0), (9.0, 8.0), (9.5, 7.5), (10.5, 9.0)],
+        );
+        assert_series(&out, &[None, Some(-9.0), Some(7.5), Some(7.5)]);
+        // Short seed reversing on b1: SAR 10, EP 7; high 10 >= 10 -> long at
+        // min(7, 7, 7) = 7. b2: 7.06 clamped to min(7, 7) = 7.
+        let out = run(classic(), &[(10.0, 8.0), (10.0, 7.0), (10.5, 8.0)]);
+        assert_series(&out, &[None, Some(7.0), Some(7.0)]);
+    }
+
+    #[test]
+    fn hand_computed_reversal_clamped_above_the_extreme_point() {
+        // Long to b2 (SAR 8.06, EP 12, AF 0.04). b3 (13, 8): 8.2176, low 8
+        // reverses; high 13 > EP 12 -> SAR = max(12, 12, 13) = 13 (short).
+        // b4 (12, 7): 13 − 0.02·5 = 12.9, clamp max(13, 12) = 13.
+        let bars = [
+            (10.0, 8.0),
+            (11.0, 9.0),
+            (12.0, 10.0),
+            (13.0, 8.0),
+            (12.0, 7.0),
+        ];
+        let out = run(classic(), &bars);
+        assert_series(
+            &out,
+            &[None, Some(8.0), Some(8.06), Some(-13.0), Some(-13.0)],
+        );
+    }
+
+    #[test]
+    fn positive_start_value_forces_long_at_that_sar() {
+        // Auto mode would go short (down move 0.1 > up move −1, SAR −10).
+        // start 7.5 forces long at SAR 7.5 with EP high1 = 9; b2: 7.5 +
+        // 0.02·(9 − 7.5) = 7.53, clamp min(7.9, 7.9) keeps it.
+        let bars = [(10.0, 8.0), (9.0, 7.9), (9.5, 8.5)];
+        assert_series(&run(classic(), &bars[..2]), &[None, Some(-10.0)]);
+        assert_series(&run(with(7.5, 0.0), &bars), &[None, Some(7.5), Some(7.53)]);
+    }
+
+    #[test]
+    fn negative_start_value_forces_short_with_the_short_acceleration() {
+        // Auto mode would go long; start −12 forces short at SAR 12, EP low1 = 9,
+        // using the short schedule (0.05, 0.05, 0.3).
+        //   b2 12 + 0.05·(9 − 12) = 11.85, clamp max(11, 11); EP 8.5, AF 0.10
+        //   b3 11.85 + 0.10·(8.5 − 11.85) = 11.515, clamp max(10.5, 11)
+        let sar = SarExt::new(-12.0, 0.0, 0.02, 0.02, 0.2, 0.05, 0.05, 0.3).unwrap();
+        let out = run(sar, &[(10.0, 8.0), (11.0, 9.0), (10.5, 8.5), (10.0, 8.0)]);
+        assert_series(&out, &[None, Some(-12.0), Some(-11.85), Some(-11.515)]);
+    }
+
+    #[test]
+    fn forced_long_start_can_reverse_immediately_with_offset() {
+        // start 8.5, offset 0.01: low 8.2 <= 8.5 reverses on b1 to
+        // max(EP 11, 11, 11) = 11, pushed up by 1 % -> 11.11, short.
+        let out = run(with(8.5, 0.01), &[(10.0, 8.0), (11.0, 8.2)]);
+        assert_series(&out, &[None, Some(-11.11)]);
+    }
+
+    #[test]
+    fn offset_on_reverse_hand_computed_both_directions() {
+        // offset 0.1. b1: long seed, low 8 <= 8 -> short at 9 + 0.9 = 9.9.
+        // b2: 9.9 + 0.02·(8 − 9.9) = 9.862, clamp max(9, 9); high 10 >= 9.862
+        //     -> long at min(8, 8, 7.5) = 7.5, minus 0.75 = 6.75.
+        // b3: 6.75 + 0.02·(10 − 6.75) = 6.815, clamp min(7.5, 8) keeps it.
+        let out = run(
+            with(0.0, 0.1),
+            &[(10.0, 8.0), (9.0, 8.0), (10.0, 7.5), (11.0, 9.0)],
+        );
+        assert_series(&out, &[None, Some(-9.9), Some(6.75), Some(6.815)]);
+    }
+
+    #[test]
+    fn separate_long_acceleration_with_cap() {
+        // Long schedule (0.03, 0.01, 0.05):
+        //   b1 8; b2 8 + 0.03·3 = 8.09 (AF 0.04); b3 8.09 + 0.04·3.91 = 8.2464
+        //   (AF 0.05); b4 8.2464 + 0.05·4.7536 = 8.48408 (AF capped 0.05);
+        //   b5 8.48408 + 0.05·(14 − 8.48408) = 8.759876.
+        let sar = SarExt::new(0.0, 0.0, 0.03, 0.01, 0.05, 0.02, 0.02, 0.2).unwrap();
+        let bars = [
+            (10.0, 8.0),
+            (11.0, 9.0),
+            (12.0, 10.0),
+            (13.0, 11.0),
+            (14.0, 12.0),
+            (15.0, 13.0),
+        ];
+        let out = run(sar, &bars);
+        assert_series(
+            &out,
+            &[
+                None,
+                Some(8.0),
+                Some(8.09),
+                Some(8.2464),
+                Some(8.484_08),
+                Some(8.759_876),
+            ],
+        );
+    }
+
+    #[test]
+    fn classic_matches_psar_magnitude() {
+        let candles: Vec<Candle> = (0..80)
+            .map(|i| {
+                let m = 100.0 + (f64::from(i) * 0.3).sin() * 8.0;
+                c(m + 1.0, m - 1.0, m)
+            })
+            .collect();
+        let ext = classic().batch(&candles);
+        let psar = crate::Psar::classic().batch(&candles);
+        let same = ext.iter().zip(&psar).all(|(e, p)| e.map(f64::abs) == *p);
+        assert!(same, "unsigned SAREXT must equal PSAR");
+    }
+
+    #[test]
+    fn reset_matches_a_fresh_instance_and_batch_nan_into() {
+        let candles: Vec<Candle> = (0..60)
+            .map(|i| {
+                let m = 100.0 + (f64::from(i) * 0.3).sin() * 8.0;
+                c(m + 1.0, m - 1.0, m)
+            })
+            .collect();
+        let mut s = with(-150.0, 0.05);
+        let _ = s.batch(&candles);
+        s.reset();
+        let after_reset = s.batch(&candles);
+        assert_eq!(after_reset, with(-150.0, 0.05).batch(&candles));
+        let expected: Vec<u64> = after_reset
+            .iter()
+            .map(|v| v.unwrap_or(f64::NAN).to_bits())
+            .collect();
+        let mut out = vec![0.0; candles.len()];
+        with(-150.0, 0.05).batch_nan_into(&candles, &mut out);
+        let got: Vec<u64> = out.iter().map(|v| v.to_bits()).collect();
+        assert_eq!(got, expected);
     }
 }

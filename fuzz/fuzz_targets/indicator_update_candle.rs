@@ -270,11 +270,11 @@ fuzz_target!(|data: Vec<f64>| {
     // --- Family 05: candle-input band/channel indicators (multi-output) ---
     drive(|| VolatilityCone::new(20, 60).unwrap(), &candles);
     {
-        let mut ab = AccelerationBands::new(20, 0.001).unwrap();
+        let mut ab = AccelerationBands::new(20, 4.0).unwrap();
         for c in &candles {
             let _ = ab.update(*c);
         }
-        let _ = AccelerationBands::new(20, 0.001).unwrap().batch(&candles);
+        let _ = AccelerationBands::new(20, 4.0).unwrap().batch(&candles);
     }
     {
         let mut sb = StarcBands::new(6, 15, 2.0).unwrap();

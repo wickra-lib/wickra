@@ -72,6 +72,24 @@ impl MacdIndicator {
         })
     }
 
+    /// TA-Lib's `MACDFIX`: a 12/26 MACD whose EMAs smooth with the fixed
+    /// constants `0.15` and `0.075` (Appel's rounded values) instead of
+    /// `2 / 13` and `2 / 27`; both are still seeded with their simple means.
+    pub(crate) fn fixed_12_26(signal: usize) -> Result<Self> {
+        if signal == 0 {
+            return Err(Error::PeriodZero);
+        }
+        Ok(Self {
+            fast: Ema::with_period_and_alpha(12, 0.15),
+            slow: Ema::with_period_and_alpha(26, 0.075),
+            signal_ema: Ema::new(signal)?,
+            fast_period: 12,
+            slow_period: 26,
+            signal_period: signal,
+            last: None,
+        })
+    }
+
     /// Default `(12, 26, 9)` configuration, matching every classical chart package.
     pub fn classic() -> Self {
         Self::new(12, 26, 9).expect("classic MACD periods are valid")
@@ -651,5 +669,50 @@ mod tests {
         assert_eq!(macd.update(f64::NAN), None);
         assert_eq!(macd.update(f64::INFINITY), None);
         assert_eq!(macd.value(), before);
+    }
+
+    #[test]
+    fn fixed_12_26_rejects_invalid_signal() {
+        assert!(matches!(
+            MacdIndicator::fixed_12_26(0),
+            Err(Error::PeriodZero)
+        ));
+        let too_big = crate::error::MAX_PERIOD + 1;
+        assert!(matches!(
+            MacdIndicator::fixed_12_26(too_big),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn fixed_12_26_configuration() {
+        let m = MacdIndicator::fixed_12_26(9).unwrap();
+        assert_eq!(m.periods(), (12, 26, 9));
+        assert_eq!(m.warmup_period(), 34);
+        assert_eq!(m.fast.alpha().to_bits(), 0.15_f64.to_bits());
+        assert_eq!(m.slow.alpha().to_bits(), 0.075_f64.to_bits());
+        assert_eq!(m.signal_ema.alpha().to_bits(), (2.0_f64 / 10.0).to_bits());
+        assert!(!m.is_ready());
+    }
+
+    #[test]
+    fn fixed_12_26_hand_computed_step() {
+        // 26 bars at 100 seed both EMAs at 100 (MACD 0); then 110, 110.
+        // signal = 1 has alpha 1, so the signal equals the MACD line.
+        //   idx26: fast 0.15·110 + 0.85·100 = 101.5, slow 0.075·110 + 0.925·100 = 100.75
+        //          macd 0.75
+        //   idx27: fast 0.15·110 + 0.85·101.5 = 102.775
+        //          slow 0.075·110 + 0.925·100.75 = 101.44375, macd 1.33125
+        let mut m = MacdIndicator::fixed_12_26(1).unwrap();
+        let mut prices = vec![100.0; 26];
+        prices.extend_from_slice(&[110.0, 110.0]);
+        let out = m.batch(&prices);
+        assert!(out[..25].iter().all(Option::is_none));
+        assert_relative_eq!(out[25].unwrap().macd, 0.0, epsilon = 1e-12);
+        let o26 = out[26].unwrap();
+        assert_relative_eq!(o26.macd, 0.75, epsilon = 1e-12);
+        assert_relative_eq!(o26.signal, 0.75, epsilon = 1e-12);
+        assert_relative_eq!(o26.histogram, 0.0, epsilon = 1e-12);
+        assert_relative_eq!(out[27].unwrap().macd, 1.331_25, epsilon = 1e-12);
     }
 }

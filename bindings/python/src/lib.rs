@@ -1756,14 +1756,15 @@ impl PyMacdFix {
     fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
         let slice = prices.as_slice();
         let n = slice.len();
-        let mut out = vec![f64::NAN; n * 3];
-        for (i, p) in slice.iter().enumerate() {
-            if let Some(o) = self.inner.update(*p) {
-                out[i * 3] = o.macd;
-                out[i * 3 + 1] = o.signal;
-                out[i * 3 + 2] = o.histogram;
-            }
-        }
+        let out = self.inner.batch_macd(slice);
+        matrix(py, out, n, 3)
+    }
+    /// Opt-in fast batch, shape `(n, 3)` like `batch`; each value agrees with
+    /// `batch` to within a few units in the last place.
+    fn batch_fast<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
+        let slice = prices.as_slice();
+        let n = slice.len();
+        let out = self.inner.batch_macd_fast(slice);
         matrix(py, out, n, 3)
     }
     #[getter]
@@ -9936,7 +9937,7 @@ impl PyKvo {
 
 // ============================== Williams A/D Oscillator ==============================
 
-#[pyclass(name = "ADOSC", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AdOscillator", module = "wickra._wickra", skip_from_py_object)]
 #[derive(Clone)]
 struct PyAdOscillator {
     inner: wc::AdOscillator,
@@ -9991,7 +9992,7 @@ impl PyAdOscillator {
         self.inner.warmup_period()
     }
     fn __repr__(&self) -> String {
-        "ADOSC()".to_string()
+        "AdOscillator()".to_string()
     }
 }
 
@@ -12746,7 +12747,7 @@ struct PyAccelerationBands {
 #[pymethods]
 impl PyAccelerationBands {
     #[new]
-    #[pyo3(signature = (period=20, factor=0.001))]
+    #[pyo3(signature = (period=20, factor=4.0))]
     fn new(period: usize, factor: f64) -> PyResult<Self> {
         Ok(Self {
             inner: wc::AccelerationBands::new(period, factor).map_err(map_err)?,
@@ -14641,15 +14642,19 @@ impl PyTdRei {
         py: Python<'py>,
         high: Buf1,
         low: Buf1,
+        close: Buf1,
     ) -> PyResult<Bound<'py, PyAny>> {
         let h = high.as_slice();
         let l = low.as_slice();
-        if h.len() != l.len() {
-            return Err(PyValueError::new_err("high and low must be equal length"));
+        let c = close.as_slice();
+        if h.len() != l.len() || l.len() != c.len() {
+            return Err(PyValueError::new_err(
+                "high, low and close must be equal length",
+            ));
         }
         let mut out = Vec::with_capacity(h.len());
         for i in 0..h.len() {
-            let candle = wc::Candle::new(l[i], h[i], l[i], l[i], 0.0, 0).map_err(map_err)?;
+            let candle = wc::Candle::new(c[i], h[i], l[i], c[i], 0.0, 0).map_err(map_err)?;
             out.push(self.inner.update(candle).unwrap_or(f64::NAN));
         }
         out.into_pydata(py)
@@ -15591,7 +15596,7 @@ struct PyEmd {
 #[pymethods]
 impl PyEmd {
     #[new]
-    #[pyo3(signature = (period=20, fraction=0.5))]
+    #[pyo3(signature = (period=20, fraction=0.1))]
     fn new(period: usize, fraction: f64) -> PyResult<Self> {
         Ok(Self {
             inner: wc::EmpiricalModeDecomposition::new(period, fraction).map_err(map_err)?,
@@ -15617,6 +15622,16 @@ impl PyEmd {
     #[getter]
     fn fraction(&self) -> f64 {
         self.inner.fraction()
+    }
+    /// Upper trend threshold `fraction · SMA(peak, 50)` after the last update.
+    #[getter]
+    fn upper(&self) -> f64 {
+        self.inner.upper()
+    }
+    /// Lower trend threshold `fraction · SMA(valley, 50)` after the last update.
+    #[getter]
+    fn lower(&self) -> f64 {
+        self.inner.lower()
     }
     fn reset(&mut self) {
         self.inner.reset();
@@ -20416,28 +20431,6 @@ fn deriv_taker(taker_buy_volume: f64, taker_sell_volume: f64) -> PyResult<wc::De
     .map_err(map_err)
 }
 
-fn deriv_oi_long_short(
-    open_interest: f64,
-    long_size: f64,
-    short_size: f64,
-) -> PyResult<wc::DerivativesTick> {
-    wc::DerivativesTick::new(
-        0.0,
-        1.0,
-        1.0,
-        1.0,
-        open_interest,
-        long_size,
-        short_size,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0,
-    )
-    .map_err(map_err)
-}
-
 fn deriv_oi_taker(
     open_interest: f64,
     taker_buy_volume: f64,
@@ -21226,7 +21219,7 @@ impl PyCalendarSpread {
     }
 }
 
-// Estimated leverage ratio: open interest over aggregate long+short size.
+// Estimated leverage ratio: open interest over the exchange's coin reserve.
 #[pyclass(
     name = "EstimatedLeverageRatio",
     module = "wickra._wickra",
@@ -21245,39 +21238,25 @@ impl PyEstimatedLeverageRatio {
             inner: wc::EstimatedLeverageRatio::new(),
         }
     }
-    fn update(
-        &mut self,
-        open_interest: f64,
-        long_size: f64,
-        short_size: f64,
-    ) -> PyResult<Option<f64>> {
-        Ok(self
-            .inner
-            .update(deriv_oi_long_short(open_interest, long_size, short_size)?))
+    fn update(&mut self, open_interest: f64, exchange_reserve: f64) -> Option<f64> {
+        self.inner.update((open_interest, exchange_reserve))
     }
+    /// Batch over two equally-sized series: `open_interest` and `exchange_reserve`.
     fn batch<'py>(
         &mut self,
         py: Python<'py>,
-        open_interest: Vec<f64>,
-        long_size: Vec<f64>,
-        short_size: Vec<f64>,
+        open_interest: Buf1,
+        exchange_reserve: Buf1,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if open_interest.len() != long_size.len() || long_size.len() != short_size.len() {
+        let (oi, reserve) = (open_interest.as_slice(), exchange_reserve.as_slice());
+        if oi.len() != reserve.len() {
             return Err(PyValueError::new_err(
-                "open_interest, long_size, short_size must be equal length",
+                "open_interest and exchange_reserve must be equal length",
             ));
         }
-        let mut out = Vec::with_capacity(open_interest.len());
-        for i in 0..open_interest.len() {
-            out.push(
-                self.inner
-                    .update(deriv_oi_long_short(
-                        open_interest[i],
-                        long_size[i],
-                        short_size[i],
-                    )?)
-                    .unwrap_or(f64::NAN),
-            );
+        let mut out = Vec::with_capacity(oi.len());
+        for i in 0..oi.len() {
+            out.push(self.inner.update((oi[i], reserve[i])).unwrap_or(f64::NAN));
         }
         out.into_pydata(py)
     }
@@ -26321,27 +26300,29 @@ impl PyBetterVolume {
         let c = extract_candle(candle)?;
         Ok(self.inner.update(c))
     }
-    /// Batch over high, low, close, volume series (all 1-D, equal length).
+    /// Batch over open, high, low, close, volume series (all 1-D, equal length).
     fn batch<'py>(
         &mut self,
         py: Python<'py>,
+        open: Buf1,
         high: Buf1,
         low: Buf1,
         close: Buf1,
         volume: Buf1,
     ) -> PyResult<Bound<'py, PyAny>> {
+        let o = open.as_slice();
         let h = high.as_slice();
         let l = low.as_slice();
         let c = close.as_slice();
         let vol = volume.as_slice();
-        if h.len() != l.len() || l.len() != c.len() || c.len() != vol.len() {
+        if o.len() != h.len() || h.len() != l.len() || l.len() != c.len() || c.len() != vol.len() {
             return Err(PyValueError::new_err(
-                "high, low, close, volume must be equal length",
+                "open, high, low, close, volume must be equal length",
             ));
         }
         let mut out = Vec::with_capacity(c.len());
         for i in 0..c.len() {
-            let candle = wc::Candle::new(c[i], h[i], l[i], c[i], vol[i], 0).map_err(map_err)?;
+            let candle = wc::Candle::new(o[i], h[i], l[i], c[i], vol[i], 0).map_err(map_err)?;
             out.push(self.inner.update(candle).unwrap_or(f64::NAN));
         }
         out.into_pydata(py)

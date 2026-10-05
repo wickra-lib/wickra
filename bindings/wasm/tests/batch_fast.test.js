@@ -33,6 +33,7 @@ const CONSTRUCT = {
   SAMPLEENT: [20, 2, 0.2],
   STC: [23, 50, 10, 0.5],
   MACD: [12, 26, 9],
+  MACDFIX: [9],
   BollingerBands: [20, 2],
   ATR: [14],
   ChaikinOscillator: [3, 10],
@@ -43,7 +44,7 @@ const COLUMNS = {
   ChaikinOscillator: [HIGH, LOW, CLOSE, VOLUME],
   PearsonCorrelation: [CLOSE, OTHER],
 };
-const WIDTH = { MACD: 3, BollingerBands: 4 };
+const WIDTH = { MACD: 3, MACDFIX: 3, BollingerBands: 4 };
 const TRIES = [[14], [10, 20], [20, 2], [20, 0.5], [12, 26, 9], [5, 0.7], [14, 0.85, 6]];
 
 const FAST = Object.keys(W)
@@ -85,8 +86,8 @@ function assertBits(a, b, label) {
 }
 
 test('the scalar macro and the column indicators expose batchFast', () => {
-  // The same 155 as the C ABI's fast entry points.
-  assert.equal(FAST.length, 155);
+  // The same 156 as the C ABI's fast entry points.
+  assert.equal(FAST.length, 156);
   for (const name of ['SMA', 'EMA', 'RSI', 'MACD', 'BollingerBands', 'ATR', 'ChaikinOscillator', 'PearsonCorrelation']) {
     assert.ok(FAST.includes(name), `${name} has batchFast`);
   }

@@ -227,7 +227,7 @@ mod tests {
         )
         .unwrap();
         handle.join().unwrap();
-        assert!(candles.is_empty());
+        assert_eq!(candles.len(), 0);
     }
 
     #[test]

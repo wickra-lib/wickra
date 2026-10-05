@@ -21355,6 +21355,129 @@ pub unsafe extern "C" fn wickra_distance_ssd_free(handle: *mut DistanceSsd) {
     }
 }
 
+/// Create a `EstimatedLeverageRatio` pairwise indicator.
+///
+/// Returns `NULL` on invalid parameters; release with `wickra_estimated_leverage_ratio_free`.
+#[no_mangle]
+pub extern "C" fn wickra_estimated_leverage_ratio_new() -> *mut EstimatedLeverageRatio {
+    Box::into_raw(Box::new(EstimatedLeverageRatio::new()))
+}
+
+/// Feed one `(x, y)` pair; returns the output, or `NaN` during warmup / on a `NULL` handle.
+///
+/// # Safety
+/// `handle` must be a valid pointer from `wickra_estimated_leverage_ratio_new` (not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_estimated_leverage_ratio_update(
+    handle: *mut EstimatedLeverageRatio,
+    x: f64,
+    y: f64,
+) -> f64 {
+    match handle.as_mut() {
+        Some(ind) => ind.update((x, y)).unwrap_or(f64::NAN),
+        None => f64::NAN,
+    }
+}
+
+/// Run over the paired series `x[0..n]` / `y[0..n]` into `out[0..n]` (`NaN` at warmup).
+///
+/// # Safety
+/// `handle` valid (from `wickra_estimated_leverage_ratio_new`, not freed); `x`/`y`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_estimated_leverage_ratio_batch(
+    handle: *mut EstimatedLeverageRatio,
+    x: *const f64,
+    y: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || x.is_null() || y.is_null() || out.is_null() {
+        return;
+    }
+    let ind = &mut *handle;
+    let xs = slice::from_raw_parts(x, n);
+    let ys = slice::from_raw_parts(y, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    for ((slot, &xv), &yv) in outputs.iter_mut().zip(xs).zip(ys) {
+        *slot = ind.update((xv, yv)).unwrap_or(f64::NAN);
+    }
+}
+
+/// Number of updates the indicator needs before it produces a non-`NaN` output.
+/// Returns `0` if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must be valid (from `wickra_estimated_leverage_ratio_new`, not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_estimated_leverage_ratio_warmup_period(
+    handle: *mut EstimatedLeverageRatio,
+) -> usize {
+    match handle.as_ref() {
+        Some(ind) => ind.warmup_period(),
+        None => 0,
+    }
+}
+
+/// Whether the indicator has consumed enough input to emit a value. Returns
+/// `false` if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must be valid (from `wickra_estimated_leverage_ratio_new`, not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_estimated_leverage_ratio_is_ready(
+    handle: *mut EstimatedLeverageRatio,
+) -> bool {
+    match handle.as_ref() {
+        Some(ind) => ind.is_ready(),
+        None => false,
+    }
+}
+
+/// Canonical indicator name as a NUL-terminated C string with `'static` lifetime
+/// (cached on first call). Returns `NULL` if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must be valid (from `wickra_estimated_leverage_ratio_new`, not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_estimated_leverage_ratio_name(
+    handle: *mut EstimatedLeverageRatio,
+) -> *const c_char {
+    match handle.as_ref() {
+        Some(ind) => {
+            static NAME: OnceLock<CString> = OnceLock::new();
+            NAME.get_or_init(|| {
+                CString::new(ind.name()).expect("indicator name has no interior NUL")
+            })
+            .as_ptr()
+        }
+        None => ptr::null(),
+    }
+}
+
+/// Reset all internal state. No-op if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must be valid (from `wickra_estimated_leverage_ratio_new`, not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_estimated_leverage_ratio_reset(
+    handle: *mut EstimatedLeverageRatio,
+) {
+    if let Some(ind) = handle.as_mut() {
+        ind.reset();
+    }
+}
+
+/// Destroy a handle created by `wickra_estimated_leverage_ratio_new`. No-op if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must have been returned by `wickra_estimated_leverage_ratio_new` and not previously freed, or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_estimated_leverage_ratio_free(handle: *mut EstimatedLeverageRatio) {
+    if !handle.is_null() {
+        drop(Box::from_raw(handle));
+    }
+}
+
 /// Create a `GrangerCausality` pairwise indicator.
 ///
 /// Returns `NULL` on invalid parameters; release with `wickra_granger_causality_free`.
@@ -53836,208 +53959,6 @@ pub unsafe extern "C" fn wickra_calendar_spread_free(handle: *mut CalendarSpread
     }
 }
 
-/// Create a `EstimatedLeverageRatio` indicator.
-///
-/// Returns `NULL` on invalid parameters; release with `wickra_estimated_leverage_ratio_free`.
-#[no_mangle]
-pub extern "C" fn wickra_estimated_leverage_ratio_new() -> *mut EstimatedLeverageRatio {
-    Box::into_raw(Box::new(EstimatedLeverageRatio::new()))
-}
-
-/// Feed one derivatives tick; returns the output, or `NaN` during warmup / on a
-/// `NULL` handle / if the tick is invalid.
-///
-/// # Safety
-/// `handle` must be a valid pointer from `wickra_estimated_leverage_ratio_new` (not freed), or `NULL`.
-#[no_mangle]
-pub unsafe extern "C" fn wickra_estimated_leverage_ratio_update(
-    handle: *mut EstimatedLeverageRatio,
-    funding_rate: f64,
-    mark_price: f64,
-    index_price: f64,
-    futures_price: f64,
-    open_interest: f64,
-    long_size: f64,
-    short_size: f64,
-    taker_buy_volume: f64,
-    taker_sell_volume: f64,
-    long_liquidation: f64,
-    short_liquidation: f64,
-    timestamp: i64,
-) -> f64 {
-    let Some(ind) = handle.as_mut() else {
-        return f64::NAN;
-    };
-    match DerivativesTick::new(
-        funding_rate,
-        mark_price,
-        index_price,
-        futures_price,
-        open_interest,
-        long_size,
-        short_size,
-        taker_buy_volume,
-        taker_sell_volume,
-        long_liquidation,
-        short_liquidation,
-        timestamp,
-    ) {
-        Ok(tick) => ind.update(tick).unwrap_or(f64::NAN),
-        Err(_) => f64::NAN,
-    }
-}
-
-/// Run over the derivatives-tick series into `out[0..n]` (`NaN` at warmup or on
-/// an invalid tick).
-///
-/// # Safety
-/// `handle` valid (from `wickra_estimated_leverage_ratio_new`, not freed); every input pointer and `out`
-/// cover `n` elements.
-#[no_mangle]
-pub unsafe extern "C" fn wickra_estimated_leverage_ratio_batch(
-    handle: *mut EstimatedLeverageRatio,
-    funding_rate: *const f64,
-    mark_price: *const f64,
-    index_price: *const f64,
-    futures_price: *const f64,
-    open_interest: *const f64,
-    long_size: *const f64,
-    short_size: *const f64,
-    taker_buy_volume: *const f64,
-    taker_sell_volume: *const f64,
-    long_liquidation: *const f64,
-    short_liquidation: *const f64,
-    timestamp: *const i64,
-    out: *mut f64,
-    n: usize,
-) {
-    if handle.is_null()
-        || funding_rate.is_null()
-        || mark_price.is_null()
-        || index_price.is_null()
-        || futures_price.is_null()
-        || open_interest.is_null()
-        || long_size.is_null()
-        || short_size.is_null()
-        || taker_buy_volume.is_null()
-        || taker_sell_volume.is_null()
-        || long_liquidation.is_null()
-        || short_liquidation.is_null()
-        || timestamp.is_null()
-        || out.is_null()
-    {
-        return;
-    }
-    let ind = &mut *handle;
-    let funding_rates = slice::from_raw_parts(funding_rate, n);
-    let mark_prices = slice::from_raw_parts(mark_price, n);
-    let index_prices = slice::from_raw_parts(index_price, n);
-    let futures_prices = slice::from_raw_parts(futures_price, n);
-    let open_interests = slice::from_raw_parts(open_interest, n);
-    let long_sizes = slice::from_raw_parts(long_size, n);
-    let short_sizes = slice::from_raw_parts(short_size, n);
-    let taker_buy_volumes = slice::from_raw_parts(taker_buy_volume, n);
-    let taker_sell_volumes = slice::from_raw_parts(taker_sell_volume, n);
-    let long_liquidations = slice::from_raw_parts(long_liquidation, n);
-    let short_liquidations = slice::from_raw_parts(short_liquidation, n);
-    let stamps = slice::from_raw_parts(timestamp, n);
-    let outputs = slice::from_raw_parts_mut(out, n);
-    for (i, slot) in outputs.iter_mut().enumerate() {
-        *slot = match DerivativesTick::new(
-            funding_rates[i],
-            mark_prices[i],
-            index_prices[i],
-            futures_prices[i],
-            open_interests[i],
-            long_sizes[i],
-            short_sizes[i],
-            taker_buy_volumes[i],
-            taker_sell_volumes[i],
-            long_liquidations[i],
-            short_liquidations[i],
-            stamps[i],
-        ) {
-            Ok(tick) => ind.update(tick).unwrap_or(f64::NAN),
-            Err(_) => f64::NAN,
-        };
-    }
-}
-
-/// Number of updates the indicator needs before it produces a non-`NaN` output.
-/// Returns `0` if `handle` is `NULL`.
-///
-/// # Safety
-/// `handle` must be valid (from `wickra_estimated_leverage_ratio_new`, not freed), or `NULL`.
-#[no_mangle]
-pub unsafe extern "C" fn wickra_estimated_leverage_ratio_warmup_period(
-    handle: *mut EstimatedLeverageRatio,
-) -> usize {
-    match handle.as_ref() {
-        Some(ind) => ind.warmup_period(),
-        None => 0,
-    }
-}
-
-/// Whether the indicator has consumed enough input to emit a value. Returns
-/// `false` if `handle` is `NULL`.
-///
-/// # Safety
-/// `handle` must be valid (from `wickra_estimated_leverage_ratio_new`, not freed), or `NULL`.
-#[no_mangle]
-pub unsafe extern "C" fn wickra_estimated_leverage_ratio_is_ready(
-    handle: *mut EstimatedLeverageRatio,
-) -> bool {
-    match handle.as_ref() {
-        Some(ind) => ind.is_ready(),
-        None => false,
-    }
-}
-
-/// Canonical indicator name as a NUL-terminated C string with `'static` lifetime
-/// (cached on first call). Returns `NULL` if `handle` is `NULL`.
-///
-/// # Safety
-/// `handle` must be valid (from `wickra_estimated_leverage_ratio_new`, not freed), or `NULL`.
-#[no_mangle]
-pub unsafe extern "C" fn wickra_estimated_leverage_ratio_name(
-    handle: *mut EstimatedLeverageRatio,
-) -> *const c_char {
-    match handle.as_ref() {
-        Some(ind) => {
-            static NAME: OnceLock<CString> = OnceLock::new();
-            NAME.get_or_init(|| {
-                CString::new(ind.name()).expect("indicator name has no interior NUL")
-            })
-            .as_ptr()
-        }
-        None => ptr::null(),
-    }
-}
-
-/// Reset all internal state. No-op if `handle` is `NULL`.
-///
-/// # Safety
-/// `handle` must be valid (from `wickra_estimated_leverage_ratio_new`, not freed), or `NULL`.
-#[no_mangle]
-pub unsafe extern "C" fn wickra_estimated_leverage_ratio_reset(
-    handle: *mut EstimatedLeverageRatio,
-) {
-    if let Some(ind) = handle.as_mut() {
-        ind.reset();
-    }
-}
-
-/// Destroy a handle created by `wickra_estimated_leverage_ratio_new`. No-op if `handle` is `NULL`.
-///
-/// # Safety
-/// `handle` must have been returned by `wickra_estimated_leverage_ratio_new` and not previously freed, or `NULL`.
-#[no_mangle]
-pub unsafe extern "C" fn wickra_estimated_leverage_ratio_free(handle: *mut EstimatedLeverageRatio) {
-    if !handle.is_null() {
-        drop(Box::from_raw(handle));
-    }
-}
-
 /// Create a `FundingBasis` indicator.
 ///
 /// Returns `NULL` on invalid parameters; release with `wickra_funding_basis_free`.
@@ -71036,21 +70957,32 @@ pub unsafe extern "C" fn wickra_macd_fix_batch(
     }
     let ind = &mut *handle;
     let inputs = slice::from_raw_parts(input, n);
-    let outputs = slice::from_raw_parts_mut(out, n);
-    for (i, slot) in outputs.iter_mut().enumerate() {
-        *slot = WickraMacdOutput {
-            macd: f64::NAN,
-            signal: f64::NAN,
-            histogram: f64::NAN,
-        };
-        if let Some(out_val) = ind.update(inputs[i]) {
-            *slot = WickraMacdOutput {
-                macd: out_val.macd,
-                signal: out_val.signal,
-                histogram: out_val.histogram,
-            };
-        }
+    let rows = slice::from_raw_parts_mut(out.cast::<f64>(), n * 3);
+    ind.batch_macd_into(inputs, rows);
+}
+
+/// Opt-in fast batch into `out[0..n]`: the SIMD kernel reassociates the
+/// arithmetic, so each field agrees with `wickra_macd_fix_batch` to within a few
+/// units in the last place rather than bit for bit; warmup rows and length are
+/// identical, and the result is the same on every platform.
+///
+/// # Safety
+/// `handle` valid (from `wickra_macd_fix_new`, not freed); `input` covers `n`
+/// `double`s and `out` covers `n` `WickraMacdOutput` values.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_macd_fix_batch_fast(
+    handle: *mut MacdFix,
+    input: *const f64,
+    out: *mut WickraMacdOutput,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
     }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let rows = slice::from_raw_parts_mut(out.cast::<f64>(), n * 3);
+    ind.batch_macd_fast_into(inputs, rows);
 }
 
 /// Number of updates the indicator needs before it produces a non-`NaN` output.

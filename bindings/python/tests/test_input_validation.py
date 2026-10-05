@@ -168,6 +168,9 @@ def test_family_10_ehlers_rejects_invalid_parameters():
         ta.MAMA(0.05, 0.5)
     with pytest.raises(ValueError):
         ta.EmpiricalModeDecomposition(20, 0.0)
+    # The VECM behind the information share needs at least six observations.
+    with pytest.raises(ValueError):
+        ta.HasbrouckInformationShare(5)
 
 
 def test_orderbook_topn_zero_levels_raises():

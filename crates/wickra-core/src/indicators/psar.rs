@@ -52,6 +52,8 @@ pub struct Psar {
     has_emitted: bool,
     prev_high: f64,
     prev_low: f64,
+    prev2_high: f64,
+    prev2_low: f64,
     trend: Trend,
     sar: f64,
     ep: f64,
@@ -88,6 +90,8 @@ impl Psar {
             // sentinel as a real price.
             prev_high: f64::NAN,
             prev_low: f64::NAN,
+            prev2_high: f64::NAN,
+            prev2_low: f64::NAN,
             trend: Trend::Up,
             sar: f64::NAN,
             ep: f64::NAN,
@@ -107,42 +111,49 @@ impl Indicator for Psar {
 
     fn update(&mut self, candle: Candle) -> Option<f64> {
         if !self.initialised {
-            // Seed on the first candle; the first SAR is emitted on the second.
-            // The initial trend is assumed Up — PSAR's reversal logic flips it
-            // within the first few bars if the market is actually falling.
+            // The first candle only seeds the state; the first SAR is emitted
+            // on the second.
             self.prev_high = candle.high;
             self.prev_low = candle.low;
-            self.sar = candle.low;
-            self.ep = candle.high;
-            self.trend = Trend::Up;
-            self.af = self.af_start;
             self.initialised = true;
-            // `has_emitted` stays false — this is the seed bar; the first
-            // `Some` lands on the next call.
             return None;
         }
 
-        // After `initialised` flips to `true`, every compute field is guaranteed
-        // finite. This guards against a future refactor that changes the seed
-        // gate but leaves a NaN sentinel reachable.
-        debug_assert!(
-            self.prev_high.is_finite()
-                && self.prev_low.is_finite()
-                && self.sar.is_finite()
-                && self.ep.is_finite(),
-            "PSAR seed state must be finite once initialised"
-        );
-
-        // Predicted SAR for this period (before clamping to prior two extremes).
-        let mut new_sar = self.sar + self.af * (self.ep - self.sar);
-
-        // Wilder rule: SAR cannot penetrate today's or yesterday's range.
+        let new_sar = if self.has_emitted {
+            // Predicted SAR for this period, clamped so it never sits inside
+            // the ranges of the two bars before it (Wilder's rule; TA-Lib
+            // clamps tomorrow's SAR with today's and yesterday's extremes --
+            // the same rule, one bar earlier).
+            let predicted = self.sar + self.af * (self.ep - self.sar);
+            match self.trend {
+                Trend::Up => predicted.min(self.prev_low).min(self.prev2_low),
+                Trend::Down => predicted.max(self.prev_high).max(self.prev2_high),
+            }
+        } else {
+            // Second candle: TA-Lib's seed. The direction comes from the
+            // one-bar directional movement of the first two candles (short
+            // when the down move dominates), the SAR starts at the first
+            // candle's opposite extreme and the extreme point at this
+            // candle's. TA-Lib's first step treats this candle as both today
+            // and yesterday, so it is also the "bar before last" of the next
+            // clamp.
+            let up_move = candle.high - self.prev_high;
+            let down_move = self.prev_low - candle.low;
+            if down_move > 0.0 && down_move > up_move {
+                self.trend = Trend::Down;
+                self.sar = self.prev_high;
+                self.ep = candle.low;
+            } else {
+                self.trend = Trend::Up;
+                self.sar = self.prev_low;
+                self.ep = candle.high;
+            }
+            self.prev_high = candle.high;
+            self.prev_low = candle.low;
+            self.sar
+        };
         let prev_h = self.prev_high;
         let prev_l = self.prev_low;
-        new_sar = match self.trend {
-            Trend::Up => new_sar.min(prev_l).min(candle.low),
-            Trend::Down => new_sar.max(prev_h).max(candle.high),
-        };
 
         let mut output_sar = new_sar;
 
@@ -153,8 +164,13 @@ impl Indicator for Psar {
         };
 
         if reversed {
-            // Flip trend, reset AF and EP, place SAR at prior EP.
-            output_sar = self.ep;
+            // Flip trend, reset AF and EP, place SAR at the prior EP -- moved
+            // outside this bar's and the previous bar's range if the reversal
+            // bar reached past it (TA-Lib's reversal clamp).
+            output_sar = match self.trend {
+                Trend::Up => self.ep.max(prev_h).max(candle.high),
+                Trend::Down => self.ep.min(prev_l).min(candle.low),
+            };
             self.trend = match self.trend {
                 Trend::Up => Trend::Down,
                 Trend::Down => Trend::Up,
@@ -183,6 +199,8 @@ impl Indicator for Psar {
         }
 
         self.sar = output_sar;
+        self.prev2_high = self.prev_high;
+        self.prev2_low = self.prev_low;
         self.prev_high = candle.high;
         self.prev_low = candle.low;
         self.has_emitted = true;
@@ -197,6 +215,8 @@ impl Indicator for Psar {
         self.has_emitted = false;
         self.prev_high = f64::NAN;
         self.prev_low = f64::NAN;
+        self.prev2_high = f64::NAN;
+        self.prev2_low = f64::NAN;
         self.trend = Trend::Up;
         self.sar = f64::NAN;
         self.ep = f64::NAN;
@@ -355,5 +375,200 @@ mod tests {
         // A reset instance must reproduce a pristine run bit for bit.
         let second = psar.batch(&candles);
         assert_eq!(first, second);
+    }
+
+    fn hl(high: f64, low: f64) -> Candle {
+        c(high, low, f64::midpoint(high, low))
+    }
+
+    fn run(bars: &[(f64, f64)]) -> Vec<Option<f64>> {
+        let candles: Vec<Candle> = bars.iter().map(|&(h, l)| hl(h, l)).collect();
+        Psar::classic().batch(&candles)
+    }
+
+    fn assert_series(got: &[Option<f64>], expected: &[Option<f64>]) {
+        assert_eq!(got.len(), expected.len());
+        for (g, e) in got.iter().zip(expected) {
+            assert_eq!(g.is_some(), e.is_some());
+            if let (Some(g), Some(e)) = (g, e) {
+                approx::assert_relative_eq!(*g, *e, epsilon = 1e-12);
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_every_invalid_parameter() {
+        assert!(matches!(
+            Psar::new(f64::NAN, 0.02, 0.2),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        assert!(matches!(
+            Psar::new(0.02, f64::INFINITY, 0.2),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        assert!(matches!(
+            Psar::new(0.02, 0.02, f64::NAN),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        assert!(matches!(
+            Psar::new(-0.02, 0.02, 0.2),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        assert!(matches!(
+            Psar::new(0.02, -0.02, 0.2),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        assert!(matches!(
+            Psar::new(0.02, 0.02, 0.0),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        assert!(matches!(
+            Psar::new(0.3, 0.02, 0.2),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        assert!(Psar::new(0.2, 0.02, 0.2).is_ok());
+    }
+
+    #[test]
+    fn first_value_lands_at_index_one() {
+        let out = run(&[(10.0, 8.0), (11.0, 9.0), (12.0, 10.0)]);
+        assert_eq!(Psar::classic().warmup_period(), 2);
+        assert!(out[0].is_none());
+        assert!(out[1..].iter().all(Option::is_some));
+    }
+
+    #[test]
+    fn hand_computed_long_seed() {
+        // b1: up move 1 > down move −1 -> long. SAR = low0 = 8, EP = high1 = 11.
+        //     low 9 > 8, no reversal; high 11 is not above EP: AF stays 0.02.
+        // b2: 8 + 0.02·(11 − 8) = 8.06, clamp min(9, 9) keeps 8.06; EP 12, AF 0.04.
+        // b3: 8.06 + 0.04·(12 − 8.06) = 8.2176, clamp min(10, 9); EP 13, AF 0.06.
+        // b4: 8.2176 + 0.06·(13 − 8.2176) = 8.504544, clamp min(11, 10).
+        let out = run(&[
+            (10.0, 8.0),
+            (11.0, 9.0),
+            (12.0, 10.0),
+            (13.0, 11.0),
+            (14.0, 12.0),
+        ]);
+        assert_series(
+            &out,
+            &[None, Some(8.0), Some(8.06), Some(8.2176), Some(8.504_544)],
+        );
+    }
+
+    #[test]
+    fn hand_computed_short_seed() {
+        // b1: down move 10 − 9 = 1 > 0 and > up move 11 − 12 = −1 -> short.
+        //     SAR = high0 = 12, EP = low1 = 9. high 11 < 12, no reversal.
+        // b2: 12 + 0.02·(9 − 12) = 11.94, clamp max(11, 11) keeps it; EP 8, AF 0.04.
+        // b3: 11.94 + 0.04·(8 − 11.94) = 11.7824, clamp max(10, 11) keeps it.
+        let out = run(&[(12.0, 10.0), (11.0, 9.0), (10.0, 8.0), (9.0, 7.0)]);
+        assert_series(&out, &[None, Some(12.0), Some(11.94), Some(11.7824)]);
+    }
+
+    #[test]
+    fn equal_moves_seed_long() {
+        // Outside bar: up move 1 == down move 1 -> not short, so long with
+        // SAR 8 / EP 11; low 7 <= 8 reverses immediately to the EP, clamped
+        // to max(11, high1 11, high 11) = 11.
+        let out = run(&[(10.0, 8.0), (11.0, 7.0)]);
+        assert_series(&out, &[None, Some(11.0)]);
+    }
+
+    #[test]
+    fn hand_computed_immediate_reversal_long_to_short_then_back() {
+        // b1: up −1, down 0 (not > 0) -> long, SAR 8, EP 9. low 8 <= 8 reverses:
+        //     SAR = max(EP 9, prev high 9 (b1 itself), high 9) = 9; short, EP 8.
+        // b2: 9 + 0.02·(8 − 9) = 8.98, clamp max(9, 9) = 9 (b1 is also the bar
+        //     before last). high 9.5 >= 9 reverses: SAR = min(EP 8, prev low 8,
+        //     low 7.5) = 7.5 (the clamp applies), long, EP 9.5, AF 0.02.
+        // b3: 7.5 + 0.02·(9.5 − 7.5) = 7.54, clamp min(7.5, 8) = 7.5.
+        let out = run(&[(10.0, 8.0), (9.0, 8.0), (9.5, 7.5), (10.5, 9.0)]);
+        assert_series(&out, &[None, Some(9.0), Some(7.5), Some(7.5)]);
+    }
+
+    #[test]
+    fn hand_computed_immediate_reversal_short_to_long() {
+        // b1: up 0, down 1 -> short, SAR = high0 10, EP 7. high 10 >= 10
+        //     reverses: SAR = min(EP 7, prev low 7, low 7) = 7; long, EP 10.
+        // b2: 7 + 0.02·(10 − 7) = 7.06, clamp min(7, 7) = 7; EP 10.5.
+        // b3: 7 + 0.04·(10.5 − 7) = 7.14, clamp min(8, 7) = 7.
+        let out = run(&[(10.0, 8.0), (10.0, 7.0), (10.5, 8.0), (11.0, 9.0)]);
+        assert_series(&out, &[None, Some(7.0), Some(7.0), Some(7.0)]);
+    }
+
+    #[test]
+    fn hand_computed_reversal_clamped_above_the_extreme_point() {
+        // Long seed as in `hand_computed_long_seed` up to b2 (SAR 8.06, EP 12, AF 0.04).
+        // b3 (13, 8): 8.06 + 0.04·(12 − 8.06) = 8.2176; low 8 <= 8.2176
+        //     reverses. The bar's high 13 is above EP 12, so SAR =
+        //     max(12, prev high 12, 13) = 13. Short, EP 8, AF 0.02.
+        // b4 (12, 7): 13 + 0.02·(8 − 13) = 12.9, clamp max(13, 12) = 13; EP 7, AF 0.04.
+        // b5 (11.5, 6.5): 13 + 0.04·(7 − 13) = 12.76, clamp max(12, 13) = 13.
+        let out = run(&[
+            (10.0, 8.0),
+            (11.0, 9.0),
+            (12.0, 10.0),
+            (13.0, 8.0),
+            (12.0, 7.0),
+            (11.5, 6.5),
+        ]);
+        assert_series(
+            &out,
+            &[
+                None,
+                Some(8.0),
+                Some(8.06),
+                Some(13.0),
+                Some(13.0),
+                Some(13.0),
+            ],
+        );
+    }
+
+    #[test]
+    fn acceleration_factor_caps_at_max() {
+        // AF (0.1, 0.1, 0.2): b2 AF 0.1 -> 0.2, then capped at 0.2.
+        //   b1 SAR 8, EP 11.
+        //   b2 8 + 0.1·3 = 8.3; EP 12, AF 0.2.
+        //   b3 8.3 + 0.2·(12 − 8.3) = 9.04, clamped to min(b2 low 10, b1 low 9) = 9;
+        //      EP 13, AF min(0.3, 0.2) = 0.2.
+        //   b4 9 + 0.2·(13 − 9) = 9.8, clamp min(11, 10) keeps it.
+        let candles: Vec<Candle> = [
+            (10.0, 8.0),
+            (11.0, 9.0),
+            (12.0, 10.0),
+            (13.0, 11.0),
+            (14.0, 12.0),
+        ]
+        .iter()
+        .map(|&(h, l)| hl(h, l))
+        .collect();
+        let out = Psar::new(0.1, 0.1, 0.2).unwrap().batch(&candles);
+        assert_series(&out, &[None, Some(8.0), Some(8.3), Some(9.0), Some(9.8)]);
+    }
+
+    #[test]
+    fn reset_matches_a_fresh_instance_and_batch_nan_into() {
+        let candles: Vec<Candle> = (0..60)
+            .map(|i| {
+                let m = 100.0 + (f64::from(i) * 0.3).sin() * 8.0;
+                c(m + 1.0, m - 1.0, m)
+            })
+            .collect();
+        let mut psar = Psar::classic();
+        let _ = psar.batch(&candles);
+        psar.reset();
+        let after_reset = psar.batch(&candles);
+        assert_eq!(after_reset, Psar::classic().batch(&candles));
+        let expected: Vec<u64> = after_reset
+            .iter()
+            .map(|v| v.unwrap_or(f64::NAN).to_bits())
+            .collect();
+        let mut out = vec![0.0; candles.len()];
+        Psar::classic().batch_nan_into(&candles, &mut out);
+        let got: Vec<u64> = out.iter().map(|v| v.to_bits()).collect();
+        assert_eq!(got, expected);
     }
 }
