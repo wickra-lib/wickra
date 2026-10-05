@@ -8,7 +8,7 @@
 //! panic.
 
 use libfuzzer_sys::fuzz_target;
-use wickra_core::{Alpha, BatchExt, BetaNeutralSpread, Cointegration, DistanceSsd, GrangerCausality, HasbrouckInformationShare, Indicator, InformationRatio, KalmanHedgeRatio, KendallTau, LeadLagCrossCorrelation, OuHalfLife, PairSpreadZScore, PairwiseBeta, RelativeStrengthAB, RollingCorrelation, RollingCovariance, SpreadAr1Coefficient, SpreadBollingerBands, SpreadHurst, TreynorRatio, VarianceRatio};
+use wickra_core::{Alpha, BatchExt, BetaNeutralSpread, Cointegration, DistanceSsd, EstimatedLeverageRatio, GrangerCausality, HasbrouckInformationShare, Indicator, InformationRatio, KalmanHedgeRatio, KendallTau, LeadLagCrossCorrelation, OuHalfLife, PairSpreadZScore, PairwiseBeta, RelativeStrengthAB, RollingCorrelation, RollingCovariance, SpreadAr1Coefficient, SpreadBollingerBands, SpreadHurst, TreynorRatio, VarianceRatio};
 
 #[inline(never)]
 fn drive<I>(make: impl Fn() -> I, data: &[(f64, f64)])
@@ -48,7 +48,8 @@ fuzz_target!(|data: &[u8]| {
     drive(|| GrangerCausality::new(60, 1).unwrap(), &pairs);
     drive(|| SpreadAr1Coefficient::new(40).unwrap(), &pairs);
     drive(|| KendallTau::new(20).unwrap(), &pairs);
-    drive(|| HasbrouckInformationShare::new(2).unwrap(), &pairs);
+    drive(|| HasbrouckInformationShare::new(6).unwrap(), &pairs);
+    drive(EstimatedLeverageRatio::new, &pairs);
 
     // Struct-output pair indicator: drive update + batch directly (the generic
     // `drive` above only covers `Output = f64`).

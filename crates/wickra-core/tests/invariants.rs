@@ -705,7 +705,7 @@ candle_inv!(inv_abandoned_baby, AbandonedBaby::new());
 candle_inv!(inv_abcd, Abcd::new());
 candle_inv!(
     inv_acceleration_bands,
-    AccelerationBands::new(20, 0.001).unwrap()
+    AccelerationBands::new(20, 4.0).unwrap()
 );
 candle_inv!(
     inv_accelerator_oscillator,
@@ -1054,6 +1054,7 @@ pair_inv!(inv_beta, Beta::new(20).unwrap());
 pair_inv!(inv_beta_neutral_spread, BetaNeutralSpread::new(20).unwrap());
 pair_inv!(inv_cointegration, Cointegration::new(30, 1).unwrap());
 pair_inv!(inv_distance_ssd, DistanceSsd::new(20).unwrap());
+pair_inv!(inv_estimated_leverage_ratio, EstimatedLeverageRatio::new());
 pair_inv!(inv_granger_causality, GrangerCausality::new(60, 1).unwrap());
 pair_inv!(
     inv_hasbrouck_information_share,
@@ -1137,7 +1138,6 @@ trade_inv!(inv_vpin, Vpin::new(10.0, 2).unwrap());
 
 // --- deriv_inv (17) ---
 deriv_inv!(inv_calendar_spread, CalendarSpread::new());
-deriv_inv!(inv_estimated_leverage_ratio, EstimatedLeverageRatio::new());
 deriv_inv!(inv_funding_basis, FundingBasis::new());
 deriv_inv!(
     inv_funding_implied_apr,

@@ -10,7 +10,7 @@
 //! never panic, streaming or batched.
 
 use libfuzzer_sys::fuzz_target;
-use wickra_core::{BatchExt, CalendarSpread, DerivativesTick, EstimatedLeverageRatio, FundingBasis, FundingImpliedApr, FundingRate, FundingRateMean, FundingRateZScore, Indicator, LiquidationFeatures, LongShortRatio, OIPriceDivergence, OIWeighted, OiToVolumeRatio, OpenInterestDelta, OpenInterestMomentum, PerpetualPremiumIndex, TakerBuySellRatio, TermStructureBasis};
+use wickra_core::{BatchExt, CalendarSpread, DerivativesTick, FundingBasis, FundingImpliedApr, FundingRate, FundingRateMean, FundingRateZScore, Indicator, LiquidationFeatures, LongShortRatio, OIPriceDivergence, OIWeighted, OiToVolumeRatio, OpenInterestDelta, OpenInterestMomentum, PerpetualPremiumIndex, TakerBuySellRatio, TermStructureBasis};
 
 #[inline(never)]
 fn drive<I>(make: impl Fn() -> I, ticks: &[DerivativesTick])
@@ -49,7 +49,6 @@ fuzz_target!(|data: &[u8]| {
     drive(TakerBuySellRatio::new, &ticks);
     drive(TermStructureBasis::new, &ticks);
     drive(CalendarSpread::new, &ticks);
-    drive(EstimatedLeverageRatio::new, &ticks);
     drive(OiToVolumeRatio::new, &ticks);
     drive(PerpetualPremiumIndex::new, &ticks);
     drive(|| FundingImpliedApr::new(1095.0).unwrap(), &ticks);
