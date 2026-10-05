@@ -168,7 +168,7 @@ SCALAR = [
     (ta.CyberneticCycle, (10,)),
     (ta.InstantaneousTrendline, (20,)),
     (ta.EhlersStochastic, (20,)),
-    (ta.EmpiricalModeDecomposition, (20, 0.5)),
+    (ta.EmpiricalModeDecomposition, (20, 0.1)),
     (ta.HilbertDominantCycle, ()),
     (ta.HT_DCPHASE, ()),
     (ta.HT_TRENDMODE, ()),
@@ -239,7 +239,7 @@ def test_scalar_streaming_matches_batch(cls, args, sine_prices):
 # --- Two-series (asset, benchmark) indicators -----------------------------
 
 PAIR = [
-    (ta.HasbrouckInformationShare, (2,)),
+    (ta.HasbrouckInformationShare, (6,)),
     (ta.KendallTau, (20,)),
     (ta.SpreadAr1Coefficient, (40,)),
     (ta.GrangerCausality, (60, 1)),
@@ -480,7 +480,8 @@ CANDLE_SCALAR = {
     "ADAPTIVECCI": (lambda: ta.ADAPTIVECCI(20), lambda ind, h, l, c, v: ind.batch(h, l, c)),
     "BetterVolume": (
         lambda: ta.BetterVolume(14),
-        lambda ind, h, l, c, v: ind.batch(h, l, c, v),
+        # The streaming side builds candles with open == close; match it.
+        lambda ind, h, l, c, v: ind.batch(c, h, l, c, v),
     ),
     "IntradayIntensity": (
         lambda: ta.IntradayIntensity(),
@@ -647,8 +648,8 @@ CANDLE_SCALAR = {
         lambda: ta.PVI(),
         lambda ind, h, l, c, v: ind.batch(c, v),
     ),
-    "ADOSC": (
-        lambda: ta.ADOSC(),
+    "AdOscillator": (
+        lambda: ta.AdOscillator(),
         lambda ind, h, l, c, v: ind.batch(h, l, c),
     ),
     "AnchoredVWAP": (
@@ -757,7 +758,7 @@ CANDLE_SCALAR = {
     ),
     "TDREI": (
         lambda: ta.TDREI(5),
-        lambda ind, h, l, c, v: ind.batch(h, l),
+        lambda ind, h, l, c, v: ind.batch(h, l, c),
     ),
     "TDCombo": (
         lambda: ta.TDCombo(4, 9, 2, 13),
@@ -1288,7 +1289,7 @@ MULTI = {
 
 # Bands with 3 outputs upper/middle/lower from a candle (h, l, c).
 HLC_BAND3 = {
-    "AccelerationBands": lambda: ta.AccelerationBands(20, 0.001),
+    "AccelerationBands": lambda: ta.AccelerationBands(20, 4.0),
     "StarcBands": lambda: ta.StarcBands(6, 15, 2.0),
     "AtrBands": lambda: ta.AtrBands(14, 3.0),
     "HurstChannel": lambda: ta.HurstChannel(10, 0.5),
@@ -1721,12 +1722,27 @@ def test_linreg_intercept_and_tsf_reference():
     assert ta.TSF(3).batch(data)[-1] == pytest.approx(12.0)
 
 
-def test_macdfix_matches_macd():
-    # MACDFIX(signal) is exactly MACD(12, 26, signal).
+def test_macdfix_uses_the_fixed_smoothing_constants():
+    # MACDFIX(signal) is TA-Lib's MACDFIX: the 12/26 EMAs smooth with the fixed
+    # constants 0.15 / 0.075 (each seeded with its simple mean).
     prices = 100.0 + np.sin(np.arange(80) * 0.3) * 5.0
-    fix = _to_np(ta.MACDFIX(9).batch(prices))
-    classic = _to_np(ta.MACD(12, 26, 9).batch(prices))
-    np.testing.assert_allclose(fix, classic, equal_nan=True)
+
+    def ema(n, a):
+        out = np.full(len(prices), np.nan)
+        v = prices[:n].mean()
+        out[n - 1] = v
+        for i in range(n, len(prices)):
+            v = a * prices[i] + (1.0 - a) * v
+            out[i] = v
+        return out
+
+    macd_line = ema(12, 0.15) - ema(26, 0.075)
+    fix = _to_np(ta.MACDFIX(9).batch(prices)).reshape(-1, 3)
+    ready = ~np.isnan(fix[:, 0])
+    assert ready.any()
+    np.testing.assert_allclose(fix[ready, 0], macd_line[ready], atol=1e-9)
+    classic = _to_np(ta.MACD(12, 26, 9).batch(prices)).reshape(-1, 3)
+    assert not np.allclose(fix[ready, 0], classic[ready, 0])
 
 
 def test_nvi_reference():
@@ -2241,12 +2257,13 @@ def test_td_range_projection_bullish_bar_reference():
 
 
 def test_td_differential_buy_signal_reference():
-    # Bar 0: high=10, low=8, close=9 -> warmup, returns None.
-    # Bar 1: high=9, low=7, close=8.5 -> close < prev.close, more buying
-    # pressure (1.5 > 1), less selling pressure (0.5 < 1) -> +1.
+    # Closes 10 -> 9 -> 8.5 (two lower closes). Bar 1 has buying 1 and
+    # selling 1 against its true range; bar 2 has buying 1.5 > 1 and
+    # selling 0.5 < 1 -> +1.
     td = ta.TDDifferential()
-    assert td.update((9.0, 10.0, 8.0, 9.0, 1.0, 0)) is None
-    assert td.update((8.5, 9.0, 7.0, 8.5, 1.0, 1)) == pytest.approx(1.0)
+    assert td.update((10.0, 11.0, 9.0, 10.0, 1.0, 0)) is None
+    assert td.update((9.0, 10.0, 8.0, 9.0, 1.0, 1)) is None
+    assert td.update((8.5, 9.0, 7.0, 8.5, 1.0, 2)) == pytest.approx(1.0)
 
 
 def test_td_open_buy_signal_reference():
@@ -2538,10 +2555,13 @@ def test_hikkake_reference():
 
 
 def test_hikkake_modified_reference():
+    # Two nested inside bars, the first closing near its low, then a false
+    # downside break -> +1.
     t = ta.HikkakeModified()
     assert t.update((10.0, 15.0, 5.0, 12.0, 1.0, 0)) is None
-    assert t.update((11.0, 13.0, 8.0, 12.0, 1.0, 1)) is None
-    assert t.update((9.0, 12.0, 6.0, 9.0, 1.0, 2)) == pytest.approx(1.0)
+    assert t.update((11.0, 13.0, 7.0, 7.5, 1.0, 1)) is None
+    assert t.update((9.0, 12.0, 8.0, 10.0, 1.0, 2)) is None
+    assert t.update((9.0, 11.0, 6.0, 9.0, 1.0, 3)) == pytest.approx(1.0)
 
 
 def test_homing_pigeon_reference():
@@ -2974,7 +2994,7 @@ def test_fib_fan_reference():
     assert t.update((199.0, 200.0, 199.0, 199.0, 1.0, 0)) is None
     assert t.update((160.0, 190.0, 160.0, 160.0, 1.0, 1)) is None
     assert t.update((100.0, 150.0, 100.0, 100.0, 1.0, 2)) is None
-    assert t.update((105.0, 110.0, 105.0, 105.0, 1.0, 3)) == pytest.approx((142.7, 125.0, 107.3))
+    assert t.update((105.0, 110.0, 105.0, 105.0, 1.0, 3)) == pytest.approx((107.3, 125.0, 142.7))
 
 
 def test_fib_arcs_reference():
@@ -3378,9 +3398,10 @@ def test_tower_top_bottom_reference():
 
 
 def test_hasbrouck_information_share_reference():
-    t = ta.HasbrouckInformationShare(2)
-    assert t.update(7.0, 9.0) is None
-    assert t.update(7.0, 9.0) is None
+    # A flat pair has no error correction to measure -> the neutral 0.5.
+    t = ta.HasbrouckInformationShare(6)
+    for _ in range(7):
+        assert t.update(7.0, 9.0) is None
     assert t.update(7.0, 9.0) == pytest.approx(0.5)
 
 
@@ -4031,8 +4052,8 @@ def test_cumulative_volume_index_breadth():
         dtype=np.float64,
     )
     assert _eq_nan(batch, streamed)
-    # (100/200) -> 0.5 ; net 0 -> 0.5 ; zero-volume tick -> 0.5.
-    assert list(batch) == [0.5, 0.5, 0.5]
+    # 150 - 50 -> 100 ; net 0 -> 100 ; zero-volume tick -> 100.
+    assert list(batch) == [100.0, 100.0, 100.0]
 
 
 def test_absolute_breadth_index_breadth():
@@ -4158,8 +4179,8 @@ def test_basis_indicators_streaming_equals_batch():
 
 
 def test_b16_derivatives_reference():
-    # Estimated leverage: oi / (long + short) = 200 / 100 = 2.
-    assert ta.EstimatedLeverageRatio().update(200.0, 60.0, 40.0) == pytest.approx(2.0)
+    # Estimated leverage: oi / exchange reserve = 200 / 100 = 2.
+    assert ta.EstimatedLeverageRatio().update(200.0, 100.0) == pytest.approx(2.0)
     # OI-to-volume: oi / (buy + sell) = 100 / 50 = 2.
     assert ta.OiToVolumeRatio().update(100.0, 30.0, 20.0) == pytest.approx(2.0)
     # Perpetual premium: (mark - index) / index = 0.5 / 100 = 0.005.
@@ -4184,11 +4205,12 @@ def test_b16_derivatives_streaming_equals_batch():
     mark = np.array([index[i] + 0.05 * math.cos(i * 0.3) for i in range(n)], dtype=np.float64)
     rate = np.array([0.0001 * math.sin(i * 0.3) for i in range(n)], dtype=np.float64)
 
-    # EstimatedLeverageRatio; update(open_interest, long_size, short_size).
-    batch = ta.EstimatedLeverageRatio().batch(oi, long_sz, short_sz)
+    # EstimatedLeverageRatio; update(open_interest, exchange_reserve).
+    reserve = long_sz + short_sz
+    batch = ta.EstimatedLeverageRatio().batch(oi, reserve)
     streamer = ta.EstimatedLeverageRatio()
     streamed = np.array(
-        [streamer.update(oi[i], long_sz[i], short_sz[i]) for i in range(n)], dtype=np.float64
+        [streamer.update(oi[i], reserve[i]) for i in range(n)], dtype=np.float64
     )
     assert len(batch) == n
     assert _eq_nan(batch, streamed)

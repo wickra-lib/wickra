@@ -2265,17 +2265,31 @@ impl MacdFixNode {
     }
     /// Batch over a price array. Returns a flat array of length `3 * n`,
     /// interleaved per row as `[macd0, signal0, histogram0, macd1, ...]`.
+    /// Read column `j` of row `i` as `result[i * 3 + j]`. Warmup rows are `NaN`.
     #[napi]
     pub fn batch(&mut self, prices: Series) -> Vec<f64> {
-        let mut out = vec![f64::NAN; prices.len() * 3];
-        for (i, p) in prices.iter().enumerate() {
-            if let Some(o) = self.inner.update(*p) {
-                out[i * 3] = o.macd;
-                out[i * 3 + 1] = o.signal;
-                out[i * 3 + 2] = o.histogram;
-            }
-        }
+        let mut out = vec![0.0; prices.len() * 3];
+        self.inner.batch_macd_into(&prices, &mut out);
         out
+    }
+    /// Opt-in fast batch, flat `[macd, signal, histogram]` rows like `batch`.
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        let mut out = vec![0.0; prices.len() * 3];
+        self.inner.batch_macd_fast_into(&prices, &mut out);
+        Float64Array::new(out)
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len() * 3, &[&prices])?;
+        self.inner.batch_macd_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len() * 3, &[&prices])?;
+        self.inner.batch_macd_fast_into(&prices, rows);
+        Ok(())
     }
     #[napi]
     pub fn reset(&mut self) {
@@ -7400,7 +7414,7 @@ impl KvoNode {
 
 // ============================== Williams A/D ==============================
 
-#[napi(js_name = "ADOSC")]
+#[napi(js_name = "AdOscillator")]
 pub struct AdOscillatorNode {
     inner: wc::AdOscillator,
 }
@@ -12925,21 +12939,21 @@ impl TdReiNode {
         })
     }
     #[napi]
-    pub fn update(&mut self, high: f64, low: f64) -> napi::Result<Option<f64>> {
-        Ok(self.inner.update(cnd(high, low, low, 0.0)?))
+    pub fn update(&mut self, high: f64, low: f64, close: f64) -> napi::Result<Option<f64>> {
+        Ok(self.inner.update(cnd(high, low, close, 0.0)?))
     }
     #[napi]
-    pub fn batch(&mut self, high: Series, low: Series) -> napi::Result<Vec<f64>> {
-        if high.len() != low.len() {
+    pub fn batch(&mut self, high: Series, low: Series, close: Series) -> napi::Result<Vec<f64>> {
+        if high.len() != low.len() || low.len() != close.len() {
             return Err(NapiError::from_reason(
-                "high and low must be equal length".to_string(),
+                "high, low and close must be equal length".to_string(),
             ));
         }
         let mut out = Vec::with_capacity(high.len());
         for i in 0..high.len() {
             out.push(
                 self.inner
-                    .update(cnd(high[i], low[i], low[i], 0.0)?)
+                    .update(cnd(high[i], low[i], close[i], 0.0)?)
                     .unwrap_or(f64::NAN),
             );
         }
@@ -13841,6 +13855,16 @@ impl EmpiricalModeDecompositionNode {
         Ok(Self {
             inner: wc::EmpiricalModeDecomposition::new(period.get(), fraction).map_err(map_err)?,
         })
+    }
+    /// Upper trend threshold `fraction · SMA(peak, 50)` after the last update.
+    #[napi(getter)]
+    pub fn upper(&self) -> f64 {
+        self.inner.upper()
+    }
+    /// Lower trend threshold `fraction · SMA(valley, 50)` after the last update.
+    #[napi(getter)]
+    pub fn lower(&self) -> f64 {
+        self.inner.lower()
     }
     #[napi]
     pub fn update(&mut self, value: f64) -> Option<f64> {
@@ -17114,28 +17138,6 @@ fn deriv_taker(taker_buy_volume: f64, taker_sell_volume: f64) -> napi::Result<wc
     .map_err(map_err)
 }
 
-fn deriv_oi_long_short(
-    open_interest: f64,
-    long_size: f64,
-    short_size: f64,
-) -> napi::Result<wc::DerivativesTick> {
-    wc::DerivativesTick::new(
-        0.0,
-        1.0,
-        1.0,
-        1.0,
-        open_interest,
-        long_size,
-        short_size,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0,
-    )
-    .map_err(map_err)
-}
-
 fn deriv_oi_taker(
     open_interest: f64,
     taker_buy_volume: f64,
@@ -17917,7 +17919,7 @@ impl CalendarSpreadNode {
     }
 }
 
-// Estimated leverage ratio: open interest over aggregate long+short size.
+// Estimated leverage ratio: open interest over the exchange's coin reserve.
 #[napi(js_name = "EstimatedLeverageRatio")]
 pub struct EstimatedLeverageRatioNode {
     inner: wc::EstimatedLeverageRatio,
@@ -17938,37 +17940,25 @@ impl EstimatedLeverageRatioNode {
         }
     }
     #[napi]
-    pub fn update(
-        &mut self,
-        open_interest: f64,
-        long_size: f64,
-        short_size: f64,
-    ) -> napi::Result<Option<f64>> {
-        Ok(self
-            .inner
-            .update(deriv_oi_long_short(open_interest, long_size, short_size)?))
+    pub fn update(&mut self, open_interest: f64, exchange_reserve: f64) -> Option<f64> {
+        self.inner.update((open_interest, exchange_reserve))
     }
     #[napi]
     pub fn batch(
         &mut self,
         open_interest: Series,
-        long_size: Series,
-        short_size: Series,
+        exchange_reserve: Series,
     ) -> napi::Result<Vec<f64>> {
-        if open_interest.len() != long_size.len() || long_size.len() != short_size.len() {
+        if open_interest.len() != exchange_reserve.len() {
             return Err(NapiError::from_reason(
-                "open_interest, long_size, short_size must be equal length".to_string(),
+                "open_interest and exchange_reserve must be equal length".to_string(),
             ));
         }
         let mut out = Vec::with_capacity(open_interest.len());
         for i in 0..open_interest.len() {
             out.push(
                 self.inner
-                    .update(deriv_oi_long_short(
-                        open_interest[i],
-                        long_size[i],
-                        short_size[i],
-                    )?)
+                    .update((open_interest[i], exchange_reserve[i]))
                     .unwrap_or(f64::NAN),
             );
         }
@@ -22924,31 +22914,41 @@ impl BetterVolumeNode {
     #[napi]
     pub fn update(
         &mut self,
+        open: f64,
         high: f64,
         low: f64,
         close: f64,
         volume: f64,
     ) -> napi::Result<Option<f64>> {
-        Ok(self.inner.update(cnd(high, low, close, volume)?))
+        let candle = wc::Candle::new(open, high, low, close, volume, 0).map_err(map_err)?;
+        Ok(self.inner.update(candle))
     }
     #[napi]
     pub fn batch(
         &mut self,
+        open: Series,
         high: Series,
         low: Series,
         close: Series,
         volume: Series,
     ) -> napi::Result<Vec<f64>> {
-        if high.len() != low.len() || low.len() != close.len() || close.len() != volume.len() {
+        if open.len() != high.len()
+            || high.len() != low.len()
+            || low.len() != close.len()
+            || close.len() != volume.len()
+        {
             return Err(NapiError::from_reason(
-                "high, low, close, volume must be equal length".to_string(),
+                "open, high, low, close, volume must be equal length".to_string(),
             ));
         }
         let mut out = Vec::with_capacity(close.len());
         for i in 0..close.len() {
             out.push(
                 self.inner
-                    .update(cnd(high[i], low[i], close[i], volume[i])?)
+                    .update(
+                        wc::Candle::new(open[i], high[i], low[i], close[i], volume[i], 0)
+                            .map_err(map_err)?,
+                    )
                     .unwrap_or(f64::NAN),
             );
         }

@@ -34,6 +34,22 @@ for name, body in re.findall(r"export declare class (\w+) \{(.*?)\n\}", dts, re.
     um = re.search(r"\bupdate\(([^)]*)\)", body)
     node_upd[name] = parse_args(um.group(1)) if um else []
 
+# Two-series (pairwise) natives: the golden feeds (close, open) as (x, y). A pair
+# whose update arguments carry domain names instead of x / y gets a `role` per
+# argument so the harness knows which column each one is.
+pair_natives = {
+    e["native"]
+    for e in json.load(open(os.path.join(GOLDEN, "scalar_manifest.json")))
+    if e["input"] == "(f64, f64)"
+}
+
+
+def with_roles(native, args):
+    if native in pair_natives and [a["name"] for a in args] != ["x", "y"]:
+        return [dict(a, role=r) for a, r in zip(args, ("x", "y"))]
+    return args
+
+
 # constructor params: reuse the values pinned in the Python-side manifests.
 params = {}
 for fn in ("scalar_manifest", "multi_manifest"):
@@ -99,7 +115,7 @@ for canon in sorted(canon_native):
     # (default 1e8) but a required Node constructor parameter; pass it explicitly.
     if native == "EaseOfMovement":
         ctor = [ctor[0], 100000000.0]
-    entry = {"canonical": canon, "native": native, "ctor": ctor, "args": node_upd[native]}
+    entry = {"canonical": canon, "native": native, "ctor": ctor, "args": with_roles(native, node_upd[native])}
     if native in bars_specs:
         entry["out"] = "footprint" if native == "Footprint" else "bars"
         entry["fields"] = BAR_FIELDS[native]

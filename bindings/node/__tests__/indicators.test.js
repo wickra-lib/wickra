@@ -149,7 +149,7 @@ const scalarFactories = {
   CyberneticCycle: () => new wickra.CyberneticCycle(10),
   InstantaneousTrendline: () => new wickra.InstantaneousTrendline(20),
   EhlersStochastic: () => new wickra.EhlersStochastic(20),
-  EmpiricalModeDecomposition: () => new wickra.EmpiricalModeDecomposition(20, 0.5),
+  EmpiricalModeDecomposition: () => new wickra.EmpiricalModeDecomposition(20, 0.1),
   HilbertDominantCycle: () => new wickra.HilbertDominantCycle(),
   HT_DCPHASE: () => new wickra.HT_DCPHASE(),
   HT_TRENDMODE: () => new wickra.HT_TRENDMODE(),
@@ -259,7 +259,7 @@ const candleScalar = {
   VolumeOscillator: { make: () => new wickra.VolumeOscillator(14, 28), step: (ind, i) => ind.update(volume[i]), batch: (ind) => ind.batch(volume) },
   NVI: { make: () => new wickra.NVI(), step: (ind, i) => ind.update(close[i], volume[i]), batch: (ind) => ind.batch(close, volume) },
   PVI: { make: () => new wickra.PVI(), step: (ind, i) => ind.update(close[i], volume[i]), batch: (ind) => ind.batch(close, volume) },
-  ADOSC: { make: () => new wickra.ADOSC(), step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
+  AdOscillator: { make: () => new wickra.AdOscillator(), step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   AnchoredVWAP: { make: () => new wickra.AnchoredVWAP(), step: (ind, i) => ind.update(high[i], low[i], close[i], volume[i]), batch: (ind) => ind.batch(high, low, close, volume) },
   DemandIndex: { make: () => new wickra.DemandIndex(10), step: (ind, i) => ind.update(high[i], low[i], close[i], volume[i]), batch: (ind) => ind.batch(high, low, close, volume) },
   TSV: { make: () => new wickra.TSV(18), step: (ind, i) => ind.update(close[i], volume[i]), batch: (ind) => ind.batch(close, volume) },
@@ -285,7 +285,7 @@ const candleScalar = {
   YangZhangVolatility: { make: () => new wickra.YangZhangVolatility(20, 252), step: (ind, i) => ind.update(open[i], high[i], low[i], close[i]), batch: (ind) => ind.batch(open, high, low, close) },
   TDSetup: { make: () => new wickra.TDSetup(4, 9), step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   TDDeMarker: { make: () => new wickra.TDDeMarker(14), step: (ind, i) => ind.update(high[i], low[i]), batch: (ind) => ind.batch(high, low) },
-  TDREI: { make: () => new wickra.TDREI(5), step: (ind, i) => ind.update(high[i], low[i]), batch: (ind) => ind.batch(high, low) },
+  TDREI: { make: () => new wickra.TDREI(5), step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   TDPressure: { make: () => new wickra.TDPressure(5), step: (ind, i) => ind.update(open[i], high[i], low[i], close[i], volume[i]), batch: (ind) => ind.batch(open, high, low, close, volume) },
   TDCombo: { make: () => new wickra.TDCombo(4, 9, 2, 13), step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   TDCountdown: { make: () => new wickra.TDCountdown(4, 9, 2, 13), step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
@@ -384,7 +384,7 @@ const candleScalar = {
   TwiggsMoneyFlow: { make: () => new wickra.TwiggsMoneyFlow(21), step: (ind, i) => ind.update(high[i], low[i], close[i], volume[i]), batch: (ind) => ind.batch(high, low, close, volume) },
   TradeVolumeIndex: { make: () => new wickra.TradeVolumeIndex(0.25), step: (ind, i) => ind.update(close[i], volume[i]), batch: (ind) => ind.batch(close, volume) },
   IntradayIntensity: { make: () => new wickra.IntradayIntensity(), step: (ind, i) => ind.update(high[i], low[i], close[i], volume[i]), batch: (ind) => ind.batch(high, low, close, volume) },
-  BetterVolume: { make: () => new wickra.BetterVolume(14), step: (ind, i) => ind.update(high[i], low[i], close[i], volume[i]), batch: (ind) => ind.batch(high, low, close, volume) },
+  BetterVolume: { make: () => new wickra.BetterVolume(14), step: (ind, i) => ind.update(open[i], high[i], low[i], close[i], volume[i]), batch: (ind) => ind.batch(open, high, low, close, volume) },
   ADAPTIVECCI: { make: () => new wickra.ADAPTIVECCI(20), step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   PivotReversal: { make: () => new wickra.PivotReversal(1, 1), step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   TDCamouflage: { make: () => new wickra.TDCamouflage(), step: (ind, i) => ind.update(open[i], high[i], low[i], close[i]), batch: (ind) => ind.batch(open, high, low, close) },
@@ -448,7 +448,7 @@ const multi = {
   DonchianStop: { make: () => new wickra.DonchianStop(10), fields: ['stopLong', 'stopShort'], step: (ind, i) => ind.update(high[i], low[i]), batch: (ind) => ind.batch(high, low) },
   // Family 05: bands & channels
   MaEnvelope: { make: () => new wickra.MaEnvelope(20, 0.025), fields: ['upper', 'middle', 'lower'], step: (ind, i) => ind.update(close[i]), batch: (ind) => ind.batch(close) },
-  AccelerationBands: { make: () => new wickra.AccelerationBands(20, 0.001), fields: ['upper', 'middle', 'lower'], step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
+  AccelerationBands: { make: () => new wickra.AccelerationBands(20, 4.0), fields: ['upper', 'middle', 'lower'], step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   StarcBands: { make: () => new wickra.StarcBands(6, 15, 2), fields: ['upper', 'middle', 'lower'], step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   AtrBands: { make: () => new wickra.AtrBands(14, 3), fields: ['upper', 'middle', 'lower'], step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
   HurstChannel: { make: () => new wickra.HurstChannel(10, 0.5), fields: ['upper', 'middle', 'lower'], step: (ind, i) => ind.update(high[i], low[i], close[i]), batch: (ind) => ind.batch(high, low, close) },
@@ -681,7 +681,7 @@ const pairFactories = {
   GrangerCausality: () => new wickra.GrangerCausality(60, 1),
   SpreadAr1Coefficient: () => new wickra.SpreadAr1Coefficient(40),
   KendallTau: () => new wickra.KendallTau(20),
-  HasbrouckInformationShare: () => new wickra.HasbrouckInformationShare(2),
+  HasbrouckInformationShare: () => new wickra.HasbrouckInformationShare(6),
 };
 
 for (const [name, make] of Object.entries(pairFactories)) {
@@ -1046,16 +1046,17 @@ test('APO(3, 5) on a flat series converges to zero', () => {
   for (let i = 4; i < 30; i++) assert.ok(Math.abs(out[i]) < 1e-12);
 });
 
-test('Inertia(3, 4) on a constant RVI series equals that RVI', () => {
+test('Inertia(3, 4) on a constant close equals the neutral Relative Volatility Index', () => {
   const n = 60;
-  // Every bar (open, high, low, close) = (10, 11, 9, 10.5) -> RVI = 0.25.
+  // Every bar (open, high, low, close) = (10, 11, 9, 10.5): the close never
+  // moves, so the Relative Volatility Index sits at its neutral 50.
   const out = new wickra.Inertia(3, 4).batch(
     Array(n).fill(10),
     Array(n).fill(11),
     Array(n).fill(9),
     Array(n).fill(10.5),
   );
-  for (let i = 5; i < n; i++) assert.ok(Math.abs(out[i] - 0.25) < 1e-12);
+  for (let i = 7; i < n; i++) assert.ok(Math.abs(out[i] - 50) < 1e-12);
 });
 
 test('ConnorsRSI stays bounded in [0, 100]', () => {
@@ -1097,11 +1098,17 @@ test('PGO(5) on a flat close emits zero after warmup', () => {
   for (let i = 4; i < n; i++) assert.ok(Math.abs(out[i]) < 1e-12, `out[${i}] = ${out[i]}`);
 });
 
-test('RVI(2) reference value on two bars', () => {
-  // Bars (open, high, low, close): (10, 11, 9, 10.5), (10.5, 11.5, 10, 11).
-  const out = new wickra.RVI(2).batch([10, 10.5], [11, 11.5], [9, 10], [10.5, 11]);
-  assert.ok(Number.isNaN(out[0]));
-  assert.ok(Math.abs(out[1] - 1 / 3.5) < 1e-12);
+test('RVI(2) reference value with the 1-2-2-1 weighting', () => {
+  // Four bars (10, 11, 9, 10.5) then (10.5, 11.5, 10, 11.5):
+  // RVI = (0.5 + 3.5/6) / (2 + 11.5/6) = 6.5 / 23.5.
+  const out = new wickra.RVI(2).batch(
+    [10, 10, 10, 10, 10.5],
+    [11, 11, 11, 11, 11.5],
+    [9, 9, 9, 9, 10],
+    [10.5, 10.5, 10.5, 10.5, 11.5],
+  );
+  for (let i = 0; i < 4; i++) assert.ok(Number.isNaN(out[i]));
+  assert.ok(Math.abs(out[4] - 6.5 / 23.5) < 1e-12);
 });
 
 test('EVWMA(2) reference values on [10, 20, 30] with volumes [1, 3, 1]', () => {
@@ -1462,8 +1469,8 @@ test('derivatives reject bad input', () => {
 });
 
 test('B16 derivatives reference values', () => {
-  // Estimated leverage: oi / (long + short) = 200 / 100 = 2.
-  assert.ok(Math.abs(new wickra.EstimatedLeverageRatio().update(200, 60, 40) - 2.0) < 1e-12);
+  // Estimated leverage: oi / exchange reserve = 200 / 100 = 2.
+  assert.ok(Math.abs(new wickra.EstimatedLeverageRatio().update(200, 100) - 2.0) < 1e-12);
   // OI-to-volume: oi / (buy + sell) = 100 / 50 = 2.
   assert.ok(Math.abs(new wickra.OiToVolumeRatio().update(100, 30, 20) - 2.0) < 1e-12);
   // Perpetual premium: (mark - index) / index = 0.5 / 100 = 0.005.
@@ -1490,9 +1497,10 @@ test('B16 derivatives streaming matches batch', () => {
   const cmp = (batch, s, i) =>
     assert.ok((s === null && Number.isNaN(batch[i])) || Math.abs(s - batch[i]) < 1e-12, `mismatch at ${i}`);
 
-  let b = new wickra.EstimatedLeverageRatio().batch(oi, longSz, shortSz);
+  const reserve = longSz.map((l, i) => l + shortSz[i]);
+  let b = new wickra.EstimatedLeverageRatio().batch(oi, reserve);
   let st = new wickra.EstimatedLeverageRatio();
-  for (let i = 0; i < n; i++) cmp(b, st.update(oi[i], longSz[i], shortSz[i]), i);
+  for (let i = 0; i < n; i++) cmp(b, st.update(oi[i], reserve[i]), i);
 
   b = new wickra.OiToVolumeRatio().batch(oi, buy, sell);
   st = new wickra.OiToVolumeRatio();
@@ -1625,9 +1633,9 @@ test('market breadth: 14 indicators reference values + batch parity', () => {
     50.0,
   );
 
-  // Cumulative Volume Index: (100/200) -> 0.5.
+  // Cumulative Volume Index: 150 - 50 -> 100.
   assert.ok(
-    Math.abs(new wickra.CumulativeVolumeIndex().update([1, -1], [150, 50], [false, false], [false, false]) - 0.5) < 1e-9,
+    Math.abs(new wickra.CumulativeVolumeIndex().update([1, -1], [150, 50], [false, false], [false, false]) - 100) < 1e-9,
   );
 
   // Absolute Breadth Index: |2 - 3| = 1.

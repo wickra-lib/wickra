@@ -79,8 +79,13 @@ for canon in sorted(native):
     # (default 1e8) but a required WASM constructor parameter; pass it explicitly.
     if canon == "EaseOfMovement":
         ctor = [ctor[0], 100000000.0]
+    args = cls_args[js]
+    # A pair whose update arguments carry domain names instead of x / y gets a
+    # `role` per argument: the golden feeds (close, open) as (x, y).
+    if arch[canon] == "pairwise" and [a["name"] for a in args] != ["x", "y"]:
+        args = [dict(a, role=r) for a, r in zip(args, ("x", "y"))]
     e = {"canonical": canon, "js": js, "ctor": ctor,
-         "args": cls_args[js], "out": arch[canon]}
+         "args": args, "out": arch[canon]}
     e.update(extra.get(canon, {}))
     out.append(e)
 

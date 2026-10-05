@@ -60,6 +60,8 @@ test('Family 10 (Ehlers / cycle) indicators reject invalid parameters', () => {
   assert.throws(() => new wickra.MAMA(0.05, 0.5), /.*/);
   // EmpiricalModeDecomposition needs a positive fraction.
   assert.throws(() => new wickra.EmpiricalModeDecomposition(20, 0.0), /.*/);
+  // The VECM behind the information share needs at least six observations.
+  assert.throws(() => new wickra.HasbrouckInformationShare(5), /.*/);
   // NOTE: SuperSmoother(0) / FisherTransform(0) are NOT asserted: the Node
   // binding treats their period 0 as a warmup-1 pass-through (same as the
   // simple moving averages) rather than an error.

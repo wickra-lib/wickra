@@ -63,6 +63,9 @@ function derivFields(o, h, l, c, v) {
 
 function resolveArg(arg, o, h, l, c, v, i) {
   const name = arg.name;
+  // A pair with domain-named arguments: the golden feeds (close, open).
+  if (arg.role === 'x') return c;
+  if (arg.role === 'y') return o;
   if (arg.array) {
     switch (name) {
       case 'change':

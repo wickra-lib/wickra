@@ -76,8 +76,8 @@ def _assert_within(exact, fast, tol: float) -> None:
 
 
 def test_every_scalar_batch_has_a_fast_twin():
-    # The C ABI exports 155 `_batch_fast` entry points; Python mirrors them.
-    assert len(FAST_CLASSES) == 155
+    # The C ABI exports 156 `_batch_fast` entry points; Python mirrors them.
+    assert len(FAST_CLASSES) == 156
 
 
 @pytest.mark.parametrize("name", FAST_CLASSES)
@@ -122,10 +122,12 @@ def test_batch_fast_accepts_every_series_type(wrap):
 def test_batch_fast_on_empty_input():
     assert len(ta.EMA(5).batch_fast([])) == 0
     assert ta.MACD().batch_fast([]).shape == (0, 3)
+    assert ta.MACDFIX(9).batch_fast([]).shape == (0, 3)
 
 
 def test_multi_output_batch_fast_has_the_batch_shape():
     assert ta.MACD().batch_fast(CLOSE).shape == ta.MACD().batch(CLOSE).shape == (N, 3)
+    assert ta.MACDFIX(9).batch_fast(CLOSE).shape == ta.MACDFIX(9).batch(CLOSE).shape == (N, 3)
     assert ta.BollingerBands().batch_fast(CLOSE).shape == (N, 4)
 
 
