@@ -1469,24 +1469,36 @@ jobs:
   # at 03:00 UTC and on-demand via `workflow_dispatch`, and is no longer on
   # the every-push / every-PR critical path.
 
-  # Non-blocking external-link heads-up on PRs. The authoritative check is the
-  # scheduled links.yml; here it only surfaces link rot early without ever
-  # gating a PR — external sites flake (rate limits, transient outages, moves),
-  # so `continue-on-error` keeps a third-party hiccup from blocking the merge.
-  # Redirects are reported as warnings (lychee only fails on hard errors).
+  # Advisory heads-up on link rot in the change itself; the weekly links.yml is
+  # the full sweep. It can never turn a commit red: lychee runs with
+  # continue-on-error on the step, so a dead link -- or one that resolves only
+  # after the release, like the tag a CHANGELOG compare link names -- becomes a
+  # warning annotation and a line in the job summary, which main_status lists.
+  # A job-level continue-on-error would not do: the check run still concludes
+  # `failure`, the commit shows red and a release gate reading check runs stops.
   links:
     name: External links (non-blocking)
     runs-on: ubuntu-latest
-    continue-on-error: true
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        id: lychee
+        continue-on-error: true
+        timeout-minutes: 8
         with:
           args: --config lychee.toml --no-progress --root-dir "${{ github.workspace }}" "*.md" "bindings/*/README.md"
           fail: true
+      - name: Report broken links as warnings
+        if: steps.lychee.outcome == 'failure'
+        run: |
+          if [ -f lychee/out.md ]; then
+            grep -E '^\* \[' lychee/out.md | head -n 30 \
+              | sed -e 's/%/%25/g' -e 's/^\* /::warning title=Broken link::/' || true
+          fi
+          echo "::warning title=Broken links::lychee did not pass; the job summary lists every finding"
 
   # One stable check name for branch protection: green only when every job
   # above succeeded or was skipped by its own condition. The advisory link
