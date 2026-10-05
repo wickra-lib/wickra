@@ -15342,8 +15342,8 @@ func (ind *EstimatedLeverageRatio) Name() string {
 
 // Update feeds one observation and returns the indicator value
 // (NaN until warmed up).
-func (ind *EstimatedLeverageRatio) Update(fundingRate float64, markPrice float64, indexPrice float64, futuresPrice float64, openInterest float64, longSize float64, shortSize float64, takerBuyVolume float64, takerSellVolume float64, longLiquidation float64, shortLiquidation float64, timestamp int64) float64 {
-	r := float64(C.wickra_estimated_leverage_ratio_update(ind.handle, C.double(fundingRate), C.double(markPrice), C.double(indexPrice), C.double(futuresPrice), C.double(openInterest), C.double(longSize), C.double(shortSize), C.double(takerBuyVolume), C.double(takerSellVolume), C.double(longLiquidation), C.double(shortLiquidation), C.int64_t(timestamp)))
+func (ind *EstimatedLeverageRatio) Update(x float64, y float64) float64 {
+	r := float64(C.wickra_estimated_leverage_ratio_update(ind.handle, C.double(x), C.double(y)))
 	runtime.KeepAlive(ind)
 	return r
 }
@@ -15351,47 +15351,17 @@ func (ind *EstimatedLeverageRatio) Update(fundingRate float64, markPrice float64
 // Batch runs the indicator over a whole slice in one FFI call and
 // returns the per-element output (NaN during warmup), bit for bit what
 // feeding the values one by one through Update gives.
-func (ind *EstimatedLeverageRatio) Batch(fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) []float64 {
-	out := make([]float64, len(fundingRate))
-	ind.BatchInto(out, fundingRate, markPrice, indexPrice, futuresPrice, openInterest, longSize, shortSize, takerBuyVolume, takerSellVolume, longLiquidation, shortLiquidation, timestamp)
+func (ind *EstimatedLeverageRatio) Batch(x []float64, y []float64) []float64 {
+	out := make([]float64, len(x))
+	ind.BatchInto(out, x, y)
 	return out
 }
 
 // BatchInto is Batch writing into dst, which must be as long as the
 // input, so a caller that reuses its buffer allocates nothing.
-func (ind *EstimatedLeverageRatio) BatchInto(dst []float64, fundingRate []float64, markPrice []float64, indexPrice []float64, futuresPrice []float64, openInterest []float64, longSize []float64, shortSize []float64, takerBuyVolume []float64, takerSellVolume []float64, longLiquidation []float64, shortLiquidation []float64, timestamp []int64) {
-	n := len(fundingRate)
-	if len(markPrice) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(indexPrice) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(futuresPrice) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(openInterest) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(longSize) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(shortSize) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(takerBuyVolume) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(takerSellVolume) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(longLiquidation) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(shortLiquidation) != n {
-		panic("wickra: all input slices must have the same length")
-	}
-	if len(timestamp) != n {
+func (ind *EstimatedLeverageRatio) BatchInto(dst []float64, x []float64, y []float64) {
+	n := len(x)
+	if len(y) != n {
 		panic("wickra: all input slices must have the same length")
 	}
 	if len(dst) != n {
@@ -15400,20 +15370,10 @@ func (ind *EstimatedLeverageRatio) BatchInto(dst []float64, fundingRate []float6
 	if n == 0 {
 		return
 	}
-	C.wickra_estimated_leverage_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&fundingRate[0])), (*C.double)(unsafe.Pointer(&markPrice[0])), (*C.double)(unsafe.Pointer(&indexPrice[0])), (*C.double)(unsafe.Pointer(&futuresPrice[0])), (*C.double)(unsafe.Pointer(&openInterest[0])), (*C.double)(unsafe.Pointer(&longSize[0])), (*C.double)(unsafe.Pointer(&shortSize[0])), (*C.double)(unsafe.Pointer(&takerBuyVolume[0])), (*C.double)(unsafe.Pointer(&takerSellVolume[0])), (*C.double)(unsafe.Pointer(&longLiquidation[0])), (*C.double)(unsafe.Pointer(&shortLiquidation[0])), (*C.int64_t)(unsafe.Pointer(&timestamp[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	C.wickra_estimated_leverage_ratio_batch(ind.handle, (*C.double)(unsafe.Pointer(&x[0])), (*C.double)(unsafe.Pointer(&y[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
 	runtime.KeepAlive(ind)
-	runtime.KeepAlive(fundingRate)
-	runtime.KeepAlive(markPrice)
-	runtime.KeepAlive(indexPrice)
-	runtime.KeepAlive(futuresPrice)
-	runtime.KeepAlive(openInterest)
-	runtime.KeepAlive(longSize)
-	runtime.KeepAlive(shortSize)
-	runtime.KeepAlive(takerBuyVolume)
-	runtime.KeepAlive(takerSellVolume)
-	runtime.KeepAlive(longLiquidation)
-	runtime.KeepAlive(shortLiquidation)
-	runtime.KeepAlive(timestamp)
+	runtime.KeepAlive(x)
+	runtime.KeepAlive(y)
 	runtime.KeepAlive(dst)
 }
 
@@ -28482,6 +28442,26 @@ func (ind *MacdFix) Batch(input []float64) []MacdOutput {
 	}
 	buf := make([]C.struct_WickraMacdOutput, n)
 	C.wickra_macd_fix_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), &buf[0], C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	for i := range buf {
+		out[i] = MacdOutput{float64(buf[i].macd), float64(buf[i].signal), float64(buf[i].histogram)}
+	}
+	return out
+}
+
+// BatchFast is the opt-in fast batch: the SIMD kernel reassociates the
+// arithmetic, so each field agrees with Batch to within a few units in the
+// last place rather than bit for bit; warmup rows and length are
+// identical, and the result is the same on every platform.
+func (ind *MacdFix) BatchFast(input []float64) []MacdOutput {
+	n := len(input)
+	out := make([]MacdOutput, n)
+	if n == 0 {
+		return out
+	}
+	buf := make([]C.struct_WickraMacdOutput, n)
+	C.wickra_macd_fix_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), &buf[0], C.uintptr_t(n))
 	runtime.KeepAlive(ind)
 	runtime.KeepAlive(input)
 	for i := range buf {

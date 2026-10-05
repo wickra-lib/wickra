@@ -7507,30 +7507,18 @@ SEXP wk_estimated_leverage_ratio_new(void) {
   UNPROTECT(1);
   return e;
 }
-SEXP wk_estimated_leverage_ratio_update(SEXP e, SEXP a0, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP a9, SEXP a10, SEXP a11) {
+SEXP wk_estimated_leverage_ratio_update(SEXP e, SEXP a0, SEXP a1) {
   struct EstimatedLeverageRatio *h = (struct EstimatedLeverageRatio *)R_ExternalPtrAddr(e);
-  return Rf_ScalarReal(wickra_estimated_leverage_ratio_update(h, Rf_asReal(a0), Rf_asReal(a1), Rf_asReal(a2), Rf_asReal(a3), Rf_asReal(a4), Rf_asReal(a5), Rf_asReal(a6), Rf_asReal(a7), Rf_asReal(a8), Rf_asReal(a9), Rf_asReal(a10), (int64_t)Rf_asReal(a11)));
+  return Rf_ScalarReal(wickra_estimated_leverage_ratio_update(h, Rf_asReal(a0), Rf_asReal(a1)));
 }
-SEXP wk_estimated_leverage_ratio_batch(SEXP e, SEXP a0, SEXP a1, SEXP a2, SEXP a3, SEXP a4, SEXP a5, SEXP a6, SEXP a7, SEXP a8, SEXP a9, SEXP a10, SEXP a11) {
+SEXP wk_estimated_leverage_ratio_batch(SEXP e, SEXP a0, SEXP a1) {
   struct EstimatedLeverageRatio *h = (struct EstimatedLeverageRatio *)R_ExternalPtrAddr(e);
   if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
   if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
   R_xlen_t n = Rf_xlength(a0);
   if (TYPEOF(a1) != REALSXP || Rf_xlength(a1) != n) Rf_error("wickra: batch argument 2 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a2) != REALSXP || Rf_xlength(a2) != n) Rf_error("wickra: batch argument 3 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a3) != REALSXP || Rf_xlength(a3) != n) Rf_error("wickra: batch argument 4 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a4) != REALSXP || Rf_xlength(a4) != n) Rf_error("wickra: batch argument 5 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a5) != REALSXP || Rf_xlength(a5) != n) Rf_error("wickra: batch argument 6 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a6) != REALSXP || Rf_xlength(a6) != n) Rf_error("wickra: batch argument 7 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a7) != REALSXP || Rf_xlength(a7) != n) Rf_error("wickra: batch argument 8 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a8) != REALSXP || Rf_xlength(a8) != n) Rf_error("wickra: batch argument 9 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a9) != REALSXP || Rf_xlength(a9) != n) Rf_error("wickra: batch argument 10 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a10) != REALSXP || Rf_xlength(a10) != n) Rf_error("wickra: batch argument 11 must be a double vector of length %lld", (long long)n);
-  if (TYPEOF(a11) != REALSXP || Rf_xlength(a11) != n) Rf_error("wickra: batch argument 12 must be a double vector of length %lld", (long long)n);
   SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
-  int64_t *b11 = (int64_t *)R_alloc(n, sizeof(int64_t));
-  for (R_xlen_t k = 0; k < n; k++) b11[k] = (int64_t)REAL(a11)[k];
-  wickra_estimated_leverage_ratio_batch(h, REAL(a0), REAL(a1), REAL(a2), REAL(a3), REAL(a4), REAL(a5), REAL(a6), REAL(a7), REAL(a8), REAL(a9), REAL(a10), b11, REAL(out), (uintptr_t)n);
+  wickra_estimated_leverage_ratio_batch(h, REAL(a0), REAL(a1), REAL(out), (uintptr_t)n);
   UNPROTECT(1);
   return out;
 }
@@ -14485,6 +14473,30 @@ SEXP wk_macd_fix_batch(SEXP e, SEXP a0) {
   R_xlen_t n = Rf_xlength(a0);
   struct WickraMacdOutput *rows = (struct WickraMacdOutput *)R_alloc(n, sizeof(struct WickraMacdOutput));
   wickra_macd_fix_batch(h, REAL(a0), rows, (uintptr_t)n);
+  SEXP out = PROTECT(Rf_allocMatrix(REALSXP, (int)n, 3));
+  for (R_xlen_t i = 0; i < n; i++) {
+    REAL(out)[i + n * 0] = (double)rows[i].macd;
+    REAL(out)[i + n * 1] = (double)rows[i].signal;
+    REAL(out)[i + n * 2] = (double)rows[i].histogram;
+  }
+  SEXP cn = PROTECT(Rf_allocVector(STRSXP, 3));
+  SET_STRING_ELT(cn, 0, Rf_mkChar("macd"));
+  SET_STRING_ELT(cn, 1, Rf_mkChar("signal"));
+  SET_STRING_ELT(cn, 2, Rf_mkChar("histogram"));
+  SEXP dn = PROTECT(Rf_allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(dn, 0, R_NilValue);
+  SET_VECTOR_ELT(dn, 1, cn);
+  Rf_setAttrib(out, R_DimNamesSymbol, dn);
+  UNPROTECT(3);
+  return out;
+}
+SEXP wk_macd_fix_batch_fast(SEXP e, SEXP a0) {
+  struct MacdFix *h = (struct MacdFix *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  struct WickraMacdOutput *rows = (struct WickraMacdOutput *)R_alloc(n, sizeof(struct WickraMacdOutput));
+  wickra_macd_fix_batch_fast(h, REAL(a0), rows, (uintptr_t)n);
   SEXP out = PROTECT(Rf_allocMatrix(REALSXP, (int)n, 3));
   for (R_xlen_t i = 0; i < n; i++) {
     REAL(out)[i + n * 0] = (double)rows[i].macd;
@@ -31275,8 +31287,8 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_equivolume_name", (DL_FUNC)&wk_equivolume_name, 1},
   {"wk_equivolume_reset", (DL_FUNC)&wk_equivolume_reset, 1},
   {"wk_estimated_leverage_ratio_new", (DL_FUNC)&wk_estimated_leverage_ratio_new, 0},
-  {"wk_estimated_leverage_ratio_update", (DL_FUNC)&wk_estimated_leverage_ratio_update, 13},
-  {"wk_estimated_leverage_ratio_batch", (DL_FUNC)&wk_estimated_leverage_ratio_batch, 13},
+  {"wk_estimated_leverage_ratio_update", (DL_FUNC)&wk_estimated_leverage_ratio_update, 3},
+  {"wk_estimated_leverage_ratio_batch", (DL_FUNC)&wk_estimated_leverage_ratio_batch, 3},
   {"wk_estimated_leverage_ratio_warmup_period", (DL_FUNC)&wk_estimated_leverage_ratio_warmup_period, 1},
   {"wk_estimated_leverage_ratio_is_ready", (DL_FUNC)&wk_estimated_leverage_ratio_is_ready, 1},
   {"wk_estimated_leverage_ratio_name", (DL_FUNC)&wk_estimated_leverage_ratio_name, 1},
@@ -32114,6 +32126,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_macd_fix_new", (DL_FUNC)&wk_macd_fix_new, 1},
   {"wk_macd_fix_update", (DL_FUNC)&wk_macd_fix_update, 2},
   {"wk_macd_fix_batch", (DL_FUNC)&wk_macd_fix_batch, 2},
+  {"wk_macd_fix_batch_fast", (DL_FUNC)&wk_macd_fix_batch_fast, 2},
   {"wk_macd_fix_warmup_period", (DL_FUNC)&wk_macd_fix_warmup_period, 1},
   {"wk_macd_fix_is_ready", (DL_FUNC)&wk_macd_fix_is_ready, 1},
   {"wk_macd_fix_name", (DL_FUNC)&wk_macd_fix_name, 1},

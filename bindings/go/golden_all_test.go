@@ -481,8 +481,8 @@ func TestGoldenAll(t *testing.T) {
 		if err != nil {
 			t.Fatalf("new AdOscillator: %v", err)
 		}
-		if n := ind.Name(); n != "ADOSC" {
-			t.Errorf("name: got %q want %q", n, "ADOSC")
+		if n := ind.Name(); n != "WilliamsAdOscillator" {
+			t.Errorf("name: got %q want %q", n, "WilliamsAdOscillator")
 		}
 		got := make([][]float64, len(rows))
 		for i, r := range rows {
@@ -2217,8 +2217,7 @@ func TestGoldenAll(t *testing.T) {
 		}
 		got := make([][]float64, len(rows))
 		for i, r := range rows {
-			d := derivFields(r)
-			got[i] = []float64{ind.Update(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], int64(i))}
+			got[i] = []float64{ind.Update(r[3], r[0])}
 		}
 		compareGolden(t, "EstimatedLeverageRatio", got)
 	})
@@ -9035,8 +9034,7 @@ func TestGoldenAllBatch(t *testing.T) {
 		}
 		defer ind.Close()
 		cols := goldenColumns(rows)
-		d := derivColumns(rows)
-		got := scalarRows(ind.Batch(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], cols.index))
+		got := scalarRows(ind.Batch(cols.close, cols.open))
 		compareGolden(t, "EstimatedLeverageRatio", got)
 	})
 	t.Run("EvenBetterSinewave", func(t *testing.T) {
@@ -16499,8 +16497,7 @@ func TestGoldenAllLifecycle(t *testing.T) {
 		drive := func() [][]float64 {
 			got := make([][]float64, len(rows))
 			for i, r := range rows {
-				d := derivFields(r)
-				got[i] = []float64{ind.Update(d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], int64(i))}
+				got[i] = []float64{ind.Update(r[3], r[0])}
 			}
 			return got
 		}

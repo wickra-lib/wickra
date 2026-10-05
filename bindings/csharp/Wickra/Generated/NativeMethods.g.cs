@@ -4332,6 +4332,31 @@ internal static partial class NativeMethods
     internal static partial void wickra_distance_ssd_free(nint handle);
 
     [LibraryImport(WickraNative.LibraryName)]
+    internal static partial nint wickra_estimated_leverage_ratio_new();
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial double wickra_estimated_leverage_ratio_update(nint handle, double x, double y);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static unsafe partial void wickra_estimated_leverage_ratio_batch(WickraHandle handle, double* x, double* y, double* @out, nuint n);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial nuint wickra_estimated_leverage_ratio_warmup_period(WickraHandle handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    internal static partial bool wickra_estimated_leverage_ratio_is_ready(WickraHandle handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial nint wickra_estimated_leverage_ratio_name(WickraHandle handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial void wickra_estimated_leverage_ratio_reset(WickraHandle handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial void wickra_estimated_leverage_ratio_free(nint handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
     internal static partial nint wickra_granger_causality_new(nuint period, nuint lag);
 
     [LibraryImport(WickraNative.LibraryName)]
@@ -9666,31 +9691,6 @@ internal static partial class NativeMethods
     internal static partial void wickra_calendar_spread_free(nint handle);
 
     [LibraryImport(WickraNative.LibraryName)]
-    internal static partial nint wickra_estimated_leverage_ratio_new();
-
-    [LibraryImport(WickraNative.LibraryName)]
-    internal static partial double wickra_estimated_leverage_ratio_update(nint handle, double fundingRate, double markPrice, double indexPrice, double futuresPrice, double openInterest, double longSize, double shortSize, double takerBuyVolume, double takerSellVolume, double longLiquidation, double shortLiquidation, long timestamp);
-
-    [LibraryImport(WickraNative.LibraryName)]
-    internal static unsafe partial void wickra_estimated_leverage_ratio_batch(WickraHandle handle, double* fundingRate, double* markPrice, double* indexPrice, double* futuresPrice, double* openInterest, double* longSize, double* shortSize, double* takerBuyVolume, double* takerSellVolume, double* longLiquidation, double* shortLiquidation, long* timestamp, double* @out, nuint n);
-
-    [LibraryImport(WickraNative.LibraryName)]
-    internal static partial nuint wickra_estimated_leverage_ratio_warmup_period(WickraHandle handle);
-
-    [LibraryImport(WickraNative.LibraryName)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    internal static partial bool wickra_estimated_leverage_ratio_is_ready(WickraHandle handle);
-
-    [LibraryImport(WickraNative.LibraryName)]
-    internal static partial nint wickra_estimated_leverage_ratio_name(WickraHandle handle);
-
-    [LibraryImport(WickraNative.LibraryName)]
-    internal static partial void wickra_estimated_leverage_ratio_reset(WickraHandle handle);
-
-    [LibraryImport(WickraNative.LibraryName)]
-    internal static partial void wickra_estimated_leverage_ratio_free(nint handle);
-
-    [LibraryImport(WickraNative.LibraryName)]
     internal static partial nint wickra_funding_basis_new();
 
     [LibraryImport(WickraNative.LibraryName)]
@@ -11983,6 +11983,9 @@ internal static partial class NativeMethods
 
     [LibraryImport(WickraNative.LibraryName)]
     internal static unsafe partial void wickra_macd_fix_batch(WickraHandle handle, double* input, WickraMacdOutput* @out, nuint n);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static unsafe partial void wickra_macd_fix_batch_fast(WickraHandle handle, double* input, WickraMacdOutput* @out, nuint n);
 
     [LibraryImport(WickraNative.LibraryName)]
     internal static partial nuint wickra_macd_fix_warmup_period(WickraHandle handle);

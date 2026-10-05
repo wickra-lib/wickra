@@ -5161,6 +5161,28 @@ void wickra_distance_ssd_reset(struct DistanceSsd *handle);
 
 void wickra_distance_ssd_free(struct DistanceSsd *handle);
 
+struct EstimatedLeverageRatio *wickra_estimated_leverage_ratio_new(void);
+
+double wickra_estimated_leverage_ratio_update(struct EstimatedLeverageRatio *handle,
+                                              double x,
+                                              double y);
+
+void wickra_estimated_leverage_ratio_batch(struct EstimatedLeverageRatio *handle,
+                                           const double *x,
+                                           const double *y,
+                                           double *out,
+                                           uintptr_t n);
+
+uintptr_t wickra_estimated_leverage_ratio_warmup_period(struct EstimatedLeverageRatio *handle);
+
+bool wickra_estimated_leverage_ratio_is_ready(struct EstimatedLeverageRatio *handle);
+
+const char *wickra_estimated_leverage_ratio_name(struct EstimatedLeverageRatio *handle);
+
+void wickra_estimated_leverage_ratio_reset(struct EstimatedLeverageRatio *handle);
+
+void wickra_estimated_leverage_ratio_free(struct EstimatedLeverageRatio *handle);
+
 struct GrangerCausality *wickra_granger_causality_new(uintptr_t period, uintptr_t lag);
 
 double wickra_granger_causality_update(struct GrangerCausality *handle, double x, double y);
@@ -11431,48 +11453,6 @@ void wickra_calendar_spread_reset(struct CalendarSpread *handle);
 
 void wickra_calendar_spread_free(struct CalendarSpread *handle);
 
-struct EstimatedLeverageRatio *wickra_estimated_leverage_ratio_new(void);
-
-double wickra_estimated_leverage_ratio_update(struct EstimatedLeverageRatio *handle,
-                                              double funding_rate,
-                                              double mark_price,
-                                              double index_price,
-                                              double futures_price,
-                                              double open_interest,
-                                              double long_size,
-                                              double short_size,
-                                              double taker_buy_volume,
-                                              double taker_sell_volume,
-                                              double long_liquidation,
-                                              double short_liquidation,
-                                              int64_t timestamp);
-
-void wickra_estimated_leverage_ratio_batch(struct EstimatedLeverageRatio *handle,
-                                           const double *funding_rate,
-                                           const double *mark_price,
-                                           const double *index_price,
-                                           const double *futures_price,
-                                           const double *open_interest,
-                                           const double *long_size,
-                                           const double *short_size,
-                                           const double *taker_buy_volume,
-                                           const double *taker_sell_volume,
-                                           const double *long_liquidation,
-                                           const double *short_liquidation,
-                                           const int64_t *timestamp,
-                                           double *out,
-                                           uintptr_t n);
-
-uintptr_t wickra_estimated_leverage_ratio_warmup_period(struct EstimatedLeverageRatio *handle);
-
-bool wickra_estimated_leverage_ratio_is_ready(struct EstimatedLeverageRatio *handle);
-
-const char *wickra_estimated_leverage_ratio_name(struct EstimatedLeverageRatio *handle);
-
-void wickra_estimated_leverage_ratio_reset(struct EstimatedLeverageRatio *handle);
-
-void wickra_estimated_leverage_ratio_free(struct EstimatedLeverageRatio *handle);
-
 struct FundingBasis *wickra_funding_basis_new(void);
 
 double wickra_funding_basis_update(struct FundingBasis *handle,
@@ -14373,6 +14353,11 @@ void wickra_macd_fix_batch(struct MacdFix *handle,
                            const double *input,
                            struct WickraMacdOutput *out,
                            uintptr_t n);
+
+void wickra_macd_fix_batch_fast(struct MacdFix *handle,
+                                const double *input,
+                                struct WickraMacdOutput *out,
+                                uintptr_t n);
 
 uintptr_t wickra_macd_fix_warmup_period(struct MacdFix *handle);
 
