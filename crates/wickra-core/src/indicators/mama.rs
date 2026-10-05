@@ -51,6 +51,9 @@ pub struct MamaOutput {
 pub struct Mama {
     fast_limit: f64,
     slow_limit: f64,
+    // Raw input window for the 4-bar WMA.
+    price_buf: Vec<f64>,
+    // WMA-smoothed price history feeding the Hilbert detrender taps.
     smooth_buf: Vec<f64>,
     detrender_buf: Vec<f64>,
     q1_buf: Vec<f64>,
@@ -90,6 +93,7 @@ impl Mama {
         Ok(Self {
             fast_limit,
             slow_limit,
+            price_buf: Vec::with_capacity(4),
             smooth_buf: Vec::with_capacity(7),
             detrender_buf: Vec::with_capacity(7),
             q1_buf: Vec::with_capacity(7),
@@ -140,15 +144,16 @@ impl Indicator for Mama {
         }
         self.count += 1;
 
-        Self::push_front(&mut self.smooth_buf, input, 7);
-        if self.smooth_buf.len() < 4 {
+        Self::push_front(&mut self.price_buf, input, 4);
+        if self.price_buf.len() < 4 {
             return None;
         }
-        let smooth = (4.0 * self.smooth_buf[0]
-            + 3.0 * self.smooth_buf[1]
-            + 2.0 * self.smooth_buf[2]
-            + self.smooth_buf[3])
+        let smooth = (4.0 * self.price_buf[0]
+            + 3.0 * self.price_buf[1]
+            + 2.0 * self.price_buf[2]
+            + self.price_buf[3])
             / 10.0;
+        Self::push_front(&mut self.smooth_buf, smooth, 7);
 
         let period = self.prev_period.max(6.0).min(50.0);
         let adj = 0.075 * period + 0.54;
@@ -249,6 +254,7 @@ impl Indicator for Mama {
     }
 
     fn reset(&mut self) {
+        self.price_buf.clear();
         self.smooth_buf.clear();
         self.detrender_buf.clear();
         self.q1_buf.clear();
@@ -380,5 +386,116 @@ mod tests {
         let mut mama = Mama::classic();
         let out = mama.batch(&[0.0_f64; 200]);
         assert!(out.iter().flatten().count() > 100);
+    }
+
+    use approx::assert_relative_eq;
+
+    fn sine_prices(n: u32) -> Vec<f64> {
+        (0..n)
+            .map(|i| 100.0 + (f64::from(i) * 0.3).sin() * 5.0)
+            .collect()
+    }
+
+    #[test]
+    fn rejects_non_finite_and_out_of_range_limits() {
+        assert!(matches!(
+            Mama::new(f64::INFINITY, 0.05),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        assert!(matches!(
+            Mama::new(0.5, f64::NAN),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        assert!(matches!(
+            Mama::new(1.0, 1.5),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        assert!(matches!(
+            Mama::new(-0.5, -0.6),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        // Boundary values are accepted: slow == fast == 1.
+        assert_eq!(Mama::new(1.0, 1.0).unwrap().limits(), (1.0, 1.0));
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup() {
+        let mut mama = Mama::classic();
+        let out = mama.batch(&sine_prices(80));
+        let warmup = mama.warmup_period();
+        assert!(out[..warmup - 1].iter().all(Option::is_none));
+        assert!(out[warmup - 1].is_some());
+    }
+
+    #[test]
+    fn reset_replays_identically() {
+        let prices = sine_prices(150);
+        let fresh = Mama::classic().batch(&prices);
+        let mut mama = Mama::classic();
+        let first = mama.batch(&prices);
+        mama.reset();
+        let second = mama.batch(&prices);
+        assert_eq!(first, fresh);
+        assert_eq!(second, fresh);
+    }
+
+    #[test]
+    fn wma_of_raw_inputs_seeds_lines_and_feeds_detrender_taps() {
+        let mut mama = Mama::classic();
+        // After exactly 4 inputs the WMA is (4*40 + 3*30 + 2*20 + 10) / 10 = 30,
+        // and while the taps fill both lines are seeded with it.
+        for p in [10.0, 20.0, 30.0, 40.0] {
+            assert_eq!(mama.update(p), None);
+        }
+        assert_eq!(mama.smooth_buf, vec![30.0]);
+        assert_eq!(mama.prev_mama, 30.0);
+        assert_eq!(mama.prev_fama, 30.0);
+
+        // Spike of 10 at index 7 in a zero series: smoothed values 4, 3, 2 at
+        // indices 7, 8, 9, so the smooth history is [2, 3, 4, 0, 0, 0, 0].
+        // adj = 0.075*6 + 0.54 = 0.99 and the detrender reads the smoothed taps:
+        //   (0.0962*2 + 0.5769*4 - 0.5769*0 - 0.0962*0) * 0.99 = 2.475.
+        let mut mama = Mama::classic();
+        let mut series = [0.0; 10];
+        series[7] = 10.0;
+        let _ = mama.batch(&series);
+        assert_eq!(mama.smooth_buf, vec![2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0]);
+        assert_eq!(mama.detrender_buf.len(), 1);
+        assert_relative_eq!(mama.detrender_buf[0], 2.475, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn alpha_bounds_hand_computed() {
+        // fast_limit == slow_limit == 1 pins alpha to 1 whatever the phase rate,
+        // so MAMA equals the input and FAMA = 0.5*MAMA + 0.5*FAMA[-1].
+        let mut mama = Mama::new(1.0, 1.0).unwrap();
+        let prices = sine_prices(60);
+        let out = mama.batch(&prices);
+        let first = out[32].unwrap();
+        let second = out[33].unwrap();
+        assert_eq!(first.mama, prices[32]);
+        assert_eq!(second.mama, prices[33]);
+        assert_relative_eq!(
+            second.fama,
+            0.5 * prices[33] + 0.5 * first.fama,
+            epsilon = 1e-12
+        );
+    }
+
+    #[test]
+    fn slow_limit_floor_binds_on_fast_phase_rotation() {
+        // With fast_limit = 0.1 and slow_limit = 0.09 any phase step above
+        // 0.1 / 0.09 = 1.11 degrees makes fast_limit / delta_phase drop below the
+        // floor, which a fast cycle does on most bars. Both lines are convex
+        // blends of the inputs, so they stay inside the input range.
+        let mut mama = Mama::new(0.1, 0.09).unwrap();
+        let prices: Vec<f64> = (0..200)
+            .map(|i| 100.0 + (f64::from(i) * 2.5).sin() * 5.0)
+            .collect();
+        let out = mama.batch(&prices);
+        assert!(out
+            .iter()
+            .flatten()
+            .all(|o| (90.0..=110.0).contains(&o.mama) && (90.0..=110.0).contains(&o.fama)));
     }
 }

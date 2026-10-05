@@ -9,8 +9,8 @@ use crate::traits::Indicator;
 ///
 /// Decomposes price into in-phase and quadrature components via Ehlers'
 /// truncated Hilbert transform, then derives the instantaneous phase. The
-/// dominant cycle period is recovered from the phase rate of change and
-/// median-smoothed. From *Rocket Science for Traders* (Ehlers 2001, ch. 7),
+/// dominant cycle period is recovered from the phase rate of change,
+/// rate-limited, clamped and EMA-smoothed (0.2/0.8, then 0.33/0.67). From *Rocket Science for Traders* (Ehlers 2001, ch. 7),
 /// implementation aligned with the formulation used in TA-Lib's `HT_DCPERIOD`.
 ///
 /// The output is clamped to the band `[6, 50]` bars, which Ehlers identifies
@@ -31,7 +31,9 @@ use crate::traits::Indicator;
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct HilbertDominantCycle {
-    // Rolling 7-tap smoother input buffer.
+    // Raw input window for the 4-bar WMA.
+    price_buf: Vec<f64>,
+    // WMA-smoothed price history feeding the Hilbert detrender taps.
     smooth_buf: Vec<f64>,
     // Detrender / Q1 / I1 ring history (need 6 prior).
     detrender_buf: Vec<f64>,
@@ -72,15 +74,16 @@ impl Indicator for HilbertDominantCycle {
 
         // 4-bar weighted moving average of the input (smoothed price).
         // Ehlers: (4*x[0] + 3*x[1] + 2*x[2] + x[3]) / 10.
-        Self::push_front(&mut self.smooth_buf, input, 7);
-        if self.smooth_buf.len() < 4 {
+        Self::push_front(&mut self.price_buf, input, 4);
+        if self.price_buf.len() < 4 {
             return None;
         }
-        let smooth = (4.0 * self.smooth_buf[0]
-            + 3.0 * self.smooth_buf[1]
-            + 2.0 * self.smooth_buf[2]
-            + self.smooth_buf[3])
+        let smooth = (4.0 * self.price_buf[0]
+            + 3.0 * self.price_buf[1]
+            + 2.0 * self.price_buf[2]
+            + self.price_buf[3])
             / 10.0;
+        Self::push_front(&mut self.smooth_buf, smooth, 7);
 
         // Adaptive coefficient based on the previous period estimate.
         let period = self.prev_period.max(6.0).min(50.0);
@@ -165,6 +168,7 @@ impl Indicator for HilbertDominantCycle {
     }
 
     fn reset(&mut self) {
+        self.price_buf.clear();
         self.smooth_buf.clear();
         self.detrender_buf.clear();
         self.q1_buf.clear();
@@ -271,5 +275,111 @@ mod tests {
         ht.reset();
         assert!(!ht.is_ready());
         assert!(ht.value().is_none());
+    }
+
+    use crate::traits::BatchNanExt;
+    use approx::assert_relative_eq;
+
+    fn sine_prices(n: u32) -> Vec<f64> {
+        (0..n)
+            .map(|i| 100.0 + (f64::from(i) * 0.4).sin() * 5.0)
+            .collect()
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup() {
+        let mut ht = HilbertDominantCycle::new();
+        let out = ht.batch(&sine_prices(120));
+        let warmup = ht.warmup_period();
+        assert!(out[..warmup - 1].iter().all(Option::is_none));
+        assert!(out[warmup - 1].is_some());
+    }
+
+    #[test]
+    fn reset_replays_identically() {
+        let prices = sine_prices(150);
+        let fresh = HilbertDominantCycle::new().batch(&prices);
+        let mut ht = HilbertDominantCycle::new();
+        let first = ht.batch(&prices);
+        ht.reset();
+        let second = ht.batch(&prices);
+        assert_eq!(first, fresh);
+        assert_eq!(second, fresh);
+    }
+
+    #[test]
+    fn batch_nan_paths_match_streaming_bitwise() {
+        let prices = sine_prices(150);
+        let mut out = vec![0.0; prices.len()];
+        HilbertDominantCycle::new().batch_nan_into(&prices, &mut out);
+        let nan = HilbertDominantCycle::new().batch_nan(&prices);
+        let fast = HilbertDominantCycle::new().batch_fast(&prices);
+        let mut stream = HilbertDominantCycle::new();
+        let expected: Vec<u64> = prices
+            .iter()
+            .map(|&p| stream.update(p).unwrap_or(f64::NAN).to_bits())
+            .collect();
+        assert!(out.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(nan.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(fast.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+    }
+
+    #[test]
+    fn wma_of_raw_inputs_feeds_detrender_taps() {
+        let mut ht = HilbertDominantCycle::new();
+        // After exactly 4 inputs the WMA is (4*40 + 3*30 + 2*20 + 10) / 10 = 30.
+        for p in [10.0, 20.0, 30.0, 40.0] {
+            assert_eq!(ht.update(p), None);
+        }
+        assert_eq!(ht.smooth_buf, vec![30.0]);
+        assert_eq!(ht.detrender_buf.len(), 0);
+
+        // A single spike of 10 at index 7 in an all-zero series gives smoothed
+        // values 4, 3, 2 at indices 7, 8, 9, so at index 9 the smooth history is
+        // [2, 3, 4, 0, 0, 0, 0]. With the period seed of 6, adj = 0.075*6 + 0.54
+        // = 0.99, and the detrender reads the SMOOTHED taps s0, s2, s4, s6:
+        //   (0.0962*2 + 0.5769*4 - 0.5769*0 - 0.0962*0) * 0.99 = 2.5 * 0.99 = 2.475.
+        // Raw-price taps would instead give 0.5769*10*0.99 = 5.711_31.
+        let mut ht = HilbertDominantCycle::new();
+        let mut series = [0.0; 10];
+        series[7] = 10.0;
+        let _ = ht.batch(&series);
+        assert_eq!(ht.smooth_buf, vec![2.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0]);
+        assert_eq!(ht.detrender_buf.len(), 1);
+        assert_relative_eq!(ht.detrender_buf[0], 2.475, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn constant_input_period_settles_at_lower_clamp() {
+        // A flat zero series makes re == im == 0, so the period falls back to
+        // its previous value, is clamped up to 6, and the EMA chain converges
+        // on 6 from below.
+        let mut ht = HilbertDominantCycle::new();
+        let out = ht.batch(&[0.0; 400]);
+        assert!(out
+            .iter()
+            .flatten()
+            .all(|v| v.is_finite() && *v <= 6.0 + 1e-9));
+        assert_relative_eq!(ht.value().unwrap(), 6.0, epsilon = 1e-9);
+
+        // A non-zero flat series stays finite and inside the clamp band.
+        let mut ht = HilbertDominantCycle::new();
+        let out = ht.batch(&[100.0; 400]);
+        assert!(out.iter().flatten().all(|v| v.is_finite() && *v <= 50.0));
+        assert_eq!(out.iter().flatten().count(), 400 - 49);
+    }
+
+    #[test]
+    fn non_finite_input_during_warmup_does_not_advance() {
+        let prices = sine_prices(120);
+        let mut ht = HilbertDominantCycle::new();
+        let mut out = Vec::new();
+        for (i, &p) in prices.iter().enumerate() {
+            if i == 10 {
+                assert_eq!(ht.update(f64::INFINITY), None);
+            }
+            out.push(ht.update(p));
+        }
+        assert_eq!(out, HilbertDominantCycle::new().batch(&prices));
     }
 }

@@ -1,23 +1,16 @@
-//! Cumulative Volume Index — running total of volume-normalised net advancing volume.
+//! Cumulative Volume Index — running total of net advancing volume.
 
 use crate::cross_section::CrossSection;
 use crate::traits::Indicator;
 
-/// Cumulative Volume Index (CVI) — the running total of *volume-normalised* net
-/// advancing volume across a universe.
+/// Cumulative Volume Index (CVI) — the running total of net advancing volume
+/// across a universe.
 ///
-/// On each [`CrossSection`] tick the increment is `(advancing volume - declining
-/// volume) / total volume`: the share of the tick's total volume that flowed,
-/// net, into advancing issues. The index accumulates this share over time. Where
-/// the raw [`AdVolumeLine`](crate::AdVolumeLine) sums *absolute* net volume — and
-/// so drifts with secular growth in trading activity — the CVI normalises each
-/// tick by its own total volume, so a one-share-net day in a thin market counts
-/// the same as in a heavy one. This keeps the index comparable across regimes of
-/// very different volume.
-///
-/// When a tick has zero total volume the net is necessarily zero too, so the
-/// increment is zero and the index is unchanged (the divisor is floored to the
-/// smallest positive `f64` purely to keep the division defined).
+/// On each [`CrossSection`] tick the increment is `advancing volume - declining
+/// volume`, the standard definition (`StockCharts`, `MetaStock`):
+/// `CVI_t = CVI_{t-1} + (advancing volume - declining volume)`. The index is
+/// path-dependent, so only its slope and divergences against a price index carry
+/// meaning, not its absolute level. Unchanged issues contribute to neither side.
 ///
 /// `Input = CrossSection`, `Output = f64`, `warmup_period == 1`.
 ///
@@ -27,7 +20,7 @@ use crate::traits::Indicator;
 /// use wickra_core::{CrossSection, CumulativeVolumeIndex, Indicator, Member};
 ///
 /// let mut cvi = CumulativeVolumeIndex::new();
-/// // adv vol 150, dec vol 50, total 200 -> (150 - 50) / 200 = 0.5.
+/// // adv vol 150, dec vol 50 -> 150 - 50 = 100.
 /// let tick = CrossSection::new(
 ///     vec![
 ///         Member::new(1.0, 150.0, false, false),
@@ -36,7 +29,7 @@ use crate::traits::Indicator;
 ///     0,
 /// )
 /// .unwrap();
-/// assert_eq!(cvi.update(tick), Some(0.5));
+/// assert_eq!(cvi.update(tick), Some(100.0));
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct CumulativeVolumeIndex {
@@ -62,8 +55,7 @@ impl Indicator for CumulativeVolumeIndex {
     #[inline]
     fn update(&mut self, section: CrossSection) -> Option<f64> {
         let net = section.advancing_volume() - section.declining_volume();
-        let total = section.total_volume().max(f64::MIN_POSITIVE);
-        self.index += net / total;
+        self.index += net;
         self.has_emitted = true;
         Some(self.index)
     }
@@ -115,26 +107,26 @@ mod tests {
     }
 
     #[test]
-    fn first_tick_emits_normalised_net() {
+    fn first_tick_emits_net_volume() {
         let mut cvi = CumulativeVolumeIndex::new();
-        assert_eq!(cvi.update(tick(&[(1.0, 150.0), (-1.0, 50.0)])), Some(0.5));
+        assert_eq!(cvi.update(tick(&[(1.0, 150.0), (-1.0, 50.0)])), Some(100.0));
         assert!(cvi.is_ready());
     }
 
     #[test]
-    fn index_accumulates_normalised_shares() {
+    fn index_accumulates_net_volume() {
         let mut cvi = CumulativeVolumeIndex::new();
-        assert_eq!(cvi.update(tick(&[(1.0, 150.0), (-1.0, 50.0)])), Some(0.5));
-        // adv 60, dec 60, total 120 -> net 0 -> index unchanged.
-        assert_eq!(cvi.update(tick(&[(1.0, 60.0), (-1.0, 60.0)])), Some(0.5));
+        assert_eq!(cvi.update(tick(&[(1.0, 150.0), (-1.0, 50.0)])), Some(100.0));
+        // adv 60, dec 60 -> net 0 -> index unchanged.
+        assert_eq!(cvi.update(tick(&[(1.0, 60.0), (-1.0, 60.0)])), Some(100.0));
     }
 
     #[test]
-    fn zero_total_volume_leaves_index_unchanged() {
+    fn zero_volume_leaves_index_unchanged() {
         let mut cvi = CumulativeVolumeIndex::new();
         cvi.update(tick(&[(1.0, 150.0), (-1.0, 50.0)]));
-        // A tick with no volume at all: net 0 / floored divisor -> 0 increment.
-        assert_eq!(cvi.update(tick(&[(0.0, 0.0)])), Some(0.5));
+        // A tick with no volume at all: net 0 -> 0 increment.
+        assert_eq!(cvi.update(tick(&[(0.0, 0.0)])), Some(100.0));
     }
 
     #[test]
@@ -144,7 +136,7 @@ mod tests {
         assert!(cvi.is_ready());
         cvi.reset();
         assert!(!cvi.is_ready());
-        assert_eq!(cvi.update(tick(&[(1.0, 100.0)])), Some(1.0));
+        assert_eq!(cvi.update(tick(&[(1.0, 100.0)])), Some(100.0));
     }
 
     #[test]
@@ -163,5 +155,53 @@ mod tests {
                 .map(|s| b.update(s.clone()))
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn warmup_first_value_at_index_zero() {
+        let mut cvi = CumulativeVolumeIndex::new();
+        assert_eq!(cvi.warmup_period(), 1);
+        // warmup_period() - 1 == 0: the very first tick already emits.
+        assert!(cvi.update(tick(&[(1.0, 10.0)])).is_some());
+    }
+
+    #[test]
+    fn hand_computed_multi_member_series_ignores_unchanged() {
+        let mut cvi = CumulativeVolumeIndex::new();
+        // Tick 1: adv 100 + 20 = 120, dec 30, unchanged 500 ignored -> 120 - 30 = 90.
+        assert_eq!(
+            cvi.update(tick(&[
+                (2.0, 100.0),
+                (0.5, 20.0),
+                (-1.0, 30.0),
+                (0.0, 500.0)
+            ])),
+            Some(90.0)
+        );
+        // Tick 2: adv 10, dec 70 + 40 = 110 -> net -100 -> 90 - 100 = -10.
+        assert_eq!(
+            cvi.update(tick(&[(1.0, 10.0), (-0.5, 70.0), (-3.0, 40.0)])),
+            Some(-10.0)
+        );
+        // Tick 3: only unchanged issues -> net 0 -> -10.
+        assert_eq!(cvi.update(tick(&[(0.0, 1_000.0)])), Some(-10.0));
+        // Tick 4: adv 25, no decliners -> -10 + 25 = 15.
+        assert_eq!(cvi.update(tick(&[(1.0, 25.0)])), Some(15.0));
+    }
+
+    #[test]
+    fn reset_replays_identically_to_fresh_instance() {
+        let sections = vec![
+            tick(&[(1.0, 150.0), (-1.0, 50.0)]),
+            tick(&[(-1.0, 80.0), (0.0, 5.0)]),
+            tick(&[(1.0, 7.5), (-2.0, 2.5)]),
+        ];
+        let mut cvi = CumulativeVolumeIndex::new();
+        let first = cvi.batch(&sections);
+        cvi.reset();
+        let second = cvi.batch(&sections);
+        let fresh = CumulativeVolumeIndex::default().batch(&sections);
+        assert_eq!(first, second);
+        assert_eq!(second, fresh);
     }
 }

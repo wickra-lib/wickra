@@ -4,15 +4,20 @@ use crate::ohlcv::Candle;
 use crate::traits::Indicator;
 
 /// Rising Three Methods — a 5-bar bullish continuation. A long white candle is
-/// followed by three small bars that drift back but stay inside its range (a brief
-/// rest), then a second long white candle closes above the first, resuming the
-/// advance.
+/// followed by three small black bars that drift back but stay inside its range
+/// (a brief rest), then a second long white candle opens above the last rest
+/// bar's close and closes above the first, resuming the advance (Nison; TA-Lib
+/// `CDLRISEFALL3METHODS`).
 ///
 /// ```text
 /// long body = |close − open| >= 0.5 * (high − low)
+/// small body = |close − open| <= 0.5 * body1
 /// bar1 white & long
-/// bar2, bar3, bar4 small bodies, each contained within bar1's high/low range
-/// bar5 white, closing above bar1's close
+/// bar2, bar3, bar4 small black bodies, each overlapping bar1's high/low range
+///                  (min(open, close) < high1 and max(open, close) > low1),
+///                  with falling closes (close3 < close2, close4 < close3)
+/// bar5 white & long, opening above bar4's close (open5 > close4)
+///                  and closing above bar1's close (close5 > close1)
 /// ```
 ///
 /// Output is `+1.0` when the pattern completes and `0.0` otherwise. Rising Three
@@ -90,14 +95,30 @@ impl Indicator for RisingThreeMethods {
         if body1 < 0.5 * range1 {
             return Some(0.0); // bar1 must be a long white body
         }
-        // The three middle bars stay within bar1's range with smaller bodies.
+        // The three middle bars are small black bodies whose real body
+        // reaches into bar1's range (TA-Lib: part of each body within bar1).
         for mid in [bar2, bar3, bar4] {
-            if (mid.close - mid.open).abs() >= body1 || mid.high > bar1.high || mid.low < bar1.low {
+            let body = mid.open - mid.close;
+            if body <= 0.0
+                || body > 0.5 * body1
+                || mid.open.min(mid.close) >= bar1.high
+                || mid.open.max(mid.close) <= bar1.low
+            {
                 return Some(0.0);
             }
         }
-        // bar5 is a white candle closing above bar1's close.
-        if candle.close > candle.open && candle.close > bar1.close {
+        // ... drifting down against the advance.
+        if bar3.close >= bar2.close || bar4.close >= bar3.close {
+            return Some(0.0);
+        }
+        // bar5 is a long white candle that opens above bar4's close and closes
+        // above bar1's close.
+        let body5 = candle.close - candle.open;
+        if body5 > 0.0
+            && body5 >= 0.5 * (candle.high - candle.low)
+            && candle.open > bar4.close
+            && candle.close > bar1.close
+        {
             return Some(1.0);
         }
         Some(0.0)
@@ -159,8 +180,8 @@ mod tests {
         let mut t = RisingThreeMethods::new();
         t.update(c(10.0, 15.1, 9.9, 15.0, 0));
         t.update(c(14.0, 14.1, 12.9, 13.0, 1));
-        // bar3 pokes above bar1's high.
-        t.update(c(13.5, 16.0, 12.4, 12.5, 2));
+        // bar3's whole body sits above bar1's high.
+        t.update(c(15.5, 15.6, 15.1, 15.2, 2));
         t.update(c(13.0, 13.1, 11.9, 12.0, 3));
         assert_eq!(t.update(c(12.5, 16.1, 12.4, 16.0, 4)), Some(0.0));
     }
@@ -235,5 +256,131 @@ mod tests {
         t.update(c(13.5, 13.6, 12.4, 12.5, 2));
         t.update(c(13.0, 13.1, 11.9, 12.0, 3));
         assert_eq!(t.update(c(12.5, 16.1, 12.4, 16.0, 4)), Some(0.0));
+    }
+
+    /// The canonical pattern: bar1 10 -> 15 (range 5.2, body1 = 5, so middle
+    /// bodies may be at most 2.5), black rests closing 13, 12.5, 12, bar5 12.5 -> 16.
+    fn base() -> [Candle; 5] {
+        [
+            c(10.0, 15.1, 9.9, 15.0, 0),
+            c(14.0, 14.1, 12.9, 13.0, 1),
+            c(13.5, 13.6, 12.4, 12.5, 2),
+            c(13.0, 13.1, 11.9, 12.0, 3),
+            c(12.5, 16.1, 12.4, 16.0, 4),
+        ]
+    }
+
+    fn run(bars: [Candle; 5]) -> Option<f64> {
+        let mut t = RisingThreeMethods::new();
+        bars.iter().map(|b| t.update(*b)).last().unwrap()
+    }
+
+    fn with(index: usize, candle: Candle) -> [Candle; 5] {
+        let mut bars = base();
+        bars[index] = candle;
+        bars
+    }
+
+    #[test]
+    fn hand_computed_pattern() {
+        // body1 = 15 - 10 = 5 >= 0.5 * 5.2 = 2.6 (long white).
+        // Middle bodies 1.0, 1.0, 1.0 <= 2.5, black, all inside 9.9..15.1.
+        // Closes 13 > 12.5 > 12 (drifting down).
+        // body5 = 3.5 >= 0.5 * 3.7 = 1.85, open5 12.5 > close4 12, close5 16 > 15.
+        assert_eq!(run(base()), Some(1.0));
+    }
+
+    #[test]
+    fn middle_shadow_outside_range_but_body_overlapping_fires() {
+        // bar2's upper shadow pokes to 15.5 > high1 = 15.1; its body 14..13 is inside.
+        assert_eq!(run(with(1, c(14.0, 15.5, 12.9, 13.0, 1))), Some(1.0));
+        // bar2's body 15.4..14.9 straddles high1: min 14.9 < 15.1 -> still overlaps.
+        assert_eq!(run(with(1, c(15.4, 15.5, 14.8, 14.9, 1))), Some(1.0));
+        // bar4's lower shadow pokes below low1 = 9.9; body 10.4..10.0 overlaps.
+        assert_eq!(run(with(3, c(10.4, 10.5, 9.0, 10.0, 3))), Some(1.0));
+    }
+
+    #[test]
+    fn middle_body_fully_outside_range_yields_zero() {
+        // Body bottom exactly at high1 (min == 15.1) -> outside.
+        assert_eq!(run(with(1, c(15.6, 15.7, 15.0, 15.1, 1))), Some(0.0));
+        // Body entirely below low1 = 9.9 (max 9.8 <= 9.9).
+        assert_eq!(run(with(3, c(9.8, 9.9, 9.0, 9.2, 3))), Some(0.0));
+        // Body top exactly at low1 (max == 9.9) -> outside.
+        assert_eq!(run(with(3, c(9.9, 10.0, 9.0, 9.5, 3))), Some(0.0));
+    }
+
+    #[test]
+    fn middle_body_colour_and_size_rules() {
+        // White middle bar.
+        assert_eq!(run(with(2, c(12.5, 13.6, 12.4, 13.5, 2))), Some(0.0));
+        // Doji middle bar (body 0).
+        assert_eq!(run(with(2, c(12.5, 13.6, 12.4, 12.5, 2))), Some(0.0));
+        // Body 2.9 > 0.5 * body1 = 2.5.
+        assert_eq!(run(with(1, c(14.9, 15.0, 11.9, 12.0, 1))), Some(0.0));
+    }
+
+    #[test]
+    fn closes_not_drifting_down_yields_zero() {
+        // close3 = 13.1 >= close2 = 13.0.
+        assert_eq!(run(with(2, c(13.6, 13.7, 13.0, 13.1, 2))), Some(0.0));
+        // close3 == close2.
+        assert_eq!(run(with(2, c(13.6, 13.7, 12.9, 13.0, 2))), Some(0.0));
+        // close4 = 12.6 >= close3 = 12.5.
+        assert_eq!(run(with(3, c(13.0, 13.1, 12.5, 12.6, 3))), Some(0.0));
+    }
+
+    #[test]
+    fn fifth_bar_conditions() {
+        // Black bar5.
+        assert_eq!(run(with(4, c(16.0, 16.1, 12.4, 15.5, 4))), Some(0.0));
+        // Doji bar5 (body5 == 0).
+        assert_eq!(run(with(4, c(16.0, 16.1, 12.4, 16.0, 4))), Some(0.0));
+        // Not long: body 3.5 < 0.5 * range 8.0 = 4.0.
+        assert_eq!(run(with(4, c(12.5, 20.0, 12.0, 16.0, 4))), Some(0.0));
+        // open5 = 12.0 == close4 -> not above.
+        assert_eq!(run(with(4, c(12.0, 16.1, 11.9, 16.0, 4))), Some(0.0));
+        // close5 == close1 = 15.0 -> not above.
+        assert_eq!(run(with(4, c(12.5, 15.1, 12.4, 15.0, 4))), Some(0.0));
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup_index() {
+        let mut t = RisingThreeMethods::new();
+        let out = t.batch(&base());
+        let warm = t.warmup_period();
+        assert!(out[..warm - 1].iter().all(Option::is_none));
+        assert_eq!(out[warm - 1], Some(1.0));
+    }
+
+    fn mixed_series() -> Vec<Candle> {
+        base().iter().cycle().take(30).copied().collect()
+    }
+
+    #[test]
+    fn reset_replays_identically() {
+        let candles = mixed_series();
+        let fresh = RisingThreeMethods::new().batch(&candles);
+        let mut t = RisingThreeMethods::new();
+        let _ = t.batch(&candles);
+        t.reset();
+        assert_eq!(t.batch(&candles), fresh);
+    }
+
+    #[test]
+    fn batch_nan_into_matches_streaming_bits() {
+        let candles = mixed_series();
+        let mut t = RisingThreeMethods::new();
+        let streamed: Vec<f64> = candles
+            .iter()
+            .map(|x| t.update(*x).unwrap_or(f64::NAN))
+            .collect();
+        let mut out = vec![0.0; candles.len()];
+        RisingThreeMethods::new().batch_nan_into(&candles, &mut out);
+        assert!(streamed
+            .iter()
+            .zip(&out)
+            .all(|(a, b)| a.to_bits() == b.to_bits()));
+        assert!(streamed.contains(&1.0));
     }
 }

@@ -4,21 +4,23 @@
 //!
 //! The TD REI is a `period`-bar bounded oscillator in `[-100, 100]` that
 //! detects exhaustion via comparisons of the current bar's range to the bars
-//! two and five-or-six bars earlier. The canonical TD REI uses a `period` of
-//! 5.
+//! two, five-or-six and seven-or-eight bars earlier. The canonical TD REI uses
+//! a `period` of 5.
 //!
-//! Per bar `i` (requires history through `i - 7`):
+//! Per bar `i` (requires history through `i - 8`):
 //!
 //! ```text
-//! cond1 = (high[i] >= low[i-5])  OR (high[i] >= low[i-6])
-//! cond2 = (low[i]  <= high[i-5]) OR (low[i]  <= high[i-6])
+//! overlap      = (high[i]   >= low[i-5]   OR high[i]   >= low[i-6])
+//!            AND (low[i]    <= high[i-5]  OR low[i]    <= high[i-6])
+//! overlap_back = (high[i-2] >= close[i-7] OR high[i-2] >= close[i-8])
+//!            AND (low[i-2]  <= close[i-7] OR low[i-2]  <= close[i-8])
 //!
-//! if cond1 AND cond2:
+//! if overlap OR overlap_back:
 //!     numerator   = (high[i] - high[i-2]) + (low[i] - low[i-2])
 //! else:
 //!     numerator   = 0
 //!
-//! denominator = |high[i] - high[i-2]| + |low[i] - low[i-2]|
+//! denominator = |high[i] - high[i-2]| + |low[i] - low[i-2]|     (every bar)
 //!
 //! REI(i) = 100 * sum(numerator, period) / sum(denominator, period)
 //! ```
@@ -37,7 +39,7 @@ use crate::traits::Indicator;
 #[derive(Debug, Clone)]
 pub struct TdRei {
     period: usize,
-    // Need at least the last 7 candles for the lookback comparisons; we keep a
+    // Need at least the last 9 candles for the lookback comparisons; we keep a
     // rolling window long enough for the rule plus enough numerator/
     // denominator history.
     candles: VecDeque<Candle>,
@@ -47,10 +49,10 @@ pub struct TdRei {
 }
 
 /// Minimum history required to evaluate the TD REI per-bar rule. The
-/// numerator and denominator both reference `bar[i-2]` and the long
-/// conditional references `bar[i-5]` and `bar[i-6]`, so we need the candle
-/// six bars before the current one to be available.
-const LOOKBACK: usize = 7;
+/// numerator and denominator reference `bar[i-2]`, the first condition
+/// `bar[i-5]` / `bar[i-6]` and the alternative condition the closes of
+/// `bar[i-7]` / `bar[i-8]`, so the candle eight bars back must be available.
+const LOOKBACK: usize = 9;
 
 impl TdRei {
     /// Construct a TD REI with the given averaging window. The classic
@@ -104,29 +106,33 @@ impl Indicator for TdRei {
             self.candles.pop_front();
         }
         if self.candles.len() < LOOKBACK - 1 {
-            // Need 6 previous candles before we can evaluate the rule on the
+            // Need 8 previous candles before we can evaluate the rule on the
             // current one.
             self.candles.push_back(candle);
             return None;
         }
-        // candles currently holds the 6 most recent bars (in order); the new
-        // candle is the 7th. After the rule fires we push it onto the back.
-        // Indexing convention: index 0 is the oldest in the window (i.e. 6
-        // bars ago); index 5 is the bar just before the current one.
-        // For the rule we need:
-        //   bar[i-2] -> candles[len-2]  (here len == 6)
-        //   bar[i-5] -> candles[1]
-        //   bar[i-6] -> candles[0]
-        let prev2 = self.candles[self.candles.len() - 2];
-        let prev5 = self.candles[1];
-        let prev6 = self.candles[0];
+        // `candles` holds the 8 previous bars, oldest first: index 0 is bar
+        // i-8, index 7 is bar i-1.
+        let prev2 = self.candles[6];
+        let prev5 = self.candles[3];
+        let prev6 = self.candles[2];
+        let close7 = self.candles[1].close;
+        let close8 = self.candles[0].close;
 
-        let cond1 = candle.high >= prev5.low || candle.high >= prev6.low;
-        let cond2 = candle.low <= prev5.high || candle.low <= prev6.high;
+        // The bar's range overlaps the range of 5-6 bars earlier ...
+        let overlap = (candle.high >= prev5.low || candle.high >= prev6.low)
+            && (candle.low <= prev5.high || candle.low <= prev6.high);
+        // ... or the bar two back overlaps the closes of 7-8 bars earlier.
+        let overlap_back = (prev2.high >= close7 || prev2.high >= close8)
+            && (prev2.low <= close7 || prev2.low <= close8);
 
         let raw_num = (candle.high - prev2.high) + (candle.low - prev2.low);
         let denominator = (candle.high - prev2.high).abs() + (candle.low - prev2.low).abs();
-        let numerator = if cond1 && cond2 { raw_num } else { 0.0 };
+        let numerator = if overlap || overlap_back {
+            raw_num
+        } else {
+            0.0
+        };
 
         if self.numerators.len() == self.period {
             self.numerators.pop_front();
@@ -144,7 +150,9 @@ impl Indicator for TdRei {
         let v = if sum_den == 0.0 {
             0.0
         } else {
-            100.0 * sum_num / sum_den
+            // |numerator| <= denominator bar by bar, so the ratio is bounded;
+            // the clamp only absorbs the last-bit rounding of the two sums.
+            (100.0 * sum_num / sum_den).clamp(-100.0, 100.0)
         };
         self.last_value = Some(v);
         Some(v)
@@ -159,7 +167,7 @@ impl Indicator for TdRei {
 
     #[inline]
     fn warmup_period(&self) -> usize {
-        // 6 bars to fill the lookback plus `period` updates to fill the
+        // 8 bars to fill the lookback plus `period` updates to fill the
         // numerator / denominator buffers.
         (LOOKBACK - 1) + self.period
     }
@@ -288,7 +296,136 @@ mod tests {
     fn accessors_and_metadata() {
         let rei = TdRei::classic();
         assert_eq!(rei.period(), 5);
-        assert_eq!(rei.warmup_period(), 6 + 5);
+        assert_eq!(rei.warmup_period(), 8 + 5);
         assert_eq!(rei.name(), "TDREI");
+    }
+
+    /// Eight base bars (idx 0..=7): idx 0 and 1 close at `far` (range +-1),
+    /// idx 2..=7 are h 11, l 9, c 10.
+    fn base(far: f64) -> Vec<Candle> {
+        (0..8)
+            .map(|i| {
+                let m = if i < 2 { far } else { 10.0 };
+                c(m + 1.0, m - 1.0, m, i64::from(i))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn hand_computed_overlap_mixed_sign() {
+        // period 1, bar 8 = h 13, l 8.5. prev2 = idx 6 (h 11, l 9).
+        // overlap: 13 >= 9 and 8.5 <= 11 -> numerator counts.
+        // numerator = (13 - 11) + (8.5 - 9) = 1.5; denominator = 2 + 0.5 = 2.5
+        // REI = 100 * 1.5 / 2.5 = 60.
+        let mut rei = TdRei::new(1).unwrap();
+        let mut candles = base(10.0);
+        candles.push(c(13.0, 8.5, 10.0, 8));
+        let out = rei.batch(&candles);
+        assert_relative_eq!(out[8].unwrap(), 60.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn numerator_is_gated_but_denominator_counts() {
+        // Bars 0, 1 close at 50, so overlap_back fails: prev2.high 11 < 50.
+        // Bar 8 = h 30, l 25: low 25 > highs 11 of idx 2/3 -> no overlap.
+        // numerator = 0; denominator = (30 - 11) + (25 - 9) = 35 -> REI 0
+        // (a genuine zero, not the empty-denominator fallback).
+        let mut rei = TdRei::new(1).unwrap();
+        let mut candles = base(50.0);
+        candles.push(c(30.0, 25.0, 27.0, 8));
+        assert_eq!(rei.batch(&candles)[8], Some(0.0));
+        assert_eq!(rei.denominators.back().copied(), Some(35.0));
+        assert_eq!(rei.numerators.back().copied(), Some(0.0));
+    }
+
+    #[test]
+    fn overlap_back_alone_enables_numerator() {
+        // Same bar 8 as above (no overlap), but idx 0, 1 close at 10, so
+        // prev2 (h 11, l 9) brackets close[i-7] = 10 -> overlap_back holds.
+        // numerator = denominator = 19 + 16 = 35 -> REI 100.
+        let mut rei = TdRei::new(1).unwrap();
+        let mut candles = base(10.0);
+        candles.push(c(30.0, 25.0, 27.0, 8));
+        assert_eq!(rei.batch(&candles)[8], Some(100.0));
+    }
+
+    #[test]
+    fn hand_computed_period_two_window() {
+        // period 2, bars 0, 1 close at 50.
+        // Bar 8 (h 30, l 25, c 27): gated as above -> num 0, den 35.
+        // Bar 9 (h 12, l 10, c 11): prev2 = idx 7 (11, 9); prev5 = idx 4,
+        // prev6 = idx 3 (h 11, l 9): 12 >= 9 and 10 <= 11 -> overlap.
+        // num = (12 - 11) + (10 - 9) = 2, den = 2.
+        // REI = 100 * (0 + 2) / (35 + 2) = 200 / 37.
+        let mut rei = TdRei::new(2).unwrap();
+        let mut candles = base(50.0);
+        candles.push(c(30.0, 25.0, 27.0, 8));
+        candles.push(c(12.0, 10.0, 11.0, 9));
+        let out = rei.batch(&candles);
+        assert_eq!(rei.warmup_period(), 10);
+        assert!(out[..9].iter().all(Option::is_none));
+        assert_relative_eq!(out[9].unwrap(), 200.0 / 37.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn first_value_lands_at_warmup_minus_one() {
+        let candles: Vec<Candle> = (0..40)
+            .map(|i| {
+                let m = 100.0 + (f64::from(i) * 0.4).sin() * 3.0;
+                c(m + 1.0, m - 1.0, m, i64::from(i))
+            })
+            .collect();
+        for period in [1, 2, 5, 14] {
+            let mut rei = TdRei::new(period).unwrap();
+            let warm = rei.warmup_period();
+            assert_eq!(warm, 8 + period);
+            let out = rei.batch(&candles);
+            assert!(out[..warm - 1].iter().all(Option::is_none));
+            assert!(out[warm - 1..].iter().all(Option::is_some));
+        }
+    }
+
+    #[test]
+    fn rejects_period_above_max() {
+        let err = TdRei::new(crate::error::MAX_PERIOD + 1).unwrap_err();
+        assert!(matches!(err, Error::InvalidPeriod { .. }));
+    }
+
+    #[test]
+    fn reset_reproduces_fresh_run() {
+        let candles: Vec<Candle> = (0..60)
+            .map(|i| {
+                let m = 100.0 + (f64::from(i) * 0.6).sin() * 4.0;
+                c(m + 1.5, m - 0.5, m, i64::from(i))
+            })
+            .collect();
+        let mut fresh = TdRei::classic();
+        let expected = fresh.batch(&candles);
+        let mut rei = TdRei::classic();
+        rei.batch(&candles[..23]);
+        rei.reset();
+        assert_eq!(rei.batch(&candles), expected);
+    }
+
+    #[test]
+    fn batch_nan_into_matches_streaming() {
+        let candles: Vec<Candle> = (0..80)
+            .map(|i| {
+                let m = 100.0 + (f64::from(i) * 0.9).sin() * 6.0;
+                c(m + 1.5, m - 0.5, m, i64::from(i))
+            })
+            .collect();
+        let mut a = TdRei::classic();
+        let mut out = vec![0.0; candles.len()];
+        a.batch_nan_into(&candles, &mut out);
+        let mut b = TdRei::classic();
+        let streamed: Vec<f64> = candles
+            .iter()
+            .map(|x| b.update(*x).unwrap_or(f64::NAN))
+            .collect();
+        assert!(out
+            .iter()
+            .zip(&streamed)
+            .all(|(x, y)| x.to_bits() == y.to_bits()));
     }
 }

@@ -23,7 +23,7 @@ use crate::traits::Indicator;
 /// little scatter around the trend. A strategy that earns the same total return in
 /// a few lucky jumps scores lower because its residual scatter inflates the
 /// standard error. This is the original 1996 form; later Kestner revisions scale by
-/// the number of periods (`slope / (SE · period)` in 2003, `slope / (SE · √period)`
+/// the number of periods (`slope / (SE · period)` in 2003, `slope · √period / SE`
 /// in 2013) — apply that scaling downstream if you need to compare across window
 /// lengths.
 ///

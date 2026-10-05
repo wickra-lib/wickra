@@ -1,18 +1,23 @@
 //! Ehlers Sine Wave indicator.
-#![allow(clippy::manual_clamp)]
 
-use std::f64::consts::PI;
-
-use crate::indicators::hilbert_dominant_cycle::HilbertDominantCycle;
+use crate::indicators::ht_dcphase::HtDcPhase;
 use crate::traits::Indicator;
 
-/// Ehlers' Sine Wave indicator (sine + leadsine).
+/// Ehlers' Sine Wave indicator (sine + leadsine), TA-Lib `HT_SINE`.
 ///
-/// Implementation from *Rocket Science for Traders* (Ehlers 2001, ch. 9). Uses
-/// the same Hilbert-transform machinery as [`HilbertDominantCycle`] to derive
-/// the instantaneous phase, then returns `sin(phase)` and the 45° lead
-/// `sin(phase + 45°)`. The two lines cross deep in trends but oscillate
-/// rapidly during cycles, providing a visual lead/lag signal.
+/// Implementation from *Rocket Science for Traders* (Ehlers 2001, ch. 9). The
+/// phase is the dominant-cycle phase of [`HtDcPhase`]: the smoothed price is
+/// correlated with one cycle of a sine and a cosine of the measured dominant
+/// period, `DCPhase = atan(Real / Imag)`, then corrected (`+90°`, the smoother's
+/// lag, the quadrant). The indicator returns
+///
+/// ```text
+/// Sine     = sin(DCPhase)
+/// LeadSine = sin(DCPhase + 45°)
+/// ```
+///
+/// The two lines cross deep in trends but oscillate rapidly during cycles,
+/// providing a visual lead/lag signal.
 ///
 /// Only the primary `sine` line is exposed as the scalar output to match the
 /// crate's standard scalar-indicator surface; the lead is accessible via the
@@ -32,13 +37,9 @@ use crate::traits::Indicator;
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct SineWave {
-    cycle: HilbertDominantCycle,
-    smooth_buf: Vec<f64>,
-    detrender_buf: Vec<f64>,
-    last_phase: f64,
+    phase: HtDcPhase,
     last_sine: Option<f64>,
     last_lead: f64,
-    count: usize,
 }
 
 impl SineWave {
@@ -56,13 +57,6 @@ impl SineWave {
     pub const fn value(&self) -> Option<f64> {
         self.last_sine
     }
-
-    fn push_front(buf: &mut Vec<f64>, v: f64, cap: usize) {
-        buf.insert(0, v);
-        if buf.len() > cap {
-            buf.truncate(cap);
-        }
-    }
 }
 
 impl Indicator for SineWave {
@@ -73,69 +67,22 @@ impl Indicator for SineWave {
         if !input.is_finite() {
             return None;
         }
-        self.count += 1;
-        // Drive the dominant-cycle estimator first; its smoothing state is
-        // independent from ours so the two share input but not buffers.
-        let _ = self.cycle.update(input);
-
-        Self::push_front(&mut self.smooth_buf, input, 7);
-        if self.smooth_buf.len() < 4 {
-            return None;
-        }
-        let smooth = (4.0 * self.smooth_buf[0]
-            + 3.0 * self.smooth_buf[1]
-            + 2.0 * self.smooth_buf[2]
-            + self.smooth_buf[3])
-            / 10.0;
-        if self.smooth_buf.len() < 7 {
-            return None;
-        }
-        let period = self.cycle.value().unwrap_or(15.0).max(6.0).min(50.0);
-        let adj = 0.075 * period + 0.54;
-        let s0 = smooth;
-        let s2 = self.smooth_buf[2];
-        let s4 = self.smooth_buf[4];
-        let s6 = self.smooth_buf[6];
-        let detrender = (0.0962 * s0 + 0.5769 * s2 - 0.5769 * s4 - 0.0962 * s6) * adj;
-        Self::push_front(&mut self.detrender_buf, detrender, 7);
-        if self.detrender_buf.len() < 7 {
-            return None;
-        }
-        let q1 = (0.0962 * self.detrender_buf[0] + 0.5769 * self.detrender_buf[2]
-            - 0.5769 * self.detrender_buf[4]
-            - 0.0962 * self.detrender_buf[6])
-            * adj;
-        let i1 = self.detrender_buf[3];
-        let phase = if i1.abs() > f64::EPSILON {
-            (q1 / i1).atan()
-        } else {
-            self.last_phase
-        };
-        self.last_phase = phase;
+        let phase = self.phase.update(input)?.to_radians();
         let sine = phase.sin();
-        let lead = (phase + PI / 4.0).sin();
-
-        if self.count < 50 {
-            return None;
-        }
+        self.last_lead = (phase + 45f64.to_radians()).sin();
         self.last_sine = Some(sine);
-        self.last_lead = lead;
         Some(sine)
     }
 
     fn reset(&mut self) {
-        self.cycle.reset();
-        self.smooth_buf.clear();
-        self.detrender_buf.clear();
-        self.last_phase = 0.0;
+        self.phase.reset();
         self.last_sine = None;
         self.last_lead = 0.0;
-        self.count = 0;
     }
 
     #[inline]
     fn warmup_period(&self) -> usize {
-        50
+        self.phase.warmup_period()
     }
 
     #[inline]
@@ -221,13 +168,95 @@ mod tests {
 
     #[test]
     fn flat_input_uses_phase_fallback() {
-        // Zero inputs make every smooth/detrender term arithmetically exact
-        // zero (no IEEE-754 cancellation residue), so `i1 == 0.0` and the
-        // phase calculation deterministically takes the `self.last_phase`
-        // fallback rather than `atan(q1/i1)`. A non-zero constant like
-        // `100.0` leaves a sub-EPSILON residue that flips the branch back.
+        // Zero inputs make the DC phase's real and imaginary parts exactly
+        // zero, so the phase takes its degenerate-imaginary guard and the
+        // sine is still defined.
         let mut sw = SineWave::new();
         let _ = sw.batch(&[0.0_f64; 120]);
         assert!(sw.value().is_some());
+    }
+
+    use crate::traits::BatchNanExt;
+    use approx::assert_relative_eq;
+
+    fn sine_prices(n: u32) -> Vec<f64> {
+        (0..n)
+            .map(|i| 100.0 + (f64::from(i) * 0.4).sin() * 5.0)
+            .collect()
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup() {
+        let mut sw = SineWave::new();
+        let out = sw.batch(&sine_prices(120));
+        let warmup = sw.warmup_period();
+        assert!(out[..warmup - 1].iter().all(Option::is_none));
+        assert!(out[warmup - 1].is_some());
+    }
+
+    #[test]
+    fn reset_replays_identically() {
+        let prices = sine_prices(150);
+        let fresh = SineWave::new().batch(&prices);
+        let mut sw = SineWave::new();
+        let first = sw.batch(&prices);
+        sw.reset();
+        assert_eq!(sw.lead().to_bits(), 0.0_f64.to_bits());
+        let second = sw.batch(&prices);
+        assert_eq!(first, fresh);
+        assert_eq!(second, fresh);
+    }
+
+    #[test]
+    fn batch_nan_paths_match_streaming_bitwise() {
+        let prices = sine_prices(150);
+        let mut out = vec![0.0; prices.len()];
+        SineWave::new().batch_nan_into(&prices, &mut out);
+        let nan = SineWave::new().batch_nan(&prices);
+        let fast = SineWave::new().batch_fast(&prices);
+        let mut stream = SineWave::new();
+        let expected: Vec<u64> = prices
+            .iter()
+            .map(|&p| stream.update(p).unwrap_or(f64::NAN).to_bits())
+            .collect();
+        assert!(out.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(nan.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+        assert!(fast.iter().zip(&expected).all(|(v, e)| v.to_bits() == *e));
+    }
+
+    #[test]
+    fn sine_and_lead_are_functions_of_dc_phase() {
+        // sine = sin(phase), lead = sin(phase + 45 deg), where phase is HT_DCPHASE.
+        let prices = sine_prices(150);
+        let mut sw = SineWave::new();
+        let mut phase = HtDcPhase::new();
+        for &p in &prices {
+            let sine = sw.update(p);
+            let ph = phase.update(p);
+            assert_eq!(sine.is_some(), ph.is_some());
+            if let (Some(s), Some(deg)) = (sine, ph) {
+                let rad = deg.to_radians();
+                assert_eq!(s.to_bits(), rad.sin().to_bits());
+                assert_eq!(
+                    sw.lead().to_bits(),
+                    (rad + 45f64.to_radians()).sin().to_bits()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn zero_series_hand_computed() {
+        // On a zero series HT_DCPHASE converges to 90 + 90 + 360/6 = 240 degrees,
+        // so sine = sin(240 deg) = -sqrt(3)/2 = -0.866_025_4 and
+        // lead = sin(285 deg) = -(sqrt(6) + sqrt(2))/4 = -0.965_925_8.
+        let mut sw = SineWave::new();
+        let _ = sw.batch(&[0.0; 400]);
+        assert_relative_eq!(sw.value().unwrap(), -(3.0_f64.sqrt()) / 2.0, epsilon = 1e-6);
+        assert_relative_eq!(
+            sw.lead(),
+            -(6.0_f64.sqrt() + 2.0_f64.sqrt()) / 4.0,
+            epsilon = 1e-6
+        );
     }
 }

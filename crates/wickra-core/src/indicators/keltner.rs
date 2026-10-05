@@ -11,13 +11,17 @@ use crate::traits::Indicator;
 pub struct KeltnerOutput {
     /// Upper band = middle + multiplier * ATR.
     pub upper: f64,
-    /// Middle band = EMA of typical price.
+    /// Middle band = EMA of the close.
     pub middle: f64,
     /// Lower band = middle - multiplier * ATR.
     pub lower: f64,
 }
 
 /// Keltner Channels: an EMA centerline with bands sized by ATR.
+///
+/// This is the modern (Linda Raschke) form used by `TradingView`, `StockCharts` and
+/// most libraries: `middle = EMA(close, ema_period)`,
+/// `upper / lower = middle ± multiplier · ATR(atr_period)`.
 ///
 /// # Example
 ///
@@ -81,7 +85,7 @@ impl Indicator for Keltner {
         // every candle consumed during the EMA's warmup, delaying the first
         // emission past `warmup_period()` and seeding the ATR over the wrong
         // window.
-        let mid = self.ema.update(candle.typical_price());
+        let mid = self.ema.update(candle.close);
         let atr = self.atr.update(candle);
         let (mid, atr) = (mid?, atr?);
         Some(KeltnerOutput {
@@ -215,7 +219,7 @@ mod tests {
 
     #[test]
     fn matches_independent_ema_and_atr() {
-        // The EMA (on typical price) and the ATR (on the candle) run as
+        // The EMA (on the close) and the ATR (on the candle) run as
         // independent siblings; Keltner must equal feeding two standalone
         // instances and combining them once both are ready.
         let candles: Vec<Candle> = (0..60)
@@ -227,22 +231,103 @@ mod tests {
         let mut k = Keltner::classic();
         let mut ema = Ema::new(20).unwrap();
         let mut atr = Atr::new(10).unwrap();
-        for (i, candle) in candles.iter().enumerate() {
+        for candle in &candles {
             let got = k.update(*candle);
-            let mid = ema.update(candle.typical_price());
+            let mid = ema.update(candle.close);
             let a = atr.update(*candle);
-            match (mid, a) {
-                (Some(m), Some(av)) => {
-                    let o = got.expect("Keltner emits once EMA and ATR are both ready");
-                    assert_relative_eq!(o.middle, m, epsilon = 1e-9);
-                    assert_relative_eq!(o.upper, m + 2.0 * av, epsilon = 1e-9);
-                    assert_relative_eq!(o.lower, m - 2.0 * av, epsilon = 1e-9);
-                }
-                _ => assert!(
-                    got.is_none(),
-                    "Keltner must be None until both ready (i={i})"
-                ),
+            assert_eq!(got.is_some(), mid.is_some() && a.is_some());
+            if let (Some(o), Some(m), Some(av)) = (got, mid, a) {
+                assert_relative_eq!(o.middle, m, epsilon = 1e-9);
+                assert_relative_eq!(o.upper, m + 2.0 * av, epsilon = 1e-9);
+                assert_relative_eq!(o.lower, m - 2.0 * av, epsilon = 1e-9);
             }
         }
+    }
+
+    #[test]
+    fn rejects_every_invalid_parameter() {
+        assert!(matches!(Keltner::new(0, 10, 2.0), Err(Error::PeriodZero)));
+        assert!(matches!(Keltner::new(20, 0, 2.0), Err(Error::PeriodZero)));
+        assert!(matches!(
+            Keltner::new(20, 10, f64::NAN),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        assert!(matches!(
+            Keltner::new(20, 10, f64::INFINITY),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        assert!(matches!(
+            Keltner::new(20, 10, 0.0),
+            Err(Error::NonPositiveMultiplier)
+        ));
+        let too_big = crate::error::MAX_PERIOD + 1;
+        assert!(matches!(
+            Keltner::new(too_big, 10, 2.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+        assert!(matches!(
+            Keltner::new(20, too_big, 2.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn warmup_follows_the_longer_atr_period() {
+        // ATR(12) is slower than EMA(5): the first value lands at index 11.
+        let candles: Vec<Candle> = (0..30)
+            .map(|i| c(f64::from(i) + 1.0, f64::from(i) - 1.0, f64::from(i)))
+            .collect();
+        let mut k = Keltner::new(5, 12, 2.0).unwrap();
+        assert_eq!(k.warmup_period(), 12);
+        let out = k.batch(&candles);
+        assert!(out[..11].iter().all(Option::is_none));
+        assert!(out[11..].iter().all(Option::is_some));
+    }
+
+    #[test]
+    fn hand_computed_reference() {
+        // EMA(2) (alpha = 2/3, seeded with the mean), ATR(2) (Wilder, seeded
+        // with the mean true range; the first bar's TR is H − L), mult 1.5.
+        //   b0 H 11 L 9  C 10    TR 2
+        //   b1 H 12 L 10 C 11    TR 2   EMA 10.5   ATR 2
+        //   b2 H 14 L 11 C 13    TR 3   EMA 2/3·13 + 1/3·10.5 = 73/6   ATR (2 + 3)/2 = 2.5
+        //   b3 H 10 L 9  C 9.5   TR max(1, |10 − 13|, |9 − 13|) = 4
+        //                              EMA 2/3·9.5 + 1/3·73/6 = 187/18  ATR (2.5 + 4)/2 = 3.25
+        let candles = [
+            c(11.0, 9.0, 10.0),
+            c(12.0, 10.0, 11.0),
+            c(14.0, 11.0, 13.0),
+            c(10.0, 9.0, 9.5),
+        ];
+        let out = Keltner::new(2, 2, 1.5).unwrap().batch(&candles);
+        assert_eq!(out[0], None);
+        let b1 = out[1].unwrap();
+        assert_relative_eq!(b1.middle, 10.5, epsilon = 1e-12);
+        assert_relative_eq!(b1.upper, 13.5, epsilon = 1e-12);
+        assert_relative_eq!(b1.lower, 7.5, epsilon = 1e-12);
+        let b2 = out[2].unwrap();
+        assert_relative_eq!(b2.middle, 73.0 / 6.0, epsilon = 1e-12);
+        assert_relative_eq!(b2.upper, 73.0 / 6.0 + 3.75, epsilon = 1e-12);
+        assert_relative_eq!(b2.lower, 73.0 / 6.0 - 3.75, epsilon = 1e-12);
+        let b3 = out[3].unwrap();
+        assert_relative_eq!(b3.middle, 187.0 / 18.0, epsilon = 1e-12);
+        assert_relative_eq!(b3.upper, 187.0 / 18.0 + 4.875, epsilon = 1e-12);
+        assert_relative_eq!(b3.lower, 187.0 / 18.0 - 4.875, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn reset_reproduces_a_fresh_run() {
+        let candles: Vec<Candle> = (0..60)
+            .map(|i| {
+                let m = 100.0 + (f64::from(i) * 0.3).sin() * 4.0;
+                c(m + 1.2, m - 0.8, m)
+            })
+            .collect();
+        let mut k = Keltner::new(7, 4, 1.5).unwrap();
+        let first = k.batch(&candles);
+        k.reset();
+        let second = k.batch(&candles);
+        assert_eq!(first, second);
+        assert_eq!(second, Keltner::new(7, 4, 1.5).unwrap().batch(&candles));
     }
 }

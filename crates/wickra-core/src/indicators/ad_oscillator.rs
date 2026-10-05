@@ -1,4 +1,4 @@
-//! Williams A/D Oscillator (ADOSC).
+//! Williams A/D Oscillator.
 
 use crate::indicators::sma::Sma;
 use crate::ohlcv::Candle;
@@ -21,7 +21,7 @@ const SIGNAL_PERIOD: usize = 13;
 /// WAD_t  = WAD_{t−1} + (close_t − TR_l_t)   if close_t > close_{t−1}
 /// WAD_t  = WAD_{t−1} + (close_t − TR_h_t)   if close_t < close_{t−1}
 /// WAD_t  = WAD_{t−1}                          if close_t == close_{t−1}
-/// ADOSC_t = WAD_t − SMA(WAD, 13)_t
+/// WADOSC_t = WAD_t − SMA(WAD, 13)_t
 /// ```
 ///
 /// This is distinct from the raw cumulative line, which Wickra ships as
@@ -127,7 +127,7 @@ impl Indicator for AdOscillator {
 
     #[inline]
     fn name(&self) -> &'static str {
-        "ADOSC"
+        "WilliamsAdOscillator"
     }
 }
 
@@ -145,7 +145,7 @@ mod tests {
     #[test]
     fn accessors_and_metadata() {
         let ad = AdOscillator::new();
-        assert_eq!(ad.name(), "ADOSC");
+        assert_eq!(ad.name(), "WilliamsAdOscillator");
         assert_eq!(ad.warmup_period(), 14);
         assert!(!ad.is_ready());
         assert_eq!(ad.value(), None);
@@ -243,5 +243,80 @@ mod tests {
         let mut s = AdOscillator::new();
         let streamed: Vec<_> = candles.iter().map(|x| s.update(*x)).collect();
         assert_eq!(batch, streamed);
+    }
+
+    fn wavy(len: i64) -> Vec<Candle> {
+        (0..len)
+            .map(|i| {
+                let t = f64::from(i32::try_from(i).unwrap());
+                let base = 100.0 + (t * 0.35).sin() * 5.0;
+                let close = base + (t * 0.8).cos() * 1.2;
+                c(base, base.max(close) + 1.0, base.min(close) - 1.0, close, i)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn first_value_lands_exactly_at_warmup_index() {
+        let candles = wavy(40);
+        let mut ad = AdOscillator::new();
+        let warmup = ad.warmup_period();
+        let out = ad.batch(&candles);
+        assert!(out.iter().take(warmup - 1).all(Option::is_none));
+        assert!(out.iter().skip(warmup - 1).all(Option::is_some));
+    }
+
+    #[test]
+    fn reset_replays_identically_to_fresh_instance() {
+        let candles = wavy(60);
+        let mut used = AdOscillator::new();
+        used.batch(&candles);
+        used.reset();
+        let replay = used.batch(&candles);
+        assert_eq!(replay, AdOscillator::new().batch(&candles));
+    }
+
+    #[test]
+    fn batch_nan_into_matches_streaming_bits() {
+        let candles = wavy(80);
+        let mut nan_out = vec![0.0; candles.len()];
+        AdOscillator::new().batch_nan_into(&candles, &mut nan_out);
+        let mut streamer = AdOscillator::new();
+        let identical = candles.iter().zip(&nan_out).all(|(candle, v)| {
+            streamer.update(*candle).unwrap_or(f64::NAN).to_bits() == v.to_bits()
+        });
+        assert!(identical);
+    }
+
+    /// Hand-computed reference. Bar 0 seeds `prev_close = 100`. Bars `i = 1..=14`
+    /// close at `100 + i` with `high = close + 2`, `low = close − 2`, so every bar
+    /// is an up bar: `TR_l = min(99 + i, 98 + i) = 98 + i` and
+    /// `delta = (100 + i) − (98 + i) = 2`, giving `WAD_i = 2i`.
+    /// At bar 13: SMA(13) of `2, 4, …, 26` is `14`, so `osc = 26 − 14 = 12`.
+    /// At bar 14: SMA of `4, …, 28` is `16`, so `osc = 28 − 16 = 12`.
+    /// Bar 15 is a down bar: close `113` after `114`, high `115`, low `111`:
+    /// `TR_h = max(114, 115) = 115`, `delta = 113 − 115 = −2`, `WAD = 26`.
+    /// SMA of `6, 8, …, 28, 26` = `(6 + 28) · 12 / 2 + 26 = 230`, `/ 13`;
+    /// `osc = 26 − 230 / 13 = 108 / 13`.
+    /// Bar 16 repeats the close `113`: `delta = 0`, `WAD = 26`;
+    /// SMA of `8, …, 28, 26, 26` = `(8 + 28) · 11 / 2 + 52 = 250`, `/ 13`;
+    /// `osc = 26 − 250 / 13 = 88 / 13`.
+    #[test]
+    fn reference_values_up_down_and_unchanged_bars() {
+        let mut ad = AdOscillator::new();
+        assert_eq!(ad.update(c(100.0, 102.0, 98.0, 100.0, 0)), None);
+        let mut out = Vec::new();
+        for i in 1..=14_i32 {
+            let close = 100.0 + f64::from(i);
+            out.push(ad.update(c(close, close + 2.0, close - 2.0, close, i64::from(i))));
+        }
+        assert!(out.iter().take(12).all(Option::is_none));
+        assert_relative_eq!(out[12].unwrap(), 12.0, epsilon = 1e-9);
+        assert_relative_eq!(out[13].unwrap(), 12.0, epsilon = 1e-9);
+        let down = ad.update(c(114.0, 115.0, 111.0, 113.0, 15)).unwrap();
+        assert_relative_eq!(down, 108.0 / 13.0, epsilon = 1e-9);
+        let flat = ad.update(c(113.0, 114.0, 112.0, 113.0, 16)).unwrap();
+        assert_relative_eq!(flat, 88.0 / 13.0, epsilon = 1e-9);
+        assert_eq!(ad.value(), Some(flat));
     }
 }
