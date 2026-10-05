@@ -2037,7 +2037,7 @@ dependencies = [
 
 [[package]]
 name = "wickra"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "approx",
  "codspeed-criterion-compat",
@@ -2048,7 +2048,7 @@ dependencies = [
 
 [[package]]
 name = "wickra-bench"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "criterion",
  "kand",
@@ -2060,7 +2060,7 @@ dependencies = [
 
 [[package]]
 name = "wickra-c"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "tokio",
  "wickra-core",
@@ -2069,7 +2069,7 @@ dependencies = [
 
 [[package]]
 name = "wickra-core"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "approx",
  "proptest",
@@ -2080,7 +2080,7 @@ dependencies = [
 
 [[package]]
 name = "wickra-data"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "approx",
  "csv",
@@ -2099,7 +2099,7 @@ dependencies = [
 
 [[package]]
 name = "wickra-examples"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "serde_json",
  "tokio",
@@ -2109,7 +2109,7 @@ dependencies = [
 
 [[package]]
 name = "wickra-node"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -2121,7 +2121,7 @@ dependencies = [
 
 [[package]]
 name = "wickra-python"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "bytemuck",
  "pyo3",
@@ -2132,11 +2132,11 @@ dependencies = [
 
 [[package]]
 name = "wickra-simd"
-version = "1.0.7"
+version = "2.0.0"
 
 [[package]]
 name = "wickra-wasm"
-version = "1.0.7"
+version = "2.0.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
