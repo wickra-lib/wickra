@@ -1,11 +1,11 @@
 name: Link check
 
 # External link rot is non-deterministic (third-party sites go down, rate-limit,
-# or move), so the authoritative check runs on a weekly schedule and on demand
-# rather than gating PRs or releases. ci.yml additionally runs a non-blocking
-# lychee job on PRs for an early heads-up (continue-on-error), and release.yml is
-# deliberately NOT gated on it — a transient external outage must never block an
-# irreversible publish.
+# or move), so this sweep runs weekly and on demand and never fails: lychee
+# runs with continue-on-error on the step, every broken link becomes a warning
+# annotation and a line in the job summary, and main_status lists them. A red
+# run would sit on the newest main commit and read as a broken main. release.yml
+# does not depend on it.
 on:
   schedule:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC
@@ -24,6 +24,17 @@ jobs:
         with:
           persist-credentials: false
       - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        id: lychee
+        continue-on-error: true
+        timeout-minutes: 18
         with:
           args: --config lychee.toml --no-progress --root-dir "${{ github.workspace }}" "*.md" "bindings/*/README.md"
           fail: true
+      - name: Report broken links as warnings
+        if: steps.lychee.outcome == 'failure'
+        run: |
+          if [ -f lychee/out.md ]; then
+            grep -E '^\* \[' lychee/out.md | head -n 30 \
+              | sed -e 's/%/%25/g' -e 's/^\* /::warning title=Broken link::/' || true
+          fi
+          echo "::warning title=Broken links::lychee did not pass; the job summary lists every finding"
