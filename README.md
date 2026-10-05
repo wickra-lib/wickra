@@ -11,7 +11,7 @@
 [![npm](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/npm.svg)](https://www.npmjs.com/package/wickra)
 [![NuGet](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/nuget.svg)](https://www.nuget.org/packages/Wickra)
 [![Maven Central](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/maven.svg)](https://central.sonatype.com/artifact/org.wickra/wickra)
-[![Go module](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/go.svg)](https://pkg.go.dev/github.com/wickra-lib/wickra-go)
+[![Go module](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/go.svg)](https://pkg.go.dev/github.com/wickra-lib/wickra-go/v2)
 [![R-universe](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/r-universe.svg)](https://wickra-lib.r-universe.dev)
 [![License: MIT OR Apache-2.0](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/license.svg)](#license)
 [![OpenSSF Scorecard](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/scorecard.svg)](https://scorecard.dev/viewer/?uri=github.com/wickra-lib/wickra)
@@ -296,7 +296,7 @@ install — Go (cgo) and R (`.Call`) — also need a C compiler, and Java runs w
 | C           | `wickra.h` + library (releases)      | C99 compiler               |
 | C++         | `wickra.hpp` over the C ABI          | C++14 compiler             |
 | C#          | NuGet · `Wickra`                     | .NET 8 (`net8.0`)          |
-| Go          | module · `wickra-lib/wickra-go`      | Go 1.23 (cgo)              |
+| Go          | module · `wickra-lib/wickra-go/v2`   | Go 1.23 (cgo)              |
 | Java        | Maven Central · `org.wickra:wickra`  | Java 22 (FFM / Panama)     |
 | R           | source package                       | R ≥ 4.1 (Rtools on Win.)   |
 

@@ -1167,7 +1167,7 @@ jobs:
           if-no-files-found: error
 
   # Mirror the in-repo Go module (bindings/go) to the standalone wickra-go
-  # repository so `go get github.com/wickra-lib/wickra-go` builds with no extra
+  # repository so `go get github.com/wickra-lib/wickra-go/v2` builds with no extra
   # steps. The in-repo module keeps the prebuilt libraries git-ignored; the
   # mirror commits them per platform under lib/<goos>_<goarch>/ alongside the
   # vendored header. Produces no asset, but the release notes tell readers the
@@ -1210,9 +1210,15 @@ jobs:
           # Ship the dual license so pkg.go.dev detects a redistributable license.
           cp LICENSE-MIT LICENSE-APACHE "$out/"
           # Standalone module path (the in-repo go.mod points at the subdir).
-          printf 'module github.com/wickra-lib/wickra-go\n\ngo 1.23\n' > "$out/go.mod"
+          # Go's semantic import versioning: from v2 on the path carries the
+          # major version, or `go get` refuses the tag (a go.mod without the
+          # /vN suffix may only be tagged v0 or v1).
+          major="${GITHUB_REF_NAME#v}"; major="${major%%.*}"
+          mod=github.com/wickra-lib/wickra-go
+          if [ "$major" -ge 2 ]; then mod="$mod/v$major"; fi
+          printf 'module %s\n\ngo 1.23\n' "$mod" > "$out/go.mod"
           # Point install instructions at the standalone module path.
-          sed -i 's#github.com/wickra-lib/wickra/bindings/go#github.com/wickra-lib/wickra-go#g' \
+          sed -i "s#github.com/wickra-lib/wickra/bindings/go#$mod#g" \
             "$out/README.md" "$out"/*.go
           # Stage each prebuilt library under lib/<goos>_<goarch>/ (committed in
           # the mirror, unlike the in-repo lib/.gitignore). "<dir> <libfile>".
