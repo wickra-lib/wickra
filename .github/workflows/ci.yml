@@ -1487,3 +1487,43 @@ jobs:
         with:
           args: --config lychee.toml --no-progress --root-dir "${{ github.workspace }}" "*.md" "bindings/*/README.md"
           fail: true
+
+  # One stable check name for branch protection: green only when every job
+  # above succeeded or was skipped by its own condition. The advisory link
+  # checks are left out on purpose -- an outside outage must not hold a merge.
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs:
+      - rust
+      - binding-surface
+      - examples-smoke
+      - clippy-bindings
+      - msrv
+      - coverage
+      - supply-chain
+      - semver
+      - fuzz-smoke
+      - python
+      - wasm
+      - node
+      - c-abi
+      - csharp
+      - go
+      - r
+      - java
+      - python-wheel-container-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Every required job passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          bad=$(jq -r 'to_entries[] | select(.value.result != "success" and .value.result != "skipped") | "\(.key): \(.value.result)"' <<< "$RESULTS")
+          if [ -n "$bad" ]; then
+            echo "$bad" | while read -r line; do echo "::error::$line"; done
+            exit 1
+          fi
+          echo "all $(jq length <<< "$RESULTS") jobs passed"
