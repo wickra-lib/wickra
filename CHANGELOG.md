@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0] - 2026-10-05
+## [2.0.0] - 2026-10-06
 
 Formula audit. Every one of the 514 indicators was checked against its published
 definition; 39 departed from it. They now follow the source each page cites, and
