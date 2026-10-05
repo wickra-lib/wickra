@@ -121,7 +121,7 @@
  },
  {
   "canonical": "AdOscillator",
-  "native": "ADOSC",
+  "native": "AdOscillator",
   "ctor": [],
   "args": [
    {
@@ -421,11 +421,13 @@
   "args": [
    {
     "name": "asset",
-    "array": false
+    "array": false,
+    "role": "x"
    },
    {
     "name": "benchmark",
-    "array": false
+    "array": false,
+    "role": "y"
    }
   ],
   "out": "scalar"
@@ -964,6 +966,10 @@
    14
   ],
   "args": [
+   {
+    "name": "open",
+    "array": false
+   },
    {
     "name": "high",
     "array": false
@@ -2676,15 +2682,13 @@
   "args": [
    {
     "name": "openInterest",
-    "array": false
+    "array": false,
+    "role": "x"
    },
    {
-    "name": "longSize",
-    "array": false
-   },
-   {
-    "name": "shortSize",
-    "array": false
+    "name": "exchangeReserve",
+    "array": false,
+    "role": "y"
    }
   ],
   "out": "scalar"
@@ -3448,11 +3452,13 @@
   "args": [
    {
     "name": "a",
-    "array": false
+    "array": false,
+    "role": "x"
    },
    {
     "name": "b",
-    "array": false
+    "array": false,
+    "role": "y"
    }
   ],
   "out": "scalar"
@@ -4173,11 +4179,13 @@
   "args": [
    {
     "name": "asset",
-    "array": false
+    "array": false,
+    "role": "x"
    },
    {
     "name": "benchmark",
-    "array": false
+    "array": false,
+    "role": "y"
    }
   ],
   "out": "scalar"
@@ -6138,11 +6146,13 @@
   "args": [
    {
     "name": "a",
-    "array": false
+    "array": false,
+    "role": "x"
    },
    {
     "name": "b",
-    "array": false
+    "array": false,
+    "role": "y"
    }
   ],
   "out": "scalar"
@@ -8636,6 +8646,10 @@
    {
     "name": "low",
     "array": false
+   },
+   {
+    "name": "close",
+    "array": false
    }
   ],
   "out": "scalar"
@@ -9276,11 +9290,13 @@
   "args": [
    {
     "name": "asset",
-    "array": false
+    "array": false,
+    "role": "x"
    },
    {
     "name": "benchmark",
-    "array": false
+    "array": false,
+    "role": "y"
    }
   ],
   "out": "scalar"
@@ -9901,11 +9917,13 @@
   "args": [
    {
     "name": "a",
-    "array": false
+    "array": false,
+    "role": "x"
    },
    {
     "name": "b",
-    "array": false
+    "array": false,
+    "role": "y"
    }
   ],
   "out": "scalar"

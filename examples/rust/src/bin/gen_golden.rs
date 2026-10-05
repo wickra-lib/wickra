@@ -151,7 +151,7 @@ fn main() {
     // candle, single output: the de-duplicated indicators, pinned across every
     // binding so their corrected definitions stay identical to the Rust core.
     {
-        let mut ad = AdOscillator::new(); // Williams A/D Oscillator (native ADOSC)
+        let mut ad = AdOscillator::new(); // Williams A/D Oscillator
         let rows: Vec<String> = candles.iter().map(|&c| cell(ad.update(c))).collect();
         write_csv(dir, "ad_oscillator", "ad_oscillator", &rows);
     }
@@ -1042,6 +1042,19 @@ fn emit_scalar(dir: &Path, candles: &[Candle], closes: &[f64]) {
         );
     } else {
         eprintln!("gen_golden skip HasbrouckInformationShare");
+    }
+    {
+        let mut ind = wickra::EstimatedLeverageRatio::new();
+        let rows: Vec<String> = candles
+            .iter()
+            .map(|&c| cell(ind.update((c.close, c.open))))
+            .collect();
+        write_csv(
+            dir,
+            "g_EstimatedLeverageRatio",
+            "EstimatedLeverageRatio",
+            &rows,
+        );
     }
     {
         let mut ind = wickra::HeadAndShoulders::new();
@@ -4032,16 +4045,6 @@ fn emit_exotic(dir: &Path, candles: &[Candle]) {
         let mut ind = wickra::CalendarSpread::new();
         let rows: Vec<String> = ticks.iter().map(|&t| cell(ind.update(t))).collect();
         write_csv(dir, "g_CalendarSpread", "CalendarSpread", &rows);
-    }
-    {
-        let mut ind = wickra::EstimatedLeverageRatio::new();
-        let rows: Vec<String> = ticks.iter().map(|&t| cell(ind.update(t))).collect();
-        write_csv(
-            dir,
-            "g_EstimatedLeverageRatio",
-            "EstimatedLeverageRatio",
-            &rows,
-        );
     }
     {
         let mut ind = wickra::FundingBasis::new();

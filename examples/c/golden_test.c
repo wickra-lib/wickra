@@ -213,7 +213,7 @@ static int check_AdOscillator(void) {
     double **exp; int rows = read_fixture("g_AdOscillator", &exp);
     int fails = 0;
     { const char *nm = wickra_ad_oscillator_name(h);
-      if (!nm || strcmp(nm, "ADOSC") != 0) { printf("FAIL AdOscillator: name %s\n", nm ? nm : "(null)"); fails++; } }
+      if (!nm || strcmp(nm, "WilliamsAdOscillator") != 0) { printf("FAIL AdOscillator: name %s\n", nm ? nm : "(null)"); fails++; } }
     for (int i = 0; i < N_INPUT; i++) {
         double o = IN[i][0], hi = IN[i][1], lo = IN[i][2], c = IN[i][3], v = IN[i][4];
         (void)o; (void)hi; (void)lo; (void)c; (void)v;
@@ -2599,8 +2599,7 @@ static int check_EstimatedLeverageRatio(void) {
         double o = IN[i][0], hi = IN[i][1], lo = IN[i][2], c = IN[i][3], v = IN[i][4];
         (void)o; (void)hi; (void)lo; (void)c; (void)v;
         double got[128]; int gn = 0;
-        double fr=(c-o)/c*0.01, mp=c, ip=c-0.5, fp=c+1.0, oi=v*10.0, ls=v*0.6, ss=v*0.4, tbv=v*0.55, tsv=v*0.45, ll=hi-c, sl=c-lo;
-        got[gn++] = wickra_estimated_leverage_ratio_update(h, fr, mp, ip, fp, oi, ls, ss, tbv, tsv, ll, sl, (int64_t)i);
+        got[gn++] = wickra_estimated_leverage_ratio_update(h, c, o);
         fails += cmp_row("EstimatedLeverageRatio", i, exp[i], EXPLEN[i], got, gn);
     }
     free_fixture(exp, rows);

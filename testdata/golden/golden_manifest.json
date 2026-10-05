@@ -868,7 +868,7 @@
  },
  {
   "canonical": "EstimatedLeverageRatio",
-  "arch": "deriv",
+  "arch": "pairwise",
   "params": []
  },
  {

@@ -23,7 +23,7 @@
  },
  {
   "canonical": "AdOscillator",
-  "native": "ADOSC",
+  "native": "AdOscillator",
   "params": [],
   "input": "Candle"
  },
@@ -666,6 +666,12 @@
   "native": "Engulfing",
   "params": [],
   "input": "Candle"
+ },
+ {
+  "canonical": "EstimatedLeverageRatio",
+  "native": "EstimatedLeverageRatio",
+  "params": [],
+  "input": "(f64, f64)"
  },
  {
   "canonical": "EvenBetterSinewave",

@@ -4,7 +4,7 @@
  "AbsoluteBreadthIndex": "AbsoluteBreadthIndex",
  "AccelerationBands": "AccelerationBands",
  "AcceleratorOscillator": "AcceleratorOscillator",
- "AdOscillator": "ADOSC",
+ "AdOscillator": "WilliamsAdOscillator",
  "AdVolumeLine": "AdVolumeLine",
  "AdaptiveCci": "AdaptiveCci",
  "AdaptiveCycle": "AdaptiveCycle",
