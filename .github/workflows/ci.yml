@@ -1275,11 +1275,13 @@ jobs:
           export WICKRA_INCLUDE_DIR="${WICKRA_INCLUDE_DIR//\\//}"
           export WICKRA_LIB_DIR="${WICKRA_LIB_DIR//\\//}"
           R CMD build bindings/r --no-build-vignettes --no-manual
-          R CMD check wickra_*.tar.gz --no-manual --no-vignettes --no-tests || true
+          # The vignette is not built here (--no-build-vignettes), so every
+          # vignette check is skipped too: --no-vignettes still checked the
+          # vignettes directory and warned that inst/doc was missing.
+          R CMD check wickra_*.tar.gz --no-manual --ignore-vignettes --no-tests || true
           log=$(find . -maxdepth 2 -name 00check.log | head -1)
           echo "::group::00check.log"; cat "$log"; echo "::endgroup::"
-          problems=$(grep -E '\.\.\. (WARNING|ERROR)' "$log" \
-            | grep -vE "checking (files in .vignettes.|package vignettes)" || true)
+          problems=$(grep -E '\.\.\. (WARNING|ERROR)' "$log" || true)
           if [ -n "$problems" ]; then
             echo "::error::R CMD check found problems (run roxygen2::roxygenise() in bindings/r if the docs are stale):"
             echo "$problems"
