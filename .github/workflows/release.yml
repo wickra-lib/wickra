@@ -1317,7 +1317,7 @@ jobs:
           repositories: wickra-go
           permission-contents: write
       - name: Publish to wickra-go and tag the release (signed)
-        uses: wickra-lib/.github/actions/signed-commit@782bf3d7a8edb80ada87dc7ba9067e2bf5752710 # v1.0.0
+        uses: wickra-lib/.github/actions/signed-commit@da1bd395c27f33dbed632c8e4e48e12f85394858 # v1.1.0
         with:
           token: ${{ steps.mirror-token.outputs.token }}
           repository: wickra-lib/wickra-go
