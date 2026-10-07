@@ -18,7 +18,7 @@ permissions: read-all
 jobs:
   analysis:
     name: Scorecard analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20  # backstop against a hung job, not a budget
     permissions:
       security-events: write # upload the SARIF result to code-scanning
