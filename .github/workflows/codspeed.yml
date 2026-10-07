@@ -30,7 +30,9 @@ permissions:
 jobs:
   benchmarks:
     name: Instruction counts
-    runs-on: ubuntu-latest
+    # CodSpeed ships valgrind for Ubuntu 22.04/24.04 only ("Unsupported system" on
+    # 26.04, CodSpeedHQ/runner#544), so this job stays off ubuntu-latest until then.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30 # backstop: instrumentation is far slower per iteration than a plain run
     permissions:
       contents: read

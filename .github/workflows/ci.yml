@@ -593,6 +593,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.9", "3.11", "3.12", "3.13"]
+        # GitHub builds no Python 3.9 for Ubuntu 26.04, the image ubuntu-latest
+        # moves to from 2026-10-19 (3.9 is end-of-life), so the floor's Linux
+        # cell runs on ubuntu-24.04; the other cells follow ubuntu-latest.
+        exclude:
+          - os: ubuntu-latest
+            python-version: "3.9"
+        include:
+          - os: ubuntu-24.04
+            python-version: "3.9"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
