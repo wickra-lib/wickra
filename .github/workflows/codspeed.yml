@@ -30,7 +30,7 @@ permissions:
 jobs:
   benchmarks:
     name: Instruction counts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30 # backstop: instrumentation is far slower per iteration than a plain run
     permissions:
       contents: read
