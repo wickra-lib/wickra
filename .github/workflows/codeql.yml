@@ -126,6 +126,15 @@ jobs:
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        # Overlay (incremental) databases need `build-mode: none`. A traced build --
+        # manual or autobuild -- cannot produce one, and the action then falls back
+        # to a full database with a warning on every run. Turning overlay off for
+        # exactly those entries states that choice instead of warning about it: the
+        # same full database, the same results. Go is the exception the action makes
+        # itself (its extractor decides), so Go and every `build-mode: none` entry
+        # keep the automatic mode; an empty value is ignored by the action.
+        env:
+          CODEQL_OVERLAY_DATABASE_MODE: ${{ matrix.build-mode != 'none' && matrix.language != 'go' && 'none' || '' }}
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
