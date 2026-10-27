@@ -1833,6 +1833,12 @@
   "input": "f64"
  },
  {
+  "canonical": "RunningDrawdown",
+  "native": "RunningDrawdown",
+  "params": [],
+  "input": "f64"
+ },
+ {
   "canonical": "Rvi",
   "native": "RVI",
   "params": [

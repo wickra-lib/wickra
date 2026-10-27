@@ -1,4 +1,4 @@
-"""Build node_manifest.json: for every one of the 514 indicators, record the
+"""Build node_manifest.json: for every one of the 515 indicators, record the
 native class name, constructor parameter values, the ordered update argument
 names (parsed from index.d.ts, each flagged scalar/array) and how to read its
 output against the shared g_<Canonical>.csv fixtures. Run from repo root."""

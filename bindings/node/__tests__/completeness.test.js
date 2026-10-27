@@ -54,7 +54,7 @@ function indicatorClasses() {
 // The catalogue is a deliberate number, so assert it exactly: a `>=` bound
 // passes just as happily when a partial native build drops a hundred classes.
 // Adding an indicator means bumping this, which is the point.
-const INDICATOR_CLASS_COUNT = 504;
+const INDICATOR_CLASS_COUNT = 505;
 
 test('the binding exports the full indicator catalogue', () => {
   const names = indicatorClasses();

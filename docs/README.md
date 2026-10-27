@@ -14,7 +14,7 @@ That includes:
   [Go](https://docs.wickra.org/Quickstart-Go),
   [Java](https://docs.wickra.org/Quickstart-Java), and
   [R](https://docs.wickra.org/Quickstart-R).
-- A per-indicator deep dive for every one of the **514 indicators** across
+- A per-indicator deep dive for every one of the **515 indicators** across
   the twenty-four families (Moving Averages, Momentum Oscillators, Trend &
   Directional, Price Oscillators, Volatility & Bands, Bands & Channels,
   Trailing Stops, Volume, Price Statistics, Ehlers / Cycle DSP, Pivots &

@@ -76,8 +76,8 @@ def _assert_within(exact, fast, tol: float) -> None:
 
 
 def test_every_scalar_batch_has_a_fast_twin():
-    # The C ABI exports 156 `_batch_fast` entry points; Python mirrors them.
-    assert len(FAST_CLASSES) == 156
+    # The C ABI exports 157 `_batch_fast` entry points; Python mirrors them.
+    assert len(FAST_CLASSES) == 157
 
 
 @pytest.mark.parametrize("name", FAST_CLASSES)

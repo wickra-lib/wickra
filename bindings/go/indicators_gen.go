@@ -41424,6 +41424,122 @@ func (ind *RunBars) Close() {
 	}
 }
 
+// RunningDrawdown wraps the RunningDrawdown indicator over the Wickra C ABI.
+type RunningDrawdown struct {
+	handle *C.struct_RunningDrawdown
+}
+
+// NewRunningDrawdown constructs a RunningDrawdown. It returns ErrInvalidParams when the
+// native constructor rejects the arguments.
+func NewRunningDrawdown() (*RunningDrawdown, error) {
+	ptr := C.wickra_running_drawdown_new()
+	if ptr == nil {
+		return nil, ErrInvalidParams
+	}
+	obj := &RunningDrawdown{handle: ptr}
+	runtime.SetFinalizer(obj, (*RunningDrawdown).Close)
+	return obj, nil
+}
+
+// WarmupPeriod returns the number of updates required before Update
+// yields a non-NaN value.
+func (ind *RunningDrawdown) WarmupPeriod() int {
+	r := int(C.wickra_running_drawdown_warmup_period(ind.handle))
+	runtime.KeepAlive(ind)
+	return r
+}
+
+// IsReady reports whether the indicator has consumed enough input to
+// emit a value.
+func (ind *RunningDrawdown) IsReady() bool {
+	r := bool(C.wickra_running_drawdown_is_ready(ind.handle))
+	runtime.KeepAlive(ind)
+	return r
+}
+
+// Name returns the indicator's canonical name.
+func (ind *RunningDrawdown) Name() string {
+	r := C.GoString(C.wickra_running_drawdown_name(ind.handle))
+	runtime.KeepAlive(ind)
+	return r
+}
+
+// Update feeds one observation and returns the indicator value
+// (NaN until warmed up).
+func (ind *RunningDrawdown) Update(value float64) float64 {
+	r := float64(C.wickra_running_drawdown_update(ind.handle, C.double(value)))
+	runtime.KeepAlive(ind)
+	return r
+}
+
+// Batch runs the indicator over a whole slice in one FFI call and
+// returns the per-element output (NaN during warmup), bit for bit what
+// feeding the values one by one through Update gives.
+func (ind *RunningDrawdown) Batch(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchInto(out, input)
+	return out
+}
+
+// BatchInto is Batch writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RunningDrawdown) BatchInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_running_drawdown_batch(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// BatchFast is the opt-in fast batch: a SIMD kernel may reassociate the
+// arithmetic, so each value agrees with Batch to within a few units in the
+// last place rather than bit for bit; NaN placement and length are
+// identical, and the result is the same on every platform. Without a
+// kernel it is exactly Batch.
+func (ind *RunningDrawdown) BatchFast(input []float64) []float64 {
+	out := make([]float64, len(input))
+	ind.BatchFastInto(out, input)
+	return out
+}
+
+// BatchFastInto is BatchFast writing into dst, which must be as long as the
+// input, so a caller that reuses its buffer allocates nothing.
+func (ind *RunningDrawdown) BatchFastInto(dst []float64, input []float64) {
+	n := len(input)
+	if len(dst) != n {
+		panic("wickra: the destination slice must be as long as the input")
+	}
+	if n == 0 {
+		return
+	}
+	C.wickra_running_drawdown_batch_fast(ind.handle, (*C.double)(unsafe.Pointer(&input[0])), (*C.double)(unsafe.Pointer(&dst[0])), C.uintptr_t(n))
+	runtime.KeepAlive(ind)
+	runtime.KeepAlive(input)
+	runtime.KeepAlive(dst)
+}
+
+// Reset clears all internal state, returning the indicator to warmup.
+func (ind *RunningDrawdown) Reset() {
+	C.wickra_running_drawdown_reset(ind.handle)
+	runtime.KeepAlive(ind)
+}
+
+// Close frees the native handle. It is idempotent and safe to call
+// alongside the finalizer.
+func (ind *RunningDrawdown) Close() {
+	if ind.handle != nil {
+		C.wickra_running_drawdown_free(ind.handle)
+		ind.handle = nil
+		runtime.SetFinalizer(ind, nil)
+	}
+}
+
 // Rvi wraps the Rvi indicator over the Wickra C ABI.
 type Rvi struct {
 	handle *C.struct_Rvi

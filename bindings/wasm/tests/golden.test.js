@@ -1,7 +1,7 @@
 // Generic golden-fixture parity for the WASM (wasm-bindgen) binding, run under
 // Node's test runner against the nodejs-target build in ../pkg.
 //
-// Every one of the 514 indicators is reconstructed from wasm_manifest.json (JS
+// Every one of the 515 indicators is reconstructed from wasm_manifest.json (JS
 // class, constructor params, ordered update args parsed from the generated
 // .d.ts), fed the synthetic stream derived from the shared golden input — the
 // same construction gen_golden uses — and checked against the Rust

@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 /**
- * Reflection-driven value parity for the whole 514-indicator catalogue: each
+ * Reflection-driven value parity for the whole 515-indicator catalogue: each
  * indicator is reconstructed by its class name, fed the synthetic stream derived
  * from the shared golden input (identical to gen_golden's Rust construction) and
  * checked against testdata/golden/g_&lt;Canonical&gt;.csv. One runner
@@ -400,6 +400,7 @@ class GoldenAllTest {
         new Spec("Rsi", "scalar_f64", new double[]{14.0}, 0),
         new Spec("Rsx", "scalar_f64", new double[]{14.0}, 0),
         new Spec("RunBars", "bars_candle4", new double[]{3.0}, 0),
+        new Spec("RunningDrawdown", "scalar_f64", new double[]{}, 0),
         new Spec("Rvi", "scalar_candle", new double[]{14.0}, 0),
         new Spec("RviVolatility", "scalar_f64", new double[]{14.0}, 0),
         new Spec("Rwi", "multi_candle", new double[]{14.0}, 2),
@@ -918,6 +919,7 @@ class GoldenAllTest {
         NAMES.put("Rsi", "RSI");
         NAMES.put("Rsx", "RSX");
         NAMES.put("RunBars", "RunBars");
+        NAMES.put("RunningDrawdown", "RunningDrawdown");
         NAMES.put("Rvi", "RVI");
         NAMES.put("RviVolatility", "RVIVolatility");
         NAMES.put("Rwi", "RWI");

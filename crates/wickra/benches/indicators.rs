@@ -38,11 +38,11 @@ use wickra::{
     HilbertDominantCycle, HurstExponent, Ichimoku, IchimokuOutput, Indicator, Jma, KylesLambda,
     Level, LinearRegression, MacdIndicator, MacdOutput, Mama, MamaOutput, MaxDrawdown, Microprice,
     Obv, OrderBook, OrderBookImbalanceFull, OrderBookImbalanceTop1, ParkinsonVolatility, Ppo, Psar,
-    RollingVwap, Rsi, SharpeRatio, Side, SignedVolume, Sma, Stc, SuperTrend, SuperTrendOutput,
-    TdSequential, TdSequentialOutput, TpoProfile, TpoProfileOutput, Trade, TradeImbalance,
-    TradeQuote, TtmSqueeze, TtmSqueezeOutput, ValueArea, ValueAreaOutput, ValueAtRisk,
-    VolumeProfile, VolumeProfileOutput, Vwap, VwapStdDevBands, VwapStdDevBandsOutput, WaveTrend,
-    YangZhangVolatility, T3,
+    RollingVwap, Rsi, RunningDrawdown, SharpeRatio, Side, SignedVolume, Sma, Stc, SuperTrend,
+    SuperTrendOutput, TdSequential, TdSequentialOutput, TpoProfile, TpoProfileOutput, Trade,
+    TradeImbalance, TradeQuote, TtmSqueeze, TtmSqueezeOutput, ValueArea, ValueAreaOutput,
+    ValueAtRisk, VolumeProfile, VolumeProfileOutput, Vwap, VwapStdDevBands, VwapStdDevBandsOutput,
+    WaveTrend, YangZhangVolatility, T3,
 };
 use wickra_data::csv::CandleReader;
 
@@ -363,6 +363,7 @@ fn benches(c: &mut Criterion) {
         SharpeRatio::new(20, 0.0).unwrap()
     });
     bench_scalar(c, "max_drawdown", &closes, || MaxDrawdown::new(20).unwrap());
+    bench_scalar(c, "running_drawdown", &closes, RunningDrawdown::new);
     bench_scalar(c, "calmar_ratio", &closes, || CalmarRatio::new(20).unwrap());
     bench_scalar(c, "value_at_risk", &closes, || {
         ValueAtRisk::new(50, 0.95).unwrap()

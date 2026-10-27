@@ -19800,6 +19800,68 @@ impl DrawdownDurationNode {
     }
 }
 
+#[napi(js_name = "RunningDrawdown")]
+pub struct RunningDrawdownNode {
+    inner: wc::RunningDrawdown,
+}
+
+impl Default for RunningDrawdownNode {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[napi]
+impl RunningDrawdownNode {
+    #[napi(constructor)]
+    pub fn new() -> Self {
+        Self {
+            inner: wc::RunningDrawdown::new(),
+        }
+    }
+    #[napi]
+    pub fn update(&mut self, value: f64) -> Option<f64> {
+        self.inner.update(value)
+    }
+    #[napi]
+    pub fn batch(&mut self, prices: Series) -> Vec<f64> {
+        self.inner.batch_nan(&prices)
+    }
+    #[napi(js_name = "batchFast")]
+    pub fn batch_fast(&mut self, prices: Series) -> Float64Array {
+        Float64Array::new(self.inner.batch_fast(&prices))
+    }
+    #[napi(js_name = "batchInto")]
+    pub fn batch_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_nan_into(&prices, rows);
+        Ok(())
+    }
+    #[napi(js_name = "batchFastInto")]
+    pub fn batch_fast_into(&mut self, prices: Series, mut out: OutSeries) -> napi::Result<()> {
+        let rows = out.rows(prices.len(), &[&prices])?;
+        self.inner.batch_fast_into(&prices, rows);
+        Ok(())
+    }
+    #[napi]
+    pub fn reset(&mut self) {
+        self.inner.reset();
+    }
+
+    #[napi]
+    pub fn name(&self) -> String {
+        self.inner.name().to_string()
+    }
+    #[napi(js_name = "isReady")]
+    pub fn is_ready(&self) -> bool {
+        self.inner.is_ready()
+    }
+    #[napi(js_name = "warmupPeriod")]
+    pub fn warmup_period(&self) -> u32 {
+        self.inner.warmup_period() as u32
+    }
+}
+
 #[napi(js_name = "PainIndex")]
 pub struct PainIndexNode {
     inner: wc::PainIndex,

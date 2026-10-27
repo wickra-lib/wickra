@@ -4489,6 +4489,20 @@ export declare class RunBars {
 }
 export type RunBarsNode = RunBars
 
+export declare class RunningDrawdown {
+  constructor()
+  update(value: number): number | null
+  batch(prices: Series): Array<number>
+  batchFast(prices: Series): Float64Array
+  batchInto(prices: Series, out: OutSeries): void
+  batchFastInto(prices: Series, out: OutSeries): void
+  reset(): void
+  name(): string
+  isReady(): boolean
+  warmupPeriod(): number
+}
+export type RunningDrawdownNode = RunningDrawdown
+
 export declare class RVI {
   constructor(period: Count)
   update(open: number, high: number, low: number, close: number): number | null

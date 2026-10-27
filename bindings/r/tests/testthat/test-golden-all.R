@@ -1,4 +1,4 @@
-# Generic golden-fixture parity for the whole 514-indicator catalogue: every
+# Generic golden-fixture parity for the whole 515-indicator catalogue: every
 # indicator is reconstructed by its constructor, fed the synthetic stream derived
 # from the shared testdata/golden input (identical to gen_golden's Rust
 # construction) and checked against g_<Canonical>.csv. One reflective
@@ -152,7 +152,7 @@ golden_flatten <- function(x) {
 }
 
 # One expectation for a whole indicator rather than one per value. testthat
-# records every expectation, and at 514 indicators x 80 rows x up to 52 columns
+# records every expectation, and at 515 indicators x 80 rows x up to 52 columns
 # that bookkeeping costs far more than the arithmetic. A mismatch still fails;
 # the message says how many values differ and names the first.
 golden_expect_values <- function(canon, got, want, tol) {
@@ -185,7 +185,7 @@ golden_fixture_emits <- function(canon) {
   any(vapply(golden_read_rows(paste0("g_", canon)), function(r) any(is.finite(r)), logical(1)))
 }
 
-test_that("all 514 indicators match the Rust golden fixtures", {
+test_that("all 515 indicators match the Rust golden fixtures", {
   skip_if(is.null(golden_dir_all), "golden fixtures not bundled with the package")
   source(test_path("golden_specs.R"), local = TRUE)
   read_rows <- golden_read_rows
@@ -221,7 +221,7 @@ test_that("all 514 indicators match the Rust golden fixtures", {
 # The contract around the values. The pass above checks only what an indicator
 # computes, so a reset that forgot a field, or an is_ready wired to a value that
 # happens to move at the right time, replays perfectly clean through it.
-test_that("all 514 indicators honour reset, is_ready and warmup_period", {
+test_that("all 515 indicators honour reset, is_ready and warmup_period", {
   skip_if(is.null(golden_dir_all), "golden fixtures not bundled with the package")
   source(test_path("golden_specs.R"), local = TRUE)
   input_rows <- golden_input_rows()
@@ -318,7 +318,7 @@ golden_batch_columns <- function(arch, input_rows) {
 # A batch is a separate native path from `update`; until this existed only a
 # handful of indicators had ever been checked through it, and 39 of them had no
 # batch to check.
-test_that("all 514 indicators match the Rust golden fixtures through batch", {
+test_that("all 515 indicators match the Rust golden fixtures through batch", {
   skip_if(is.null(golden_dir_all), "golden fixtures not bundled with the package")
   source(test_path("golden_specs.R"), local = TRUE)
   input_rows <- golden_input_rows()
@@ -346,5 +346,5 @@ test_that("all 514 indicators match the Rust golden fixtures through batch", {
   }
   # Every indicator has a batch now; the cross-section, order-book, profile and
   # bar-builder families had none until the R shims were generated for them.
-  expect_equal(checked, 514L)
+  expect_equal(checked, 515L)
 })

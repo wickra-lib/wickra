@@ -369,6 +369,7 @@ mod roofing_filter;
 mod rsi;
 mod rsx;
 mod run_bars;
+mod running_drawdown;
 mod rvi;
 mod rvi_volatility;
 mod rwi;
@@ -883,6 +884,7 @@ pub use roofing_filter::RoofingFilter;
 pub use rsi::Rsi;
 pub use rsx::Rsx;
 pub use run_bars::{RunBar, RunBars};
+pub use running_drawdown::RunningDrawdown;
 pub use rvi::Rvi;
 pub use rvi_volatility::RviVolatility;
 pub use rwi::{Rwi, RwiOutput};
@@ -1569,6 +1571,7 @@ pub const FAMILIES: &[(&str, &[&str])] = &[
             "MaxDrawdown",
             "AverageDrawdown",
             "DrawdownDuration",
+            "RunningDrawdown",
             "PainIndex",
             "ValueAtRisk",
             "ConditionalValueAtRisk",
@@ -1713,6 +1716,6 @@ mod family_tests {
         // the actual indicator count is the early-warning signal that an
         // indicator was added without being assigned a family.
         let total: usize = FAMILIES.iter().map(|(_, ns)| ns.len()).sum();
-        assert_eq!(total, 514, "FAMILIES total drifted from indicator count");
+        assert_eq!(total, 515, "FAMILIES total drifted from indicator count");
     }
 }

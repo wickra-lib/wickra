@@ -20991,6 +20991,61 @@ SEXP wk_run_bars_reset(SEXP e) {
   return R_NilValue;
 }
 
+static void running_drawdown_fin(SEXP e) {
+  struct RunningDrawdown *h = (struct RunningDrawdown *)R_ExternalPtrAddr(e);
+  if (h) wickra_running_drawdown_free(h);
+  R_ClearExternalPtr(e);
+}
+SEXP wk_running_drawdown_new(void) {
+  struct RunningDrawdown *h = wickra_running_drawdown_new();
+  if (!h) Rf_error("invalid RunningDrawdown parameters");
+  SEXP e = PROTECT(R_MakeExternalPtr(h, R_NilValue, R_NilValue));
+  R_RegisterCFinalizerEx(e, running_drawdown_fin, TRUE);
+  UNPROTECT(1);
+  return e;
+}
+SEXP wk_running_drawdown_update(SEXP e, SEXP a0) {
+  struct RunningDrawdown *h = (struct RunningDrawdown *)R_ExternalPtrAddr(e);
+  return Rf_ScalarReal(wickra_running_drawdown_update(h, Rf_asReal(a0)));
+}
+SEXP wk_running_drawdown_batch(SEXP e, SEXP a0) {
+  struct RunningDrawdown *h = (struct RunningDrawdown *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_running_drawdown_batch(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_running_drawdown_batch_fast(SEXP e, SEXP a0) {
+  struct RunningDrawdown *h = (struct RunningDrawdown *)R_ExternalPtrAddr(e);
+  if (h == NULL) Rf_error("wickra: indicator handle is no longer valid");
+  if (TYPEOF(a0) != REALSXP) Rf_error("wickra: batch argument 1 must be a double vector");
+  R_xlen_t n = Rf_xlength(a0);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  wickra_running_drawdown_batch_fast(h, REAL(a0), REAL(out), (uintptr_t)n);
+  UNPROTECT(1);
+  return out;
+}
+SEXP wk_running_drawdown_warmup_period(SEXP e) {
+  struct RunningDrawdown *h = (struct RunningDrawdown *)R_ExternalPtrAddr(e);
+  return Rf_ScalarInteger((int)wickra_running_drawdown_warmup_period(h));
+}
+SEXP wk_running_drawdown_is_ready(SEXP e) {
+  struct RunningDrawdown *h = (struct RunningDrawdown *)R_ExternalPtrAddr(e);
+  return Rf_ScalarLogical(wickra_running_drawdown_is_ready(h));
+}
+SEXP wk_running_drawdown_name(SEXP e) {
+  struct RunningDrawdown *h = (struct RunningDrawdown *)R_ExternalPtrAddr(e);
+  return Rf_mkString(wickra_running_drawdown_name(h));
+}
+SEXP wk_running_drawdown_reset(SEXP e) {
+  struct RunningDrawdown *h = (struct RunningDrawdown *)R_ExternalPtrAddr(e);
+  wickra_running_drawdown_reset(h);
+  return R_NilValue;
+}
+
 static void rvi_fin(SEXP e) {
   struct Rvi *h = (struct Rvi *)R_ExternalPtrAddr(e);
   if (h) wickra_rvi_free(h);
@@ -32947,6 +33002,14 @@ static const R_CallMethodDef CallEntries[] = {
   {"wk_run_bars_batch", (DL_FUNC)&wk_run_bars_batch, 7},
   {"wk_run_bars_name", (DL_FUNC)&wk_run_bars_name, 1},
   {"wk_run_bars_reset", (DL_FUNC)&wk_run_bars_reset, 1},
+  {"wk_running_drawdown_new", (DL_FUNC)&wk_running_drawdown_new, 0},
+  {"wk_running_drawdown_update", (DL_FUNC)&wk_running_drawdown_update, 2},
+  {"wk_running_drawdown_batch", (DL_FUNC)&wk_running_drawdown_batch, 2},
+  {"wk_running_drawdown_batch_fast", (DL_FUNC)&wk_running_drawdown_batch_fast, 2},
+  {"wk_running_drawdown_warmup_period", (DL_FUNC)&wk_running_drawdown_warmup_period, 1},
+  {"wk_running_drawdown_is_ready", (DL_FUNC)&wk_running_drawdown_is_ready, 1},
+  {"wk_running_drawdown_name", (DL_FUNC)&wk_running_drawdown_name, 1},
+  {"wk_running_drawdown_reset", (DL_FUNC)&wk_running_drawdown_reset, 1},
   {"wk_rvi_new", (DL_FUNC)&wk_rvi_new, 1},
   {"wk_rvi_update", (DL_FUNC)&wk_rvi_update, 7},
   {"wk_rvi_batch", (DL_FUNC)&wk_rvi_batch, 7},

@@ -13,7 +13,7 @@
     <PackageId>Wickra</PackageId>
     <Version>2.0.0</Version>
     <Authors>kingchenc</Authors>
-    <Description>High-performance streaming technical-analysis indicators (514 indicators) for .NET, backed by the native Rust core via the Wickra C ABI.</Description>
+    <Description>High-performance streaming technical-analysis indicators (515 indicators) for .NET, backed by the native Rust core via the Wickra C ABI.</Description>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/wickra-lib/wickra</PackageProjectUrl>
     <RepositoryUrl>https://github.com/wickra-lib/wickra</RepositoryUrl>

@@ -20,7 +20,7 @@ bindings for Python, Node.js and WASM, plus a C ABI for C, C++, C#, Go, Java, R
 and any other C-capable language. Every indicator is an incremental streaming state
 machine, so live trading and historical backtests share the exact same
 implementation. This package is the R binding; it reaches the C ABI hub through
-R's native `.Call` interface and exposes all 514 indicators as constructors that
+R's native `.Call` interface and exposes all 515 indicators as constructors that
 return a lightweight `wickra_indicator` object.
 
 ## Install

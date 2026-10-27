@@ -2,7 +2,7 @@
 constructed by its native name with the recorded params, fed the shared golden
 input, and checked against the Rust-generated g_<Canonical>.csv.
 The comparison is a relative tolerance, not bit equality. Every binding calls
-into the same Rust core, so 461 of the 514 indicators are bit-identical by
+into the same Rust core, so 462 of the 515 indicators are bit-identical by
 construction; the other 53 reach a transcendental in the platform math library
 (`ln`, `sin`, `cos`, `atan`, `exp`), which no mainstream libm rounds correctly
 and which differs in the last bit between implementations. Tightening this to an

@@ -20,7 +20,7 @@ or replace lives behind a separate crate boundary.
    ┌───────────▼──────────┐            ┌──────────▼─────────┐
    │    wickra-core       │            │    wickra-data     │
    │   indicator engine   │            │  i/o + aggregation │
-   │   • 514 indicators   │            │  • CSV reader      │
+   │   • 515 indicators   │            │  • CSV reader      │
    │   • Indicator trait  │            │  • Tick aggregator │
    │   • BatchExt impl    │            │  • Resampler       │
    │   • OHLCV / Candle   │            │  • Live feeds      │

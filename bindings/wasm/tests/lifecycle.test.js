@@ -1,4 +1,4 @@
-// The contract around the values, for every one of the 514 WASM indicators.
+// The contract around the values, for every one of the 515 WASM indicators.
 //
 // `golden.test.js` and `batch.test.js` check what an indicator computes;
 // neither touches `reset`, `isReady` or `warmupPeriod`. A `reset` that forgot a

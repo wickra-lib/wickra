@@ -36,6 +36,7 @@ from __future__ import annotations
 
 from ._wickra import (
     __version__,
+    RunningDrawdown,
     Matrix,
     M2Measure,
     UpsidePotentialRatio,
@@ -585,6 +586,7 @@ from ._wickra import (
 )
 
 __all__ = [
+    "RunningDrawdown",
     # The result type of a multi-output batch.
     "Matrix",
     "M2Measure",

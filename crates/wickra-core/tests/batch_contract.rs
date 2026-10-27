@@ -26,12 +26,12 @@ use wickra_core::{
     PolarizedFractalEfficiency, Ppo, PpoHistogram, ProfitFactor, RSquared, RealizedVolatility,
     Reflex, RegimeLabel, RenkoTrailingStop, Rmi, Roc, Rocp, Rocr, Rocr100, RollingIqr,
     RollingMinMaxScaler, RollingPercentileRank, RollingQuantile, RoofingFilter, Rsi, Rsx,
-    RviVolatility, SampleEntropy, ShannonEntropy, SharpeRatio, SineWave, SineWeightedMa, Skewness,
-    Sma, Smma, SortinoRatio, StandardError, Stc, StdDev, StepTrailingStop, SterlingRatio, StochRsi,
-    SuperSmoother, TailRatio, Tema, Tii, TrendLabel, TrendStrengthIndex, Trendflex, Trima, Trix,
-    Tsf, TsfOscillator, Tsi, UlcerIndex, UniversalOscillator, UpsidePotentialRatio, ValueAtRisk,
-    Variance, VerticalHorizontalFilter, Vidya, VolatilityOfVolatility, WavePm, WinRate, Wma,
-    ZScore, Zlema, T3,
+    RunningDrawdown, RviVolatility, SampleEntropy, ShannonEntropy, SharpeRatio, SineWave,
+    SineWeightedMa, Skewness, Sma, Smma, SortinoRatio, StandardError, Stc, StdDev,
+    StepTrailingStop, SterlingRatio, StochRsi, SuperSmoother, TailRatio, Tema, Tii, TrendLabel,
+    TrendStrengthIndex, Trendflex, Trima, Trix, Tsf, TsfOscillator, Tsi, UlcerIndex,
+    UniversalOscillator, UpsidePotentialRatio, ValueAtRisk, Variance, VerticalHorizontalFilter,
+    Vidya, VolatilityOfVolatility, WavePm, WinRate, Wma, ZScore, Zlema, T3,
 };
 
 /// Deterministic pseudo-random values in `[-1, 1)`.
@@ -156,6 +156,7 @@ fn scalar_batches_keep_the_contract_1_of_4() {
     check(|| DisparityIndex::new(14).unwrap(), &cases);
     check(|| FisherRsi::new(14).unwrap(), &cases);
     check(|| Rsx::new(14).unwrap(), &cases);
+    check(RunningDrawdown::new, &cases);
     check(|| DynamicMomentumIndex::new(14).unwrap(), &cases);
     check(|| Rmi::new(14, 5).unwrap(), &cases);
     check(|| DerivativeOscillator::new(14, 5, 3, 9).unwrap(), &cases);

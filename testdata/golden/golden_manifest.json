@@ -2435,6 +2435,11 @@
   ]
  },
  {
+  "canonical": "RunningDrawdown",
+  "arch": "scalar_f64",
+  "params": []
+ },
+ {
   "canonical": "Rvi",
   "arch": "scalar_candle",
   "params": [

@@ -410,6 +410,17 @@ def test_drawdown_duration_under_water_counter():
     np.testing.assert_allclose(out, [0.0, 1.0, 2.0, 3.0])
 
 
+def test_running_drawdown_known_path():
+    # Peak 110, trough 88 -> max drawdown 0.20; the recovery to 99 leaves a
+    # current drawdown of 0.10 and does not lower the maximum.
+    rdd = ta.RunningDrawdown()
+    out = _to_np(rdd.batch(np.array([100.0, 110.0, 88.0, 99.0])))
+    np.testing.assert_allclose(out, [0.0, 0.0, 0.2, 0.2], rtol=1e-9)
+    assert math.isclose(rdd.max_drawdown, 0.2, rel_tol=1e-9)
+    assert math.isclose(rdd.current_drawdown, 0.1, rel_tol=1e-9)
+    assert rdd.peak == 110.0
+
+
 def test_recovery_factor_known_path():
     # Start 100, peak 110, trough 88 -> max_dd = 0.20; end 130 ->
     # net_return = 0.30 -> Recovery = 1.5.

@@ -724,6 +724,8 @@ typedef struct Rsx Rsx;
 
 typedef struct RunBars RunBars;
 
+typedef struct RunningDrawdown RunningDrawdown;
+
 typedef struct Rvi Rvi;
 
 typedef struct RviVolatility RviVolatility;
@@ -4172,6 +4174,30 @@ const char *wickra_rsx_name(struct Rsx *handle);
 void wickra_rsx_reset(struct Rsx *handle);
 
 void wickra_rsx_free(struct Rsx *handle);
+
+struct RunningDrawdown *wickra_running_drawdown_new(void);
+
+double wickra_running_drawdown_update(struct RunningDrawdown *handle, double value);
+
+void wickra_running_drawdown_batch(struct RunningDrawdown *handle,
+                                   const double *input,
+                                   double *out,
+                                   uintptr_t n);
+
+void wickra_running_drawdown_batch_fast(struct RunningDrawdown *handle,
+                                        const double *input,
+                                        double *out,
+                                        uintptr_t n);
+
+uintptr_t wickra_running_drawdown_warmup_period(struct RunningDrawdown *handle);
+
+bool wickra_running_drawdown_is_ready(struct RunningDrawdown *handle);
+
+const char *wickra_running_drawdown_name(struct RunningDrawdown *handle);
+
+void wickra_running_drawdown_reset(struct RunningDrawdown *handle);
+
+void wickra_running_drawdown_free(struct RunningDrawdown *handle);
 
 struct RviVolatility *wickra_rvi_volatility_new(uintptr_t period);
 

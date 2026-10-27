@@ -7793,6 +7793,19 @@
   "out": "bars"
  },
  {
+  "canonical": "RunningDrawdown",
+  "js": "RunningDrawdown",
+  "ctor": [],
+  "args": [
+   {
+    "name": "value",
+    "array": false,
+    "bigint": false
+   }
+  ],
+  "out": "scalar_f64"
+ },
+ {
   "canonical": "Rvi",
   "js": "RVI",
   "ctor": [

@@ -1135,6 +1135,7 @@ module.exports.RSI = nativeBinding.RSI
 module.exports.RSquared = nativeBinding.RSquared
 module.exports.RSX = nativeBinding.RSX
 module.exports.RunBars = nativeBinding.RunBars
+module.exports.RunningDrawdown = nativeBinding.RunningDrawdown
 module.exports.RVI = nativeBinding.RVI
 module.exports.RVIVolatility = nativeBinding.RVIVolatility
 module.exports.RWI = nativeBinding.RWI

@@ -355,6 +355,7 @@ GOLDEN_SPECS <- list(
   list(canon="Rsi", arch="scalar_f64", params=c(14.0), width=0L, name="RSI"),
   list(canon="Rsx", arch="scalar_f64", params=c(14.0), width=0L, name="RSX"),
   list(canon="RunBars", arch="bars_candle4", params=c(3.0), width=0L, name="RunBars"),
+  list(canon="RunningDrawdown", arch="scalar_f64", params=c(), width=0L, name="RunningDrawdown"),
   list(canon="Rvi", arch="scalar_candle", params=c(14.0), width=0L, name="RVI"),
   list(canon="RviVolatility", arch="scalar_f64", params=c(14.0), width=0L, name="RVIVolatility"),
   list(canon="Rwi", arch="multi_candle", params=c(14.0), width=2L, name="RWI"),

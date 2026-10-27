@@ -21,7 +21,7 @@ bindings for Python, Node.js and WASM, plus a C ABI for C, C++, C#, Go, Java, R
 and any other C-capable language. Every indicator is an incremental streaming state
 machine, so live trading bots and historical backtests share the exact same
 implementation. This package is the Java binding; it consumes the C ABI hub
-through the Panama FFM API (`java.lang.foreign`) and exposes all 514
+through the Panama FFM API (`java.lang.foreign`) and exposes all 515
 streaming-first indicators as idiomatic `AutoCloseable` classes.
 
 ## Requirements

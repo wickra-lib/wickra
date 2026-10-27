@@ -1636,6 +1636,11 @@ fn emit_scalar(dir: &Path, candles: &[Candle], closes: &[f64]) {
     } else {
         eprintln!("gen_golden skip RSquared");
     }
+    {
+        let mut ind = wickra::RunningDrawdown::new();
+        let rows: Vec<String> = closes.iter().map(|&x| cell(ind.update(x))).collect();
+        write_csv(dir, "g_RunningDrawdown", "RunningDrawdown", &rows);
+    }
     if let Ok(mut ind) = wickra::Rvi::new(14) {
         let rows: Vec<String> = candles.iter().map(|&c| cell(ind.update(c))).collect();
         write_csv(dir, "g_Rvi", "Rvi", &rows);

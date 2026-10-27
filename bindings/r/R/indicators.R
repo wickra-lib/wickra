@@ -2878,6 +2878,14 @@ RunBars <- function(run_length) {
   .wk_obj("run_bars", ptr, "RunBars")
 }
 
+#' RunningDrawdown indicator
+#' @keywords internal
+#' @export
+RunningDrawdown <- function() {
+  ptr <- .Call("wk_running_drawdown_new", PACKAGE = "wickra")
+  .wk_obj("running_drawdown", ptr, "RunningDrawdown")
+}
+
 #' Rvi indicator
 #' @keywords internal
 #' @export

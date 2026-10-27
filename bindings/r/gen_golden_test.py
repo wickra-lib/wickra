@@ -1,6 +1,6 @@
 """Generate tests/testthat/golden_specs.R: the per-indicator spec list (canonical
 name, archetype, ctor params, output width) consumed by test-golden-all.R, which
-replays all 514 indicators against the Rust reference fixtures g_<Canonical>.csv.
+replays all 515 indicators against the Rust reference fixtures g_<Canonical>.csv.
 
 Run from repo root:  python bindings/r/gen_golden_test.py
 """

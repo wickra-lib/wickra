@@ -7264,6 +7264,18 @@
   ]
  },
  {
+  "canonical": "RunningDrawdown",
+  "native": "RunningDrawdown",
+  "ctor": [],
+  "args": [
+   {
+    "name": "value",
+    "array": false
+   }
+  ],
+  "out": "scalar"
+ },
+ {
   "canonical": "Rvi",
   "native": "RVI",
   "ctor": [

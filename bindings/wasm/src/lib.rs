@@ -16575,6 +16575,7 @@ mod tests {
         assert_scalar_stream_eq!(WasmCalmarRatio::new(20).expect("valid"), p);
         assert_scalar_stream_eq!(WasmMaxDrawdown::new(20).expect("valid"), p);
         assert_scalar_stream_eq!(WasmAverageDrawdown::new(20).expect("valid"), p);
+        assert_scalar_stream_eq!(WasmRunningDrawdown::new(), p);
         assert_scalar_stream_eq!(WasmPainIndex::new(20).expect("valid"), p);
         assert_scalar_stream_eq!(WasmProfitFactor::new(20).expect("valid"), p);
         assert_scalar_stream_eq!(WasmGainLossRatio::new(20).expect("valid"), p);
@@ -16775,6 +16776,72 @@ impl WasmDrawdownDuration {
             .map(|p| self.inner.update(*p).map_or(f64::NAN, f64::from))
             .collect();
         Float64Array::from(out.as_slice())
+    }
+    pub fn reset(&mut self) {
+        self.inner.reset();
+    }
+
+    pub fn name(&self) -> String {
+        self.inner.name().to_string()
+    }
+    #[wasm_bindgen(js_name = isReady)]
+    pub fn is_ready(&self) -> bool {
+        self.inner.is_ready()
+    }
+    #[wasm_bindgen(js_name = warmupPeriod)]
+    pub fn warmup_period(&self) -> usize {
+        self.inner.warmup_period()
+    }
+}
+
+// --- RunningDrawdown: no constructor args ---
+
+#[wasm_bindgen(js_name = RunningDrawdown)]
+pub struct WasmRunningDrawdown {
+    inner: wc::RunningDrawdown,
+}
+
+impl Default for WasmRunningDrawdown {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[wasm_bindgen(js_class = RunningDrawdown)]
+impl WasmRunningDrawdown {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> WasmRunningDrawdown {
+        Self {
+            inner: wc::RunningDrawdown::new(),
+        }
+    }
+    pub fn update(&mut self, value: f64) -> Option<f64> {
+        self.inner.update(value)
+    }
+    pub fn batch(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_nan(prices).as_slice())
+    }
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with `batch` to within a few units in the last place rather than bit for
+    /// bit; NaN placement and length are identical, and the result is the same on
+    /// every platform. Without a kernel it is exactly `batch`.
+    #[wasm_bindgen(js_name = batchFast)]
+    pub fn batch_fast(&mut self, prices: &[f64]) -> Float64Array {
+        Float64Array::from(self.inner.batch_fast(prices).as_slice())
+    }
+    /// `batch` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchInto)]
+    pub fn batch_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_nan_into(prices, out);
+        Ok(())
+    }
+    /// `batchFast` into a caller `Float64Array` exactly as long as the input.
+    #[wasm_bindgen(js_name = batchFastInto)]
+    pub fn batch_fast_into(&mut self, prices: &[f64], out: &mut [f64]) -> Result<(), JsError> {
+        check_rows(out, prices.len())?;
+        self.inner.batch_fast_into(prices, out);
+        Ok(())
     }
     pub fn reset(&mut self) {
         self.inner.reset();

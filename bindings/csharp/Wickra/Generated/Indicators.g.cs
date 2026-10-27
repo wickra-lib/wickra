@@ -42682,6 +42682,131 @@ public sealed class RunBars : IDisposable
     public void Dispose() => _handle.Dispose();
 }
 
+public sealed class RunningDrawdown : IDisposable
+{
+    private readonly WickraHandle _handle;
+
+    public RunningDrawdown()
+    {
+        var ptr = NativeMethods.wickra_running_drawdown_new();
+        if (ptr == nint.Zero)
+        {
+            throw new ArgumentException("invalid RunningDrawdown parameters");
+        }
+
+        _handle = new WickraHandle(ptr, NativeMethods.wickra_running_drawdown_free);
+    }
+
+    public double Update(double @value)
+    {
+        var result = NativeMethods.wickra_running_drawdown_update(_handle.Live, @value);
+        GC.KeepAlive(_handle);
+        return result;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, one output per input
+    /// (NaN during warmup), bit for bit what feeding them one by one gives.
+    /// </summary>
+    public double[] Batch(ReadOnlySpan<double> input)
+    {
+        var output = GC.AllocateUninitializedArray<double>(input.Length);
+        Batch(input, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Runs the indicator over whole spans in one native call, one output per input
+    /// (NaN during warmup), bit for bit what feeding them one by one gives.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void Batch(ReadOnlySpan<double> input, Span<double> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
+        unsafe
+        {
+            fixed (double* inputPtr = input)
+            fixed (double* outputPtr = output)
+            {
+                NativeMethods.wickra_running_drawdown_batch(_handle, inputPtr, outputPtr, (nuint)n);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with Batch to within a few units in the last place rather than bit for bit;
+    /// NaN placement and length are identical, and the result is the same on every
+    /// platform. Without a kernel it is exactly Batch.
+    /// </summary>
+    public double[] BatchFast(ReadOnlySpan<double> input)
+    {
+        var output = GC.AllocateUninitializedArray<double>(input.Length);
+        BatchFast(input, output);
+        return output;
+    }
+
+    /// <summary>
+    /// Opt-in fast batch: a SIMD kernel may reassociate the arithmetic, so each value
+    /// agrees with Batch to within a few units in the last place rather than bit for bit;
+    /// NaN placement and length are identical, and the result is the same on every
+    /// platform. Without a kernel it is exactly Batch.
+    /// Writes into <paramref name="output"/>, which must be as long as the input,
+    /// so a caller that reuses its buffer allocates nothing.
+    /// </summary>
+    public void BatchFast(ReadOnlySpan<double> input, Span<double> output)
+    {
+        var n = input.Length;
+        if (output.Length != n)
+        {
+            throw new ArgumentException("the output span must be as long as the input");
+        }
+
+        unsafe
+        {
+            fixed (double* inputPtr = input)
+            fixed (double* outputPtr = output)
+            {
+                NativeMethods.wickra_running_drawdown_batch_fast(_handle, inputPtr, outputPtr, (nuint)n);
+            }
+        }
+    }
+
+    /// <summary>Number of updates required before <see cref="Update"/> yields a value.</summary>
+    public int WarmupPeriod()
+    {
+        var result = (int)NativeMethods.wickra_running_drawdown_warmup_period(_handle);
+        return result;
+    }
+
+    /// <summary>Whether the indicator has consumed enough input to emit a value.</summary>
+    public bool IsReady()
+    {
+        var result = NativeMethods.wickra_running_drawdown_is_ready(_handle);
+        return result;
+    }
+
+    /// <summary>The indicator's canonical name.</summary>
+    public string Name()
+    {
+        var ptr = NativeMethods.wickra_running_drawdown_name(_handle);
+        return System.Runtime.InteropServices.Marshal.PtrToStringUTF8(ptr) ?? string.Empty;
+    }
+
+    public void Reset()
+    {
+        NativeMethods.wickra_running_drawdown_reset(_handle);
+    }
+
+    public void Dispose() => _handle.Dispose();
+}
+
 public sealed class Rvi : IDisposable
 {
     private readonly WickraHandle _handle;

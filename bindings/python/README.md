@@ -21,7 +21,7 @@ bindings for Python, Node.js and WASM, plus a C ABI for C, C++, C#, Go, Java, R 
 other C-capable language. Every indicator is an incremental
 streaming state machine, so live trading bots and historical backtests share
 the exact same implementation. This package is the Python binding (PyO3); it
-exposes all 514 streaming-first indicators across twenty-four families.
+exposes all 515 streaming-first indicators across twenty-four families.
 
 ## Install
 

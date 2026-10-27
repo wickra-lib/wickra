@@ -442,7 +442,7 @@ jobs:
   # The published API is a promise. wickra-core, wickra-data and wickra are on
   # crates.io, and since 1.0.0 the version number says what may change: a patch
   # release must not move the public surface. Nothing checked that, and the
-  # surface is 514 exported types that ten language bindings sit on top of --
+  # surface is 515 exported types that ten language bindings sit on top of --
   # exactly the shape where a rename slips through review and out to six
   # registries in one irreversible run.
   #

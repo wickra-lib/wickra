@@ -28,6 +28,7 @@ function num(v) {
 // --- Scalar indicators: update(value) vs batch(prices) ---
 
 const scalarFactories = {
+  RunningDrawdown: () => new wickra.RunningDrawdown(),
   M2Measure: () => new wickra.M2Measure(20, 0.0, 0.02),
   UpsidePotentialRatio: () => new wickra.UpsidePotentialRatio(20, 0.0),
   GainToPainRatio: () => new wickra.GainToPainRatio(12),

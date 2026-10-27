@@ -86,8 +86,8 @@ function assertBits(a, b, label) {
 }
 
 test('the scalar macro and the column indicators expose batchFast', () => {
-  // The same 156 as the C ABI's fast entry points.
-  assert.equal(FAST.length, 156);
+  // The same 157 as the C ABI's fast entry points.
+  assert.equal(FAST.length, 157);
   for (const name of ['SMA', 'EMA', 'RSI', 'MACD', 'BollingerBands', 'ATR', 'ChaikinOscillator', 'PearsonCorrelation']) {
     assert.ok(FAST.includes(name), `${name} has batchFast`);
   }

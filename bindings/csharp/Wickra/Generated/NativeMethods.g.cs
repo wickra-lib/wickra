@@ -3056,6 +3056,34 @@ internal static partial class NativeMethods
     internal static partial void wickra_rsx_free(nint handle);
 
     [LibraryImport(WickraNative.LibraryName)]
+    internal static partial nint wickra_running_drawdown_new();
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial double wickra_running_drawdown_update(nint handle, double @value);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static unsafe partial void wickra_running_drawdown_batch(WickraHandle handle, double* input, double* @out, nuint n);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static unsafe partial void wickra_running_drawdown_batch_fast(WickraHandle handle, double* input, double* @out, nuint n);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial nuint wickra_running_drawdown_warmup_period(WickraHandle handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    internal static partial bool wickra_running_drawdown_is_ready(WickraHandle handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial nint wickra_running_drawdown_name(WickraHandle handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial void wickra_running_drawdown_reset(WickraHandle handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
+    internal static partial void wickra_running_drawdown_free(nint handle);
+
+    [LibraryImport(WickraNative.LibraryName)]
     internal static partial nint wickra_rvi_volatility_new(nuint period);
 
     [LibraryImport(WickraNative.LibraryName)]

@@ -1,5 +1,5 @@
 """Generate wasm_manifest.json for the WASM golden replay: for every one of the
-514 indicators, record the JS class name, constructor params, the ordered update
+515 indicators, record the JS class name, constructor params, the ordered update
 argument names (parsed from pkg/wickra_wasm.d.ts, each flagged array/bigint) and
 the output archetype (from golden_manifest.json). Run from repo root after
 `wasm-pack build --target nodejs`:  python bindings/wasm/gen_golden_test.py

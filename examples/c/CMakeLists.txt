@@ -79,7 +79,7 @@ if(OpenMP_C_FOUND)
     target_link_libraries(parallel_assets PRIVATE OpenMP::OpenMP_C)
 endif()
 
-# Golden-fixture parity over the whole 514-indicator catalogue, built and run as
+# Golden-fixture parity over the whole 515-indicator catalogue, built and run as
 # BOTH C (golden_test.c) and C++ (golden_test.cpp #includes the same source) to
 # prove the C ABI header is consumable from each language. The fixtures live at
 # the repo root; pass the absolute path as the test argument.

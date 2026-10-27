@@ -87,25 +87,26 @@ use wickra_core::{
     RelativeStrengthAB, RenkoBrick, RenkoTrailingStop, RickshawMan, RisingThreeMethods, Rmi, Roc,
     Rocp, Rocr, Rocr100, RogersSatchellVolatility, RollMeasure, RollingCorrelation,
     RollingCovariance, RollingIqr, RollingMinMaxScaler, RollingPercentileRank, RollingQuantile,
-    RollingVwap, RoofingFilter, Rsi, Rsx, RunBar, Rvi, RviVolatility, Rwi, SampleEntropy, SarExt,
-    SeasonalZScore, SeparatingLines, SessionHighLow, SessionRange, SessionVwap, ShannonEntropy,
-    Shark, SharpeRatio, ShootingStar, ShortLine, Side, SignedVolume, SineWave, SineWeightedMa,
-    SinglePrints, Skewness, Sma, Smi, Smma, SmoothedHeikinAshi, SortinoRatio, SpearmanCorrelation,
-    SpinningTop, SpreadAr1Coefficient, SpreadBollingerBands, SpreadHurst, StalledPattern,
-    StandardError, StandardErrorBands, StarcBands, Stc, StdDev, StepTrailingStop, SterlingRatio,
-    StickSandwich, StochRsi, Stochastic, StochasticCci, SuperSmoother, SuperTrend, TailRatio,
-    TakerBuySellRatio, Takuri, TasukiGap, TdCamouflage, TdClop, TdClopwin, TdCombo, TdCountdown,
-    TdDWave, TdDeMarker, TdDifferential, TdLines, TdMovingAverage, TdOpen, TdPressure,
-    TdPropulsion, TdRangeProjection, TdRei, TdRiskLevel, TdSequential, TdSetup, TdTrap, Tema,
-    TermStructureBasis, ThreeDrives, ThreeInside, ThreeLineBreak, ThreeLineStrike, ThreeOutside,
-    ThreeSoldiersOrCrows, ThreeStarsInSouth, Thrusting, Tick, TickBar, TickIndex, Tii,
-    TimeBasedStop, TimeOfDayReturnProfile, TowerTopBottom, TpoProfile, Trade, TradeImbalance,
-    TradeQuote, TradeSignAutocorrelation, TradeVolumeIndex, TrendLabel, TrendStrengthIndex,
-    Trendflex, TreynorRatio, Triangle, Trima, Trin, TripleTopBottom, Tristar, Trix, TrueRange, Tsf,
-    TsfOscillator, Tsi, Tsv, TtmSqueeze, TtmTrend, TurnOfMonth, Tweezer, TwiggsMoneyFlow, TwoCrows,
-    TypicalPrice, UlcerIndex, UltimateOscillator, UniqueThreeRiver, UniversalOscillator,
-    UpDownVolumeRatio, UpsideGapThreeMethods, UpsideGapTwoCrows, UpsidePotentialRatio, ValueArea,
-    ValueAtRisk, Variance, VarianceRatio, VerticalHorizontalFilter, Vidya, VolatilityCone,
+    RollingVwap, RoofingFilter, Rsi, Rsx, RunBar, RunningDrawdown, Rvi, RviVolatility, Rwi,
+    SampleEntropy, SarExt, SeasonalZScore, SeparatingLines, SessionHighLow, SessionRange,
+    SessionVwap, ShannonEntropy, Shark, SharpeRatio, ShootingStar, ShortLine, Side, SignedVolume,
+    SineWave, SineWeightedMa, SinglePrints, Skewness, Sma, Smi, Smma, SmoothedHeikinAshi,
+    SortinoRatio, SpearmanCorrelation, SpinningTop, SpreadAr1Coefficient, SpreadBollingerBands,
+    SpreadHurst, StalledPattern, StandardError, StandardErrorBands, StarcBands, Stc, StdDev,
+    StepTrailingStop, SterlingRatio, StickSandwich, StochRsi, Stochastic, StochasticCci,
+    SuperSmoother, SuperTrend, TailRatio, TakerBuySellRatio, Takuri, TasukiGap, TdCamouflage,
+    TdClop, TdClopwin, TdCombo, TdCountdown, TdDWave, TdDeMarker, TdDifferential, TdLines,
+    TdMovingAverage, TdOpen, TdPressure, TdPropulsion, TdRangeProjection, TdRei, TdRiskLevel,
+    TdSequential, TdSetup, TdTrap, Tema, TermStructureBasis, ThreeDrives, ThreeInside,
+    ThreeLineBreak, ThreeLineStrike, ThreeOutside, ThreeSoldiersOrCrows, ThreeStarsInSouth,
+    Thrusting, Tick, TickBar, TickIndex, Tii, TimeBasedStop, TimeOfDayReturnProfile,
+    TowerTopBottom, TpoProfile, Trade, TradeImbalance, TradeQuote, TradeSignAutocorrelation,
+    TradeVolumeIndex, TrendLabel, TrendStrengthIndex, Trendflex, TreynorRatio, Triangle, Trima,
+    Trin, TripleTopBottom, Tristar, Trix, TrueRange, Tsf, TsfOscillator, Tsi, Tsv, TtmSqueeze,
+    TtmTrend, TurnOfMonth, Tweezer, TwiggsMoneyFlow, TwoCrows, TypicalPrice, UlcerIndex,
+    UltimateOscillator, UniqueThreeRiver, UniversalOscillator, UpDownVolumeRatio,
+    UpsideGapThreeMethods, UpsideGapTwoCrows, UpsidePotentialRatio, ValueArea, ValueAtRisk,
+    Variance, VarianceRatio, VerticalHorizontalFilter, Vidya, VolatilityCone,
     VolatilityOfVolatility, VolatilityRatio, VoltyStop, VolumeBar, VolumeByTimeProfile,
     VolumeOscillator, VolumePriceTrend, VolumeProfile, VolumeRsi, VolumeWeightedMacd,
     VolumeWeightedSr, Vortex, Vpin, Vwap, VwapStdDevBands, Vwma, Vzo, Wad, WavePm, WaveTrend,
@@ -15148,6 +15149,144 @@ pub unsafe extern "C" fn wickra_rsx_reset(handle: *mut Rsx) {
 /// `handle` must have been returned by `wickra_rsx_new` and not previously freed, or `NULL`.
 #[no_mangle]
 pub unsafe extern "C" fn wickra_rsx_free(handle: *mut Rsx) {
+    if !handle.is_null() {
+        drop(Box::from_raw(handle));
+    }
+}
+
+/// Create a `RunningDrawdown` indicator.
+///
+/// Returns `NULL` on invalid parameters; release with `wickra_running_drawdown_free`.
+#[no_mangle]
+pub extern "C" fn wickra_running_drawdown_new() -> *mut RunningDrawdown {
+    Box::into_raw(Box::new(RunningDrawdown::new()))
+}
+
+/// Feed one value; returns the output, or `NaN` during warmup / on a `NULL` handle.
+///
+/// # Safety
+/// `handle` must be a valid pointer from `wickra_running_drawdown_new` (not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_running_drawdown_update(
+    handle: *mut RunningDrawdown,
+    value: f64,
+) -> f64 {
+    match handle.as_mut() {
+        Some(ind) => ind.update(value).unwrap_or(f64::NAN),
+        None => f64::NAN,
+    }
+}
+
+/// Run over `input[0..n]`, writing one output per input into `out[0..n]` (`NaN` at warmup).
+///
+/// # Safety
+/// `handle` valid (from `wickra_running_drawdown_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_running_drawdown_batch(
+    handle: *mut RunningDrawdown,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
+    }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_nan_into(inputs, outputs);
+}
+
+/// Opt-in fast batch over `input[0..n]` into `out[0..n]`: an indicator with a
+/// SIMD kernel may reassociate its arithmetic, so each value agrees with
+/// `wickra_running_drawdown_batch` to within a few units in the last place rather than
+/// bit for bit; `NaN` placement and length are identical, and the result is the
+/// same on every platform. Without a kernel it is exactly `wickra_running_drawdown_batch`.
+///
+/// # Safety
+/// `handle` valid (from `wickra_running_drawdown_new`, not freed); `input`/`out` cover `n` `double`s.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_running_drawdown_batch_fast(
+    handle: *mut RunningDrawdown,
+    input: *const f64,
+    out: *mut f64,
+    n: usize,
+) {
+    if handle.is_null() || input.is_null() || out.is_null() {
+        return;
+    }
+    let ind = &mut *handle;
+    let inputs = slice::from_raw_parts(input, n);
+    let outputs = slice::from_raw_parts_mut(out, n);
+    ind.batch_fast_into(inputs, outputs);
+}
+
+/// Number of updates the indicator needs before it produces a non-`NaN` output.
+/// Returns `0` if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must be valid (from `wickra_running_drawdown_new`, not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_running_drawdown_warmup_period(
+    handle: *mut RunningDrawdown,
+) -> usize {
+    match handle.as_ref() {
+        Some(ind) => ind.warmup_period(),
+        None => 0,
+    }
+}
+
+/// Whether the indicator has consumed enough input to emit a value. Returns
+/// `false` if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must be valid (from `wickra_running_drawdown_new`, not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_running_drawdown_is_ready(handle: *mut RunningDrawdown) -> bool {
+    match handle.as_ref() {
+        Some(ind) => ind.is_ready(),
+        None => false,
+    }
+}
+
+/// Canonical indicator name as a NUL-terminated C string with `'static` lifetime
+/// (cached on first call). Returns `NULL` if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must be valid (from `wickra_running_drawdown_new`, not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_running_drawdown_name(
+    handle: *mut RunningDrawdown,
+) -> *const c_char {
+    match handle.as_ref() {
+        Some(ind) => {
+            static NAME: OnceLock<CString> = OnceLock::new();
+            NAME.get_or_init(|| {
+                CString::new(ind.name()).expect("indicator name has no interior NUL")
+            })
+            .as_ptr()
+        }
+        None => ptr::null(),
+    }
+}
+
+/// Reset all internal state. No-op if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must be valid (from `wickra_running_drawdown_new`, not freed), or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_running_drawdown_reset(handle: *mut RunningDrawdown) {
+    if let Some(ind) = handle.as_mut() {
+        ind.reset();
+    }
+}
+
+/// Destroy a handle created by `wickra_running_drawdown_new`. No-op if `handle` is `NULL`.
+///
+/// # Safety
+/// `handle` must have been returned by `wickra_running_drawdown_new` and not previously freed, or `NULL`.
+#[no_mangle]
+pub unsafe extern "C" fn wickra_running_drawdown_free(handle: *mut RunningDrawdown) {
     if !handle.is_null() {
         drop(Box::from_raw(handle));
     }

@@ -1,6 +1,6 @@
 """Generate src/test/java/org/wickra/GoldenAllTest.java: a reflection-driven
 value-parity test that replays the shared golden input through every one of the
-514 Java indicators and checks output against the Rust reference
+515 Java indicators and checks output against the Rust reference
 fixtures g_<Canonical>.csv. The per-indicator spec is embedded so the test has
 no JSON dependency; a single reflective runner covers all archetypes.
 
@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 /**
- * Reflection-driven value parity for the whole 514-indicator catalogue: each
+ * Reflection-driven value parity for the whole 515-indicator catalogue: each
  * indicator is reconstructed by its class name, fed the synthetic stream derived
  * from the shared golden input (identical to gen_golden's Rust construction) and
  * checked against testdata/golden/g_&lt;Canonical&gt;.csv. One runner

@@ -23165,6 +23165,67 @@ impl PyDrawdownDuration {
     }
 }
 
+#[pyclass(
+    name = "RunningDrawdown",
+    module = "wickra._wickra",
+    skip_from_py_object
+)]
+#[derive(Clone)]
+struct PyRunningDrawdown {
+    inner: wc::RunningDrawdown,
+}
+
+#[pymethods]
+impl PyRunningDrawdown {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: wc::RunningDrawdown::new(),
+        }
+    }
+    fn update(&mut self, value: f64) -> Option<f64> {
+        self.inner.update(value)
+    }
+    fn batch<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
+        let slice = prices.as_slice();
+        f64_batch(py, slice.len(), |out| self.inner.batch_nan_into(slice, out))
+    }
+    fn batch_fast<'py>(&mut self, py: Python<'py>, prices: Buf1) -> PyResult<Bound<'py, PyAny>> {
+        let slice = prices.as_slice();
+        f64_batch(py, slice.len(), |out| {
+            self.inner.batch_fast_into(slice, out);
+        })
+    }
+    #[getter]
+    fn max_drawdown(&self) -> Option<f64> {
+        self.inner.max_drawdown()
+    }
+    #[getter]
+    fn current_drawdown(&self) -> Option<f64> {
+        self.inner.current_drawdown()
+    }
+    #[getter]
+    fn peak(&self) -> Option<f64> {
+        self.inner.peak()
+    }
+    fn reset(&mut self) {
+        self.inner.reset();
+    }
+
+    fn name(&self) -> &'static str {
+        self.inner.name()
+    }
+    fn is_ready(&self) -> bool {
+        self.inner.is_ready()
+    }
+    fn warmup_period(&self) -> usize {
+        self.inner.warmup_period()
+    }
+    fn __repr__(&self) -> String {
+        "RunningDrawdown()".to_string()
+    }
+}
+
 #[pyclass(name = "PainIndex", module = "wickra._wickra", skip_from_py_object)]
 #[derive(Clone)]
 struct PyPainIndex {
@@ -27170,6 +27231,7 @@ fn _wickra(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyMaxDrawdown>()?;
     m.add_class::<PyAverageDrawdown>()?;
     m.add_class::<PyDrawdownDuration>()?;
+    m.add_class::<PyRunningDrawdown>()?;
     m.add_class::<PyPainIndex>()?;
     m.add_class::<PyValueAtRisk>()?;
     m.add_class::<PyConditionalValueAtRisk>()?;

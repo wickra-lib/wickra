@@ -1,4 +1,4 @@
-"""Canonical-name parity: every one of the 514 indicators must report the same
+"""Canonical-name parity: every one of the 515 indicators must report the same
 ``Indicator::name()`` the Rust core defines — the identical string every other
 binding returns. Names are recorded in ``testdata/golden/names.json`` (keyed by
 the Rust canonical); the construction recipe (native class + ctor args) is the

@@ -98,8 +98,8 @@ function assertBits(a, b, label) {
   }
 }
 
-test('batchFast mirrors the 156 C ABI fast entry points', () => {
-  assert.equal(FAST.length, 156);
+test('batchFast mirrors the 157 C ABI fast entry points', () => {
+  assert.equal(FAST.length, 157);
 });
 
 test('batchFast agrees with batch for every indicator that has it', () => {

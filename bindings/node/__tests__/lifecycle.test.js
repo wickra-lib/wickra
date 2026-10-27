@@ -1,4 +1,4 @@
-// The contract around the values, for every one of the 514 Node indicators.
+// The contract around the values, for every one of the 515 Node indicators.
 //
 // `golden.test.js` checks what an indicator computes and stops there, so a
 // `reset` that forgot a field, or an `isReady` keyed off a value that happens to

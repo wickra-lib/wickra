@@ -17,7 +17,7 @@ abstract: >-
   C++, C#, Java, Go and R. Each indicator is a state machine that updates
   in constant time per new input, so identical code paths serve
   live-trading workloads and historical back-testing. The library covers
-  514 indicators across twenty-four families (moving averages, momentum,
+  515 indicators across twenty-four families (moving averages, momentum,
   volatility, volume, statistics, Ehlers digital-signal-processing cycles,
   pivots, DeMark, Ichimoku, candlestick and chart patterns, market profile,
   microstructure, and risk/performance metrics).

@@ -441,10 +441,10 @@ macro_rules! bar_inv {
     };
 }
 
-// --- catalogue: full roll-out over the whole catalogue (513 of 514 mod entries:
-//     503 Indicator + 10 BarBuilder; pattern_swing is neither, see below). ---
+// --- catalogue: full roll-out over the whole catalogue (514 of 515 mod entries:
+//     504 Indicator + 10 BarBuilder; pattern_swing is neither, see below). ---
 
-// --- scalar (167) ---
+// --- scalar (168) ---
 scalar_inv!(inv_adaptive_cycle, AdaptiveCycle::new());
 scalar_inv!(
     inv_adaptive_laguerre_filter,
@@ -637,6 +637,7 @@ scalar_inv!(inv_rolling_quantile, RollingQuantile::new(5, 0.5).unwrap());
 scalar_inv!(inv_roofing_filter, RoofingFilter::new(10, 48).unwrap());
 scalar_inv!(inv_rsi, Rsi::new(3).unwrap());
 scalar_inv!(inv_rsx, Rsx::new(14).unwrap());
+scalar_inv!(inv_running_drawdown, RunningDrawdown::new());
 scalar_inv!(inv_rvi_volatility, RviVolatility::new(10).unwrap());
 scalar_inv!(inv_sample_entropy, SampleEntropy::new(50, 2, 0.2).unwrap());
 scalar_inv!(inv_shannon_entropy, ShannonEntropy::new(32, 8).unwrap());

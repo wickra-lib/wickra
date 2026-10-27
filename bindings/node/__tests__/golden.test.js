@@ -1,6 +1,6 @@
 // Generic golden-fixture parity for the Node binding.
 //
-// Every one of the 514 indicators is reconstructed from `node_manifest.json`
+// Every one of the 515 indicators is reconstructed from `node_manifest.json`
 // (native class, constructor params, ordered update args), fed the synthetic
 // stream derived from the shared `testdata/golden/input.csv` — the exact same
 // construction the Rust `gen_golden` binary uses — and checked

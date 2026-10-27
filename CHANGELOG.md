@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`RunningDrawdown`.** Since-inception maximum drawdown over an unbounded stream, in
+  O(1) memory, with no parameters and no warmup. `update` returns the maximum
+  drawdown since the first value (same fraction convention as `MaxDrawdown`);
+  `max_drawdown()`, `current_drawdown()` and `peak()` read the running state.
+  Bound in all ten languages and golden-pinned like every other indicator;
+  Python also exposes the running state as the `max_drawdown`,
+  `current_drawdown` and `peak` properties (#487).
+
 ### Fixed
 
 - **`MaxDrawdown` updates in amortised O(1).** Its docs said so, but every

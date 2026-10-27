@@ -21,7 +21,7 @@ bindings for Python, Node.js and WASM, plus a C ABI for C, C++, C#, Go, Java, R 
 other C-capable language. Every indicator is an incremental
 streaming state machine, so live trading bots and historical backtests share
 the exact same implementation. This package is the C# binding; it consumes the
-C ABI hub through `[LibraryImport]` P/Invoke and exposes all 514 streaming-first
+C ABI hub through `[LibraryImport]` P/Invoke and exposes all 515 streaming-first
 indicators as idiomatic `IDisposable` classes.
 
 ## Install

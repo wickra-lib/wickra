@@ -21,7 +21,7 @@ bindings for Python, Node.js and WASM, plus a C ABI for C, C++, C#, Go, Java, R 
 other C-capable language. Every indicator is an incremental
 streaming state machine, so live trading dashboards and historical backtests
 share the exact same implementation. This package is the WASM binding
-(wasm-bindgen, built for the `web` target); it exposes all 514 streaming-first
+(wasm-bindgen, built for the `web` target); it exposes all 515 streaming-first
 indicators across twenty-four families.
 
 ## Install

@@ -10,7 +10,7 @@
   <packaging>jar</packaging>
 
   <name>Wickra</name>
-  <description>High-performance streaming technical-analysis indicators (514 indicators) for the
+  <description>High-performance streaming technical-analysis indicators (515 indicators) for the
     JVM, backed by the native Rust core through the Wickra C ABI via the Java FFM API (Panama).</description>
   <url>https://github.com/wickra-lib/wickra</url>
 
