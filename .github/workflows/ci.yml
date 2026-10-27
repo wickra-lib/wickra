@@ -923,6 +923,12 @@ jobs:
         timeout-minutes: 10 # fail fast on a stuck download instead of hanging the job
         with:
           tool: cbindgen
+          # install-action ships no cbindgen and falls back to cargo-binstall. Its
+          # upgrade of a preinstalled cargo-binstall deletes the file under its own bin
+          # dir rather than where it found it, so on macOS runners whose rustup lives
+          # in Homebrew the step dies on `rm: No such file or directory`. cargo install
+          # never touches cargo-binstall.
+          fallback: cargo-install
 
       - name: Build the C ABI library (cdylib + staticlib)
         run: cargo build -p wickra-c --release
