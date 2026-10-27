@@ -320,12 +320,10 @@ mod tests {
                     b.resistance.is_nan(),
                     "row {i} resistance nan flag"
                 );
-                if !a.support.is_nan() {
-                    assert_relative_eq!(a.support, b.support, epsilon = 1e-12);
-                }
-                if !a.resistance.is_nan() {
-                    assert_relative_eq!(a.resistance, b.resistance, epsilon = 1e-12);
-                }
+                // The NaN flags match, so a NaN on one side is a NaN on both.
+                let close = |x: f64, y: f64| x.is_nan() || (x - y).abs() <= 1e-12;
+                assert!(close(a.support, b.support), "row {i} support");
+                assert!(close(a.resistance, b.resistance), "row {i} resistance");
             }
         }
     }

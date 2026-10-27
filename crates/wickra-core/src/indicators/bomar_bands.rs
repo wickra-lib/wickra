@@ -313,6 +313,11 @@ mod tests {
         assert_relative_eq!(last.middle, 0.0, epsilon = 1e-12);
         assert_relative_eq!(last.upper, 0.0, epsilon = 1e-12);
         assert_relative_eq!(last.lower, 0.0, epsilon = 1e-12);
+        // The fresh-sort reference collapses the same way.
+        assert_eq!(
+            [last.upper, last.middle, last.lower],
+            from_scratch(&[3.0, -3.0], 0.85)
+        );
     }
 
     #[test]

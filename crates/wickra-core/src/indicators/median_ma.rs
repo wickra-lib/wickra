@@ -239,4 +239,15 @@ mod tests {
             Err(Error::InvalidPeriod { .. })
         ));
     }
+
+    #[test]
+    fn value_is_the_last_median() {
+        let mut mma = MedianMa::new(3).unwrap();
+        mma.update(1.0);
+        assert_eq!(mma.value(), None);
+        mma.update(5.0);
+        let first = mma.update(3.0);
+        assert_eq!(first, Some(3.0));
+        assert_eq!(mma.value(), first);
+    }
 }

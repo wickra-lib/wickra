@@ -312,12 +312,10 @@ mod tests {
             if let (Some(a), Some(b)) = (x, y) {
                 assert_eq!(a.buy_risk.is_nan(), b.buy_risk.is_nan());
                 assert_eq!(a.sell_risk.is_nan(), b.sell_risk.is_nan());
-                if !a.buy_risk.is_nan() {
-                    assert_relative_eq!(a.buy_risk, b.buy_risk, epsilon = 1e-12);
-                }
-                if !a.sell_risk.is_nan() {
-                    assert_relative_eq!(a.sell_risk, b.sell_risk, epsilon = 1e-12);
-                }
+                // The NaN flags match, so a NaN on one side is a NaN on both.
+                let close = |x: f64, y: f64| x.is_nan() || (x - y).abs() <= 1e-12;
+                assert!(close(a.buy_risk, b.buy_risk), "row {i} buy risk");
+                assert!(close(a.sell_risk, b.sell_risk), "row {i} sell risk");
             }
         }
     }

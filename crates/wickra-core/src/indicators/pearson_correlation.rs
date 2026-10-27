@@ -170,13 +170,11 @@ impl Indicator for PearsonCorrelation {
         }
         self.moments.push(x, y);
         if self.moments.needs_reseed(self.period) {
-            // Chronological order: oldest at `head` once full, `buf[..count]`
-            // while still warming up.
-            let (older, newer) = if self.count == self.period {
-                (&self.buf[self.head..], &self.buf[..self.head])
-            } else {
-                (&self.buf[..self.count], &self.buf[..0])
-            };
+            // Chronological order, oldest at `head`. A reseed is due every
+            // `period` pushes and the first `period` pushes fill the window,
+            // so the window is always full here.
+            debug_assert_eq!(self.count, self.period);
+            let (newer, older) = self.buf.split_at(self.head);
             self.moments.reseed(older.iter().chain(newer).copied());
         }
         if self.count < self.period {

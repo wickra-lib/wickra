@@ -1046,4 +1046,39 @@ mod tests {
         moments.push(1.0);
         assert!(moments.needs_reseed(5));
     }
+
+    #[test]
+    fn pair_reseed_on_an_empty_window_clears_the_accumulator() {
+        let mut moments = ShiftedPairMoments::new();
+        moments.push(5.0, 7.0);
+        moments.reseed(std::iter::empty());
+        assert!(!moments.seeded);
+        assert_eq!(moments.pushes_since_reseed, 0);
+        assert_eq!(
+            [
+                moments.sum_a,
+                moments.sum_b,
+                moments.sum_aa,
+                moments.sum_bb,
+                moments.sum_ab
+            ],
+            [0.0; 5]
+        );
+        // The next value takes the reference points afresh.
+        moments.push(1.0, 2.0);
+        assert_eq!((moments.offset_a, moments.offset_b), (1.0, 2.0));
+    }
+
+    #[test]
+    fn trend_reseed_on_an_empty_window_clears_the_accumulator() {
+        let mut trend = ShiftedTrend::new();
+        trend.push(5.0, 0);
+        trend.reseed(std::iter::empty());
+        assert!(!trend.seeded);
+        assert_eq!(trend.pushes_since_reseed, 0);
+        assert_eq!([trend.sum_y, trend.sum_xy, trend.sum_y_sq], [0.0; 3]);
+        // The next value takes the reference point afresh.
+        trend.push(3.0, 0);
+        assert_eq!(trend.offset, 3.0);
+    }
 }

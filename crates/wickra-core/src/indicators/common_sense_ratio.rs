@@ -319,6 +319,8 @@ mod tests {
         let mut csr = CommonSenseRatio::new(21).unwrap();
         let last = csr.batch(&returns).into_iter().flatten().last().unwrap();
         assert_relative_eq!(last, 0.0, epsilon = 1e-12);
+        // The fresh-sort reference takes the same exit.
+        assert_eq!(last.to_bits(), from_scratch(&returns).to_bits());
     }
 
     #[test]
