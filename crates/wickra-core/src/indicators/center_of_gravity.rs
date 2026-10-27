@@ -210,4 +210,12 @@ mod tests {
             assert_relative_eq!(*x, 0.0, epsilon = 1e-12);
         }
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            CenterOfGravity::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

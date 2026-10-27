@@ -210,4 +210,12 @@ mod tests {
         assert!(!rs.is_ready());
         assert_eq!(rs.update(tq(100.05, Side::Buy, 100.0)), None);
     }
+
+    #[test]
+    fn rejects_horizon_above_maximum() {
+        assert!(matches!(
+            RealizedSpread::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

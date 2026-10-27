@@ -230,4 +230,12 @@ mod tests {
         let after = md.update(40.0).unwrap();
         assert!(after > before);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            McGinleyDynamic::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

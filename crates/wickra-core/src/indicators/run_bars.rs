@@ -260,4 +260,12 @@ mod tests {
         assert_eq!(out.len(), 2);
         assert!(out.iter().all(|b| b.direction == 1));
     }
+
+    #[test]
+    fn rejects_run_length_above_maximum() {
+        assert!(matches!(
+            RunBars::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

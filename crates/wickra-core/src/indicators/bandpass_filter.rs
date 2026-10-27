@@ -251,4 +251,12 @@ mod tests {
         let streamed: Vec<_> = xs.iter().map(|x| b.update(*x)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            BandpassFilter::new(crate::error::MAX_PERIOD + 1, 0.3),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

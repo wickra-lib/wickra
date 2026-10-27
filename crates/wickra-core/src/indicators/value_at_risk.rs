@@ -239,4 +239,12 @@ mod tests {
         // sorted = same order; sorted[1] = -0.04, so VaR = 0.04 exactly.
         assert_relative_eq!(out[4].unwrap(), 0.04, epsilon = 1e-12);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            ValueAtRisk::new(crate::error::MAX_PERIOD + 1, 0.95),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -187,4 +187,12 @@ mod tests {
         cci.reset();
         assert!(!cci.is_ready());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Cci::with_factor(crate::error::MAX_PERIOD + 1, 0.015),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

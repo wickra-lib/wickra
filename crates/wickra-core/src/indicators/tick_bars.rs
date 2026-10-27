@@ -213,4 +213,12 @@ mod tests {
         let out = bars.batch(&candles);
         assert_eq!(out.len(), 2);
     }
+
+    #[test]
+    fn rejects_ticks_above_maximum() {
+        assert!(matches!(
+            TickBars::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

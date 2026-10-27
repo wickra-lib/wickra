@@ -222,4 +222,12 @@ mod tests {
         let streamed: Vec<_> = prices.iter().map(|t| b.update(*t)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            RollMeasure::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

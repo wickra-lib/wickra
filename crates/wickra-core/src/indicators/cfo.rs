@@ -182,4 +182,12 @@ mod tests {
         let before = cfo.current;
         assert_eq!(cfo.update(0.0), before);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Cfo::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

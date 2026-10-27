@@ -251,4 +251,12 @@ mod tests {
     fn default_matches_new() {
         assert_eq!(LongLine::default().period(), LongLine::new().period());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            LongLine::with_period(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

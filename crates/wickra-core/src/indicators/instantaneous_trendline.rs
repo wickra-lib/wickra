@@ -218,4 +218,12 @@ mod tests {
         it.reset();
         assert!(!it.is_ready());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            InstantaneousTrendline::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

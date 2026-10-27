@@ -191,4 +191,12 @@ mod tests {
         assert!(!frm.is_ready());
         assert_eq!(frm.update(tick(0.002)), None);
     }
+
+    #[test]
+    fn rejects_window_above_maximum() {
+        assert!(matches!(
+            FundingRateMean::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

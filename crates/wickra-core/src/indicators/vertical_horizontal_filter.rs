@@ -220,4 +220,12 @@ mod tests {
             prices.iter().map(|x| b.update(*x)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            VerticalHorizontalFilter::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

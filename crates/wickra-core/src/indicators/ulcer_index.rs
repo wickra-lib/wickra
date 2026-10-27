@@ -351,4 +351,12 @@ mod tests {
         check(&mixed, 7);
         check(&mixed, 30);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            UlcerIndex::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -404,4 +404,12 @@ mod tests {
             assert_relative_eq!(*v, expected, epsilon = 1e-9);
         }
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            YangZhangVolatility::new(crate::error::MAX_PERIOD + 1, 252),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

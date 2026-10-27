@@ -317,4 +317,12 @@ mod tests {
         }
         assert_eq!(mean_reverting, BARS - ind.warmup_period() + 1);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            OuHalfLife::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -370,4 +370,20 @@ mod tests {
         let streamed: Vec<_> = pairs.iter().map(|p| z.update(*p)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_beta_period_above_maximum() {
+        assert!(matches!(
+            PairSpreadZScore::new(crate::error::MAX_PERIOD + 1, 2),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_z_period_above_maximum() {
+        assert!(matches!(
+            PairSpreadZScore::new(2, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

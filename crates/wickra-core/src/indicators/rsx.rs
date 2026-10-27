@@ -296,4 +296,12 @@ mod tests {
             prices.iter().map(|p| b.update(*p)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_length_above_maximum() {
+        assert!(matches!(
+            Rsx::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

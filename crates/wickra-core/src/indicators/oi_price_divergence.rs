@@ -199,4 +199,12 @@ mod tests {
         assert!(!div.is_ready());
         assert_eq!(div.update(tick(1_000.0, 100.0)), None);
     }
+
+    #[test]
+    fn rejects_window_above_maximum() {
+        assert!(matches!(
+            OIPriceDivergence::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

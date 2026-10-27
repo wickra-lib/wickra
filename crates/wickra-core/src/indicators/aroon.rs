@@ -200,4 +200,12 @@ mod tests {
         assert_eq!(a.period(), 14);
         assert_eq!(a.name(), "Aroon");
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Aroon::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

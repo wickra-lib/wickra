@@ -279,4 +279,12 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            SineWeightedMa::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

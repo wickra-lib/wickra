@@ -244,4 +244,12 @@ mod tests {
             candles.iter().map(|x| b.update(*x)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            AverageDailyRange::new(crate::error::MAX_PERIOD + 1, -60),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

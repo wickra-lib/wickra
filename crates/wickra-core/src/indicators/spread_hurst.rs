@@ -306,4 +306,12 @@ mod tests {
         }
         assert!(h.update((7.0, 0.0)).is_some());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            SpreadHurst::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

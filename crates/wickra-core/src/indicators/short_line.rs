@@ -250,4 +250,12 @@ mod tests {
     fn default_matches_new() {
         assert_eq!(ShortLine::default().period(), ShortLine::new().period());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            ShortLine::with_period(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -260,4 +260,12 @@ mod tests {
         assert!(out[1].is_none());
         assert_relative_eq!(out[2].unwrap(), 1200.0 / 23.0, epsilon = 1e-9);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Mfi::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

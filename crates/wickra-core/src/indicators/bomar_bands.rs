@@ -338,4 +338,12 @@ mod tests {
         assert!(!bb.is_ready());
         assert!(bb.update(100.0).is_none());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            BomarBands::new(crate::error::MAX_PERIOD + 1, 0.85),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

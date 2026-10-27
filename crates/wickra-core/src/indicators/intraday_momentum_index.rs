@@ -234,4 +234,12 @@ mod tests {
             bars.iter().map(|c| b.update(*c)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            IntradayMomentumIndex::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

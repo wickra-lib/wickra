@@ -330,4 +330,12 @@ mod tests {
         assert!(!v.is_ready());
         assert_eq!(v.update(candles[0]), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            RollingVwap::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

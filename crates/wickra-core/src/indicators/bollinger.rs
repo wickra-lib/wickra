@@ -616,4 +616,12 @@ mod tests {
             epsilon = 1e-12
         );
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            BollingerBands::new(crate::error::MAX_PERIOD + 1, 2.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

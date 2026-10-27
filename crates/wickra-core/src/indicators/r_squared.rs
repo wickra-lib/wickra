@@ -290,4 +290,12 @@ mod tests {
         // Without this the clamp at 1.0 could carry the whole assertion.
         assert!(saw_imperfect_fit);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            RSquared::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

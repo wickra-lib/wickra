@@ -306,4 +306,12 @@ mod tests {
             prices.iter().map(|p| b.update(*p)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            DynamicMomentumIndex::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

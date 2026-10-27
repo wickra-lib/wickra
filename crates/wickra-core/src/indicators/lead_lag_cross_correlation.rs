@@ -395,4 +395,12 @@ mod tests {
             / n;
         (cov / (var_x * var_y).sqrt()).clamp(-1.0, 1.0)
     }
+
+    #[test]
+    fn rejects_window_above_maximum() {
+        assert!(matches!(
+            LeadLagCrossCorrelation::new(crate::error::MAX_PERIOD + 1, 5),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

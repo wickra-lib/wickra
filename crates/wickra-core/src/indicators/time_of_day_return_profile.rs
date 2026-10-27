@@ -268,4 +268,12 @@ mod tests {
             candles.iter().map(|x| b.update(*x)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_buckets_above_maximum() {
+        assert!(matches!(
+            TimeOfDayReturnProfile::new(crate::error::MAX_PERIOD + 1, 0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

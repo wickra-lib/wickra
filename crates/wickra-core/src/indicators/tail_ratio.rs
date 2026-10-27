@@ -236,4 +236,12 @@ mod tests {
         // helper returns the largest element without interpolating past the end.
         assert_relative_eq!(percentile(&[1.0, 2.0, 3.0], 100.0), 3.0, epsilon = 1e-12);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            TailRatio::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

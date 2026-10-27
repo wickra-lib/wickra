@@ -313,4 +313,12 @@ mod tests {
         assert_eq!(compared, data.len() - ind.warmup_period() + 1);
         assert!(saw_strong_correlation);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            CorrelationTrendIndicator::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

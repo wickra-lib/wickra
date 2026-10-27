@@ -240,4 +240,12 @@ mod tests {
             candles.iter().map(|c| b.update(*c)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_length_above_maximum() {
+        assert!(matches!(
+            KasePermissionStochastic::new(crate::error::MAX_PERIOD + 1, 2),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

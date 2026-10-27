@@ -281,4 +281,12 @@ mod tests {
         assert_relative_eq!(v.upper, 8.0 + 2.0 * s2, epsilon = 1e-9);
         assert_relative_eq!(v.lower, 8.0 - 2.0 * s2, epsilon = 1e-9);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            LinRegChannel::new(crate::error::MAX_PERIOD + 1, 2.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

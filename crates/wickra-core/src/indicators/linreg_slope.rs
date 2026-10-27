@@ -331,4 +331,12 @@ mod tests {
         }
         assert_eq!(compared, data.len() - ind.warmup_period() + 1);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            LinRegSlope::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

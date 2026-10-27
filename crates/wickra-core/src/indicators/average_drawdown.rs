@@ -216,4 +216,12 @@ mod tests {
             assert_eq!(v, 0.0);
         }
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            AverageDrawdown::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

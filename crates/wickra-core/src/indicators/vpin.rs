@@ -358,4 +358,12 @@ mod tests {
         assert_eq!(vpin.update(trade(48.0, Side::Buy)), Some(1.0));
         assert_eq!(vpin.cur_total, 0.0);
     }
+
+    #[test]
+    fn rejects_num_buckets_above_maximum() {
+        assert!(matches!(
+            Vpin::new(10.0, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

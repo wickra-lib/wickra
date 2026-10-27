@@ -244,4 +244,12 @@ mod tests {
         assert!(!e.is_ready());
         assert_eq!(e.update(candle(10.0, 1.0, 0)), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Evwma::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

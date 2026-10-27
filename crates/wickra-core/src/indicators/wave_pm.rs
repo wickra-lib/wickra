@@ -223,4 +223,12 @@ mod tests {
             inputs.iter().map(|x| b.update(*x)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_length_above_maximum() {
+        assert!(matches!(
+            WavePm::new(crate::error::MAX_PERIOD + 1, 3),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }
