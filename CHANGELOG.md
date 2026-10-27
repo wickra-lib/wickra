@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`MaxDrawdown` updates in amortised O(1).** Its docs said so, but every
+  `update` rescanned the whole window, O(period) per value. It now keeps the
+  window's running peaks with the low of each one's segment, rebuilding the
+  older half every `period` updates. The values are bit for bit the same.
+
 ## [2.0.0] - 2026-10-06
 
 Formula audit. Every one of the 514 indicators was checked against its published

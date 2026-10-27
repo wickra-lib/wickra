@@ -1,7 +1,5 @@
 //! Maximum Drawdown over a rolling window.
 
-use std::collections::VecDeque;
-
 use crate::error::{Error, Result};
 use crate::traits::Indicator;
 
@@ -17,14 +15,24 @@ use crate::traits::Indicator;
 /// MaxDrawdown = min(drawdown_t over window)        (most-negative value)
 /// ```
 ///
+/// `peak_t` is the running maximum from the oldest value in the window up to
+/// `t`, and only a positive peak counts.
+///
 /// Output is the magnitude of the worst drawdown as a non-negative fraction
 /// (`0.20` = 20 % drop from peak). A monotonically rising equity curve has a
 /// max drawdown of `0`. Setting `period` greater than or equal to the number of
 /// bars you will ever feed makes the metric effectively *cumulative* — the
 /// indicator never forgets the global peak.
 ///
-/// Each `update` is amortised O(1): the running peak is tracked with a
-/// monotonically-decreasing deque.
+/// Each `update` is amortised O(1). Within the window the running peaks split
+/// the values into segments, each a peak followed by the values below it, and a
+/// segment's deepest drawdown is `(peak − low) / peak`. The window is held as
+/// two halves: the older one is rebuilt from the newer one every `period`
+/// updates, storing for each value the peak and worst drawdown from it to the
+/// end of the half, and the newer one keeps its own running peaks with the low
+/// of each segment. Because the subtraction and the division both round
+/// monotonically, the result is bit for bit the one a rescan of the window
+/// gives.
 ///
 /// # Example
 ///
@@ -41,12 +49,58 @@ use crate::traits::Indicator;
 #[derive(Debug, Clone)]
 pub struct MaxDrawdown {
     period: usize,
-    count: u64,
-    /// Monotonically-decreasing deque of `(index, value)` over the trailing
-    /// window. Front is the trailing peak in O(1).
-    peak_dq: VecDeque<(u64, f64)>,
-    window: VecDeque<f64>,
+    /// Older half of the window, oldest value last so `pop` drops it.
+    front: Vec<FrontEntry>,
+    /// Newer half of the window, in arrival order.
+    back: Vec<f64>,
+    /// Running peaks of `back`, each with the low of its segment.
+    records: Vec<Record>,
+    /// First record above the front's peak; the records before it sit in the
+    /// segment of that peak.
+    cursor: usize,
+    /// Worst drawdown among the closed records from `cursor` on (the last
+    /// record's segment is still open).
+    closed_worst: f64,
+    /// Running peaks of the run walked so far while rebuilding `front`.
+    scratch: Vec<Segment>,
     last: Option<f64>,
+}
+
+/// One value of the older half.
+#[derive(Debug, Clone, Copy)]
+struct FrontEntry {
+    /// Highest value from this one to the newest of the older half.
+    peak: f64,
+    /// Max drawdown of the run from this value to the newest of the older half.
+    worst: f64,
+}
+
+/// A running peak of the newer half.
+#[derive(Debug, Clone, Copy)]
+struct Record {
+    peak: f64,
+    /// Lowest value from the peak up to the next running peak.
+    low: f64,
+    /// Lowest value of the newer half up to the next running peak.
+    low_so_far: f64,
+}
+
+/// A running peak of the run walked while rebuilding the older half.
+#[derive(Debug, Clone, Copy)]
+struct Segment {
+    peak: f64,
+    low: f64,
+    /// Max drawdown of the run from this peak to the newest of the older half.
+    worst: f64,
+}
+
+/// Drawdown of `low` from `peak`; a non-positive peak counts as none.
+fn drawdown(peak: f64, low: f64) -> f64 {
+    if peak > 0.0 {
+        (peak - low) / peak
+    } else {
+        0.0
+    }
 }
 
 impl MaxDrawdown {
@@ -65,9 +119,12 @@ impl MaxDrawdown {
         }
         Ok(Self {
             period,
-            count: 0,
-            peak_dq: VecDeque::with_capacity(period),
-            window: VecDeque::with_capacity(period),
+            front: Vec::new(),
+            back: Vec::new(),
+            records: Vec::new(),
+            cursor: 0,
+            closed_worst: 0.0,
+            scratch: Vec::new(),
             last: None,
         })
     }
@@ -81,6 +138,86 @@ impl MaxDrawdown {
     pub const fn value(&self) -> Option<f64> {
         self.last
     }
+
+    fn push_back(&mut self, value: f64) {
+        self.back.push(value);
+        if let Some(open) = self.records.last_mut().filter(|r| value <= r.peak) {
+            open.low = open.low.min(value);
+            open.low_so_far = open.low_so_far.min(value);
+            return;
+        }
+        let mut low_so_far = value;
+        if let Some(closed) = self.records.last() {
+            low_so_far = low_so_far.min(closed.low_so_far);
+            if self.cursor < self.records.len() {
+                self.closed_worst = self.closed_worst.max(drawdown(closed.peak, closed.low));
+            }
+        }
+        self.records.push(Record {
+            peak: value,
+            low: value,
+            low_so_far,
+        });
+    }
+
+    /// Move the newer half into the older one, walking it newest first.
+    fn refill_front(&mut self) {
+        self.scratch.clear();
+        let mut peak = f64::NEG_INFINITY;
+        for &value in self.back.iter().rev() {
+            // Running peaks no higher than `value` fall into its segment.
+            let mut low = value;
+            while let Some(seg) = self.scratch.last().copied().filter(|s| s.peak <= value) {
+                low = low.min(seg.low);
+                self.scratch.pop();
+            }
+            let worst = self
+                .scratch
+                .last()
+                .map_or(0.0, |s| s.worst)
+                .max(drawdown(value, low));
+            self.scratch.push(Segment {
+                peak: value,
+                low,
+                worst,
+            });
+            peak = peak.max(value);
+            self.front.push(FrontEntry { peak, worst });
+        }
+        self.back.clear();
+        self.records.clear();
+        self.cursor = 0;
+        self.closed_worst = 0.0;
+    }
+
+    fn worst(&mut self) -> f64 {
+        let (peak, front_worst) = self
+            .front
+            .last()
+            .map_or((f64::NEG_INFINITY, 0.0), |e| (e.peak, e.worst));
+        // The front's peak only falls between refills, so the cursor only
+        // moves left, except past a new open record the peak still covers.
+        while self.cursor < self.records.len() && self.records[self.cursor].peak <= peak {
+            self.cursor += 1;
+        }
+        while self.cursor > 0 && self.records[self.cursor - 1].peak > peak {
+            self.cursor -= 1;
+            if self.cursor + 1 < self.records.len() {
+                let r = self.records[self.cursor];
+                self.closed_worst = self.closed_worst.max(drawdown(r.peak, r.low));
+            }
+        }
+        let mut worst = front_worst.max(self.closed_worst);
+        if self.cursor < self.records.len() {
+            let open = self.records[self.records.len() - 1];
+            worst = worst.max(drawdown(open.peak, open.low));
+        }
+        if self.cursor > 0 {
+            // The values before the cursor still have the front's peak.
+            worst = worst.max(drawdown(peak, self.records[self.cursor - 1].low_so_far));
+        }
+        worst
+    }
 }
 
 impl Indicator for MaxDrawdown {
@@ -91,55 +228,27 @@ impl Indicator for MaxDrawdown {
         if !input.is_finite() {
             return None;
         }
-        self.count += 1;
-        // Drop tail entries dominated by the new value (running peak from the
-        // back side of the window).
-        while let Some(&(_, back)) = self.peak_dq.back() {
-            if back <= input {
-                self.peak_dq.pop_back();
-            } else {
-                break;
+        self.push_back(input);
+        if self.front.len() + self.back.len() > self.period {
+            if self.front.is_empty() {
+                self.refill_front();
             }
+            self.front.pop();
         }
-        self.peak_dq.push_back((self.count, input));
-        // Window slide.
-        if self.window.len() == self.period {
-            self.window.pop_front();
-        }
-        self.window.push_back(input);
-        let window_lo = self.count.saturating_sub(self.period as u64 - 1);
-        while let Some(&(idx, _)) = self.peak_dq.front() {
-            if idx < window_lo {
-                self.peak_dq.pop_front();
-            } else {
-                break;
-            }
-        }
-        if self.window.len() < self.period {
+        if self.front.len() + self.back.len() < self.period {
             return None;
         }
-        // Scan the window for the deepest drawdown vs running peak so far.
-        let mut peak = f64::NEG_INFINITY;
-        let mut worst = 0.0_f64;
-        for &v in &self.window {
-            if v > peak {
-                peak = v;
-            }
-            if peak > 0.0 {
-                let dd = (peak - v) / peak;
-                if dd > worst {
-                    worst = dd;
-                }
-            }
-        }
+        let worst = self.worst();
         self.last = Some(worst);
         Some(worst)
     }
 
     fn reset(&mut self) {
-        self.count = 0;
-        self.peak_dq.clear();
-        self.window.clear();
+        self.front.clear();
+        self.back.clear();
+        self.records.clear();
+        self.cursor = 0;
+        self.closed_worst = 0.0;
         self.last = None;
     }
 
@@ -164,6 +273,35 @@ mod tests {
     use super::*;
     use crate::traits::BatchExt;
     use approx::assert_relative_eq;
+
+    /// The definition, rescanning every window.
+    fn rescan(prices: &[f64], period: usize) -> Vec<Option<f64>> {
+        (0..prices.len())
+            .map(|i| {
+                if i + 1 < period {
+                    return None;
+                }
+                let mut peak = f64::NEG_INFINITY;
+                let mut worst = 0.0_f64;
+                for &v in &prices[i + 1 - period..=i] {
+                    if v > peak {
+                        peak = v;
+                    }
+                    if peak > 0.0 {
+                        let dd = (peak - v) / peak;
+                        if dd > worst {
+                            worst = dd;
+                        }
+                    }
+                }
+                Some(worst)
+            })
+            .collect()
+    }
+
+    fn bits(out: &[Option<f64>]) -> Vec<Option<u64>> {
+        out.iter().map(|v| v.map(f64::to_bits)).collect()
+    }
 
     #[test]
     fn new_rejects_zero_period() {
@@ -233,6 +371,17 @@ mod tests {
     }
 
     #[test]
+    fn reset_then_replay_matches_fresh() {
+        let prices: Vec<f64> = (0..90)
+            .map(|i| 100.0 + (f64::from(i) * 0.7).sin() * 15.0)
+            .collect();
+        let mut mdd = MaxDrawdown::new(8).unwrap();
+        let first = mdd.batch(&prices);
+        mdd.reset();
+        assert_eq!(bits(&mdd.batch(&prices)), bits(&first));
+    }
+
+    #[test]
     fn batch_equals_streaming() {
         let prices: Vec<f64> = (0..60)
             .map(|i| 100.0 + (f64::from(i) * 0.3).sin() * 10.0)
@@ -250,6 +399,41 @@ mod tests {
         let out = mdd.batch(&[0.0_f64; 6]);
         for v in out.into_iter().flatten() {
             assert_eq!(v, 0.0);
+        }
+    }
+
+    #[test]
+    fn matches_rescan_on_long_series() {
+        // Swings, a long slide (one segment spanning many refills), a negative
+        // stretch and a flat run, at periods from 1 to longer than a swing.
+        let mut prices: Vec<f64> = (0..1500)
+            .map(|i| 100.0 + (f64::from(i) * 0.05).sin() * 40.0 + (f64::from(i) * 0.9).cos() * 3.0)
+            .collect();
+        prices.extend((0..400).map(|i| 500.0 - f64::from(i)));
+        prices.extend((0..200).map(|i| -20.0 + (f64::from(i) * 0.4).sin() * 25.0));
+        prices.extend([42.0; 50]);
+        for period in [1, 2, 3, 7, 64, 250, 701] {
+            let got = MaxDrawdown::new(period).unwrap().batch(&prices);
+            assert_eq!(
+                bits(&got),
+                bits(&rescan(&prices, period)),
+                "period {period}"
+            );
+        }
+    }
+
+    proptest::proptest! {
+        #![proptest_config(proptest::test_runner::Config::with_cases(256))]
+        #[test]
+        fn matches_rescan_bit_for_bit(
+            period in 1usize..24,
+            // Whole numbers make ties and repeated peaks common.
+            ticks in proptest::collection::vec(-30i32..90, 0..300),
+            scale in proptest::sample::select(vec![1.0_f64, 0.37, 1e-3, 1e6]),
+        ) {
+            let prices: Vec<f64> = ticks.iter().map(|&t| f64::from(t) * scale).collect();
+            let got = MaxDrawdown::new(period).unwrap().batch(&prices);
+            proptest::prop_assert_eq!(bits(&got), bits(&rescan(&prices, period)));
         }
     }
 }
