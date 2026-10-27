@@ -332,4 +332,12 @@ mod tests {
         assert_eq!(s.update((1.0, 2.0)), None);
         assert!(s.update((2.0, 5.0)).is_some());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            SpearmanCorrelation::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

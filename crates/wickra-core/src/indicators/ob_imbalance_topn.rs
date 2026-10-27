@@ -192,4 +192,12 @@ mod tests {
         obi.reset();
         assert!(!obi.is_ready());
     }
+
+    #[test]
+    fn rejects_levels_above_maximum() {
+        assert!(matches!(
+            OrderBookImbalanceTopN::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

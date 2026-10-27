@@ -262,4 +262,12 @@ mod tests {
         // (1e308 - (-1e308)) overflows to +inf -> white_noise non-finite.
         assert_eq!(u.update(1e308), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            UniversalOscillator::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

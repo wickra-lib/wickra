@@ -308,4 +308,12 @@ mod tests {
         assert_eq!(out.len(), 3);
         assert!(out.iter().all(|b| b.direction == 1));
     }
+
+    #[test]
+    fn rejects_lines_above_maximum() {
+        assert!(matches!(
+            ThreeLineBreakBars::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

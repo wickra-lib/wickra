@@ -313,4 +313,12 @@ mod tests {
         let streamed: Vec<_> = prices.iter().map(|p| b.update(*p)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_chunks_above_maximum() {
+        assert!(matches!(
+            HurstExponent::new(4, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -256,4 +256,12 @@ mod tests {
         assert!(!dx.is_ready());
         assert_eq!(dx.update(candles[0]), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Dx::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

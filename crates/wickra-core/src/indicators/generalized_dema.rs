@@ -228,4 +228,12 @@ mod tests {
         assert!(!gd.is_ready());
         assert_eq!(gd.update(1.0), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            GeneralizedDema::new(crate::error::MAX_PERIOD + 1, 0.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

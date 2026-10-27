@@ -294,4 +294,12 @@ mod tests {
         // half / factor would equal the population stddev — we expect factor > 1.
         assert!(half / factor < half, "n−2 stderr must exceed n stddev");
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            StandardErrorBands::new(crate::error::MAX_PERIOD + 1, 2.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

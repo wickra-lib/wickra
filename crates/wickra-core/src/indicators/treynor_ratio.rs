@@ -217,4 +217,12 @@ mod tests {
         }
         assert_eq!(last, Some(0.0));
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            TreynorRatio::new(crate::error::MAX_PERIOD + 1, 0.001),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

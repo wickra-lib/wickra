@@ -255,4 +255,12 @@ mod tests {
         assert_eq!(d.update((2.0, 4.0)), None);
         assert!(d.update((3.0, 9.0)).is_some());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            DistanceSsd::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

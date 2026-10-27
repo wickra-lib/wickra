@@ -236,4 +236,12 @@ mod tests {
         let streamed: Vec<_> = rets.iter().map(|r| streamer.update(*r)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            M2Measure::new(crate::error::MAX_PERIOD + 1, 0.001, 0.02),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -350,4 +350,12 @@ mod tests {
         assert!(last.adx <= 100.0 + 1e-6);
         assert_relative_eq!(0.0_f64.max(last.adx), last.adx, epsilon = 1e-9);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Adx::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

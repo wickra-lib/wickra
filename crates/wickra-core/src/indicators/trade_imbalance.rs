@@ -199,4 +199,12 @@ mod tests {
         assert!(!ti.is_ready());
         assert_eq!(ti.update(trade(2.0, Side::Buy, 2)), None);
     }
+
+    #[test]
+    fn rejects_window_above_maximum() {
+        assert!(matches!(
+            TradeImbalance::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

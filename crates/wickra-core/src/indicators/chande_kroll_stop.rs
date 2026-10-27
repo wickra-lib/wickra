@@ -266,4 +266,12 @@ mod tests {
             candles.iter().map(|x| b.update(*x)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_stop_period_above_maximum() {
+        assert!(matches!(
+            ChandeKrollStop::new(5, 1.0, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

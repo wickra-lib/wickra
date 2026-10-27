@@ -203,4 +203,12 @@ mod tests {
         assert!(!z.is_ready());
         assert_eq!(z.update(tick(0.002)), None);
     }
+
+    #[test]
+    fn rejects_window_above_maximum() {
+        assert!(matches!(
+            FundingRateZScore::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

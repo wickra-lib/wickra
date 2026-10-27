@@ -264,4 +264,12 @@ mod tests {
         assert_eq!(frama.update(f64::NAN), None);
         assert_eq!(frama.update(f64::INFINITY), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Frama::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

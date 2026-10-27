@@ -246,4 +246,12 @@ mod tests {
         assert!(!mc.is_ready());
         assert!(mc.update(1.0).is_none());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            MedianChannel::new(crate::error::MAX_PERIOD + 1, 2.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -231,4 +231,12 @@ mod tests {
         // Window still [5, 1, 3] -> next real input slides to [1, 3, 8] -> median 3.
         assert_relative_eq!(mma.update(8.0).unwrap(), 3.0, epsilon = 1e-12);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            MedianMa::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

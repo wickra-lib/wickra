@@ -341,4 +341,12 @@ mod tests {
         assert_eq!(alma.update(f64::NAN), None);
         assert_eq!(alma.update(f64::INFINITY), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Alma::new(crate::error::MAX_PERIOD + 1, 0.85, 6.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

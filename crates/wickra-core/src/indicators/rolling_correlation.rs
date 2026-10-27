@@ -275,4 +275,12 @@ mod tests {
         assert_eq!(rc.update((2.0, 3.0)), None);
         assert!(rc.update((3.0, 5.0)).is_some());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            RollingCorrelation::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -225,4 +225,12 @@ mod tests {
         assert!(!p.is_ready());
         assert_eq!(p.update(candle(10.0, 11.0, 9.0, 0)), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Pgo::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

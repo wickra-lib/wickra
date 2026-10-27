@@ -277,4 +277,12 @@ mod tests {
             assert!(o.upper >= o.lower);
         }
     }
+
+    #[test]
+    fn rejects_k_above_maximum() {
+        assert!(matches!(
+            FractalChaosBands::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

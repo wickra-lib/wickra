@@ -232,4 +232,12 @@ mod tests {
         let streamed: Vec<_> = rets.iter().map(|r| streamer.update(*r)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            UpsidePotentialRatio::new(crate::error::MAX_PERIOD + 1, 0.001),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

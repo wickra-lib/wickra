@@ -255,4 +255,12 @@ mod tests {
         assert_eq!(s.update((2.0, 5.0)), None);
         assert!(s.update((3.0, 7.0)).is_some());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            BetaNeutralSpread::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

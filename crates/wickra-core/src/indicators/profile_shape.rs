@@ -296,4 +296,20 @@ mod tests {
         p.update(c(60.0, 40.0, 0.0));
         assert!(p.update(c(60.0, 40.0, 0.0)).is_some());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            ProfileShape::new(crate::error::MAX_PERIOD + 1, 24),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_bins_above_maximum() {
+        assert!(matches!(
+            ProfileShape::new(20, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

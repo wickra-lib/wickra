@@ -436,4 +436,12 @@ mod tests {
             proptest::prop_assert_eq!(bits(&got), bits(&rescan(&prices, period)));
         }
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            MaxDrawdown::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

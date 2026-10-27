@@ -266,4 +266,12 @@ mod tests {
         assert!(!pb.is_ready());
         assert!(pb.update(candle(10.0, 8.0, 9.0, 3)).is_none());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            ProjectionBands::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

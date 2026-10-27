@@ -314,4 +314,20 @@ mod tests {
         let streamed: Vec<_> = prices.iter().map(|p| b.update(*p)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_vol_period_above_maximum() {
+        assert!(matches!(
+            RegimeLabel::new(crate::error::MAX_PERIOD + 1, 20),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_lookback_above_maximum() {
+        assert!(matches!(
+            RegimeLabel::new(5, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

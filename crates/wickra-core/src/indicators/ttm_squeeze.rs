@@ -307,4 +307,12 @@ mod tests {
             assert!(o.squeeze == 0.0 || o.squeeze == 1.0);
         }
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            TtmSqueeze::new(crate::error::MAX_PERIOD + 1, 2.0, 1.5),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

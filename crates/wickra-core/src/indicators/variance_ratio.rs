@@ -302,4 +302,12 @@ mod tests {
         assert_eq!(vr.update((3.0, 0.0)), None);
         assert!(vr.update((4.0, 0.0)).is_some());
     }
+
+    #[test]
+    fn rejects_q_above_maximum() {
+        assert!(matches!(
+            VarianceRatio::new(4, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

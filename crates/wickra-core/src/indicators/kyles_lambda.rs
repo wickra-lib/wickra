@@ -324,4 +324,12 @@ mod tests {
         }
         assert_eq!(compared, BARS as usize - ind.warmup_period() + 1);
     }
+
+    #[test]
+    fn rejects_window_above_maximum() {
+        assert!(matches!(
+            KylesLambda::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

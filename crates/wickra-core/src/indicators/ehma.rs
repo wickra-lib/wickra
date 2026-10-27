@@ -208,4 +208,12 @@ mod tests {
         assert_relative_eq!(ehma.update(5.0).unwrap(), 5.0, epsilon = 1e-12);
         assert_relative_eq!(ehma.update(8.0).unwrap(), 8.0, epsilon = 1e-12);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Ehma::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

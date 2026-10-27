@@ -246,4 +246,12 @@ mod tests {
         assert_eq!(p.warmup_period(), 5);
         assert_eq!(p.name(), "TDPressure");
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            TdPressure::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

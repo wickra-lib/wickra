@@ -215,4 +215,12 @@ mod tests {
         let before = osc.current;
         assert_eq!(osc.update(0.0), before);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            TsfOscillator::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

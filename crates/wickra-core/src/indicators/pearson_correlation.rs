@@ -327,4 +327,12 @@ mod tests {
         assert_eq!(p.update((2.0, 5.0)), None);
         assert!(p.update((3.0, 7.0)).is_some());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            PearsonCorrelation::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

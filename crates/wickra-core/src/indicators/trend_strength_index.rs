@@ -281,4 +281,12 @@ mod tests {
         // Without this the assertion would pass on an indicator stuck at zero.
         assert!(saw_strong_trend);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            TrendStrengthIndex::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

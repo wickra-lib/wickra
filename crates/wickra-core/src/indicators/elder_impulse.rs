@@ -249,4 +249,12 @@ mod tests {
         elder.reset();
         assert!(!elder.is_ready());
     }
+
+    #[test]
+    fn rejects_ema_period_above_maximum() {
+        assert!(matches!(
+            ElderImpulse::new(crate::error::MAX_PERIOD + 1, 2, 4, 3),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

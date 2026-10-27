@@ -179,4 +179,12 @@ mod tests {
         assert!(!lr.is_ready());
         assert_eq!(lr.update(1.0), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            LinRegIntercept::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -236,4 +236,12 @@ mod tests {
         assert!(!osc.is_ready());
         assert_eq!(osc.update(1.0), None);
     }
+
+    #[test]
+    fn rejects_signal_above_maximum() {
+        assert!(matches!(
+            PpoHistogram::new(12, 26, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

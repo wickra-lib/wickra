@@ -292,4 +292,12 @@ mod tests {
         assert_relative_eq!(jma.update(10.0).unwrap(), 10.0, epsilon = 1e-12);
         assert_relative_eq!(jma.update(7.0).unwrap(), 7.0, epsilon = 1e-12);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Jma::new(crate::error::MAX_PERIOD + 1, 0.0, 2),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

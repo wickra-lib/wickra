@@ -244,4 +244,12 @@ mod tests {
         let streamed: Vec<_> = candles.iter().map(|c| b.update(*c)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            ModifiedMaStop::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

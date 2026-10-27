@@ -365,4 +365,12 @@ mod tests {
         let streamed: Vec<_> = candles.iter().map(|c| b.update(*c)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            ElderSafeZone::new(crate::error::MAX_PERIOD + 1, 2.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

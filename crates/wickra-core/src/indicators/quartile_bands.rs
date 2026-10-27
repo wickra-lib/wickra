@@ -205,4 +205,12 @@ mod tests {
         assert!(!qb.is_ready());
         assert!(qb.update(10.0).is_none());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            QuartileBands::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

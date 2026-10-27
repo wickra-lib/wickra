@@ -299,4 +299,12 @@ mod tests {
         assert_eq!(cols[0].direction, 1);
         assert_eq!(cols[1].direction, -1);
     }
+
+    #[test]
+    fn rejects_reversal_above_maximum() {
+        assert!(matches!(
+            PointAndFigureBars::new(0.5, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

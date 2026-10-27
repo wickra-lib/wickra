@@ -252,4 +252,12 @@ mod tests {
         assert_eq!(dm.warmup_period(), 15);
         assert_eq!(dm.name(), "TDDeMarker");
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            TdDeMarker::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

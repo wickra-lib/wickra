@@ -311,4 +311,12 @@ mod tests {
         let streamed: Vec<_> = prices.iter().map(|p| b.update(*p)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            HistoricalVolatility::new(crate::error::MAX_PERIOD + 1, 252),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

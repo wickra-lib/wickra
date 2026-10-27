@@ -167,4 +167,12 @@ mod tests {
         assert!(!r.is_ready());
         assert_eq!(r.update(10.0), None);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            Rocr100::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

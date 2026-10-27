@@ -409,4 +409,12 @@ mod tests {
         }
         assert!(g.update((4.0, 2.0)).is_some());
     }
+
+    #[test]
+    fn rejects_lag_above_maximum() {
+        assert!(matches!(
+            GrangerCausality::new(5, crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

@@ -252,4 +252,12 @@ mod tests {
             inputs.iter().map(|x| b.update(*x)).collect::<Vec<_>>()
         );
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            PolarizedFractalEfficiency::new(crate::error::MAX_PERIOD + 1, 5),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

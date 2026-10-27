@@ -260,4 +260,12 @@ mod tests {
         ib.update(c(101.0, 99.0, 0));
         assert!(ib.is_ready());
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            InitialBalance::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

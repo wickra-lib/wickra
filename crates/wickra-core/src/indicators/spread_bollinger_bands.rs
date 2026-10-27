@@ -284,4 +284,12 @@ mod tests {
         let streamed: Vec<_> = pairs.iter().map(|p| bb.update(*p)).collect();
         assert_eq!(batch, streamed);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            SpreadBollingerBands::new(crate::error::MAX_PERIOD + 1, 2.0),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }

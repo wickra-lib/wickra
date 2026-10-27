@@ -320,4 +320,12 @@ mod tests {
         let last = csr.batch(&returns).into_iter().flatten().last().unwrap();
         assert_relative_eq!(last, 0.0, epsilon = 1e-12);
     }
+
+    #[test]
+    fn rejects_period_above_maximum() {
+        assert!(matches!(
+            CommonSenseRatio::new(crate::error::MAX_PERIOD + 1),
+            Err(Error::InvalidPeriod { .. })
+        ));
+    }
 }
