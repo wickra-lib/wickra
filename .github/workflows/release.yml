@@ -1128,17 +1128,23 @@ jobs:
       # the jobs behind it (assets, provenance, the GitHub Release) never run.
       - name: Skip the deploy when this version is already on Maven Central
         id: central
-        shell: bash
-        run: |
-          version=$(mvn -B -q -f bindings/java help:evaluate -Dexpression=project.version -DforceStdout)
-          url="https://repo1.maven.org/maven2/org/wickra/wickra/${version}/wickra-${version}.pom"
-          if curl -sSf -o /dev/null "$url"; then
-            echo "skip: org.wickra:wickra:${version} is already on Maven Central"
-            echo "published=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "org.wickra:wickra:${version} is not on Maven Central yet"
-            echo "published=false" >> "$GITHUB_OUTPUT"
-          fi
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 30
+          max_attempts: 2
+          retry_wait_seconds: 30
+          shell: bash
+          command: |
+            set -eo pipefail
+            version=$(mvn -B -q -f bindings/java help:evaluate -Dexpression=project.version -DforceStdout)
+            url="https://repo1.maven.org/maven2/org/wickra/wickra/${version}/wickra-${version}.pom"
+            if curl -sSf -o /dev/null "$url"; then
+              echo "skip: org.wickra:wickra:${version} is already on Maven Central"
+              echo "published=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "org.wickra:wickra:${version} is not on Maven Central yet"
+              echo "published=false" >> "$GITHUB_OUTPUT"
+            fi
       - name: Deploy to Maven Central
         if: steps.central.outputs.published != 'true'
         env:
@@ -1150,7 +1156,13 @@ jobs:
       # deployed it.
       - name: Build the jar when the deploy was skipped
         if: steps.central.outputs.published == 'true'
-        run: mvn -B -f bindings/java package -DskipTests
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 30
+          max_attempts: 2
+          retry_wait_seconds: 30
+          shell: bash
+          command: mvn -B -f bindings/java package -DskipTests
 
       # `deploy` packages before it uploads, so the signed jar is already under
       # target/. Only the main artefact is kept: the sources and javadoc jars
