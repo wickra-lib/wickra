@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-28
+
+A minor release: one new indicator, `RunningDrawdown`, and `MaxDrawdown` in
+amortised O(1). Every other indicator computes exactly what it did in 2.0.0.
+
 ### Added
 
 - **`RunningDrawdown`.** Since-inception maximum drawdown over an unbounded stream, in
@@ -23,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `update` rescanned the whole window, O(period) per value. It now keeps the
   window's running peaks with the low of each one's segment, rebuilding the
   older half every `period` updates. The values are bit for bit the same.
+
+### Security
+
+- **tokio 1.53.3** in the lockfile, for RUSTSEC-2026-0386. tokio reaches the
+  graph through `wickra-data`'s live feeds and the bindings' stream wrappers.
 
 ## [2.0.0] - 2026-10-06
 
@@ -4027,7 +4037,8 @@ public API changes.
   optional Binance live feed.
 - Bindings for Python, Node.js, and WebAssembly.
 
-[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/wickra-lib/wickra/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/wickra-lib/wickra/compare/v1.0.7...v2.0.0
 [1.0.7]: https://github.com/wickra-lib/wickra/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/wickra-lib/wickra/compare/v1.0.5...v1.0.6
