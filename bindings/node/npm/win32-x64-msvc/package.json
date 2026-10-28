@@ -1,6 +1,6 @@
 {
   "name": "wickra-win32-x64-msvc",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Native binding for wickra (Windows x64 MSVC). Installed automatically as an optional dependency of wickra on matching platforms.",
   "main": "wickra.win32-x64-msvc.node",
   "files": [
