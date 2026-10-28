@@ -1500,10 +1500,10 @@ mod tests {
         }
         for &x in &[101.5, 99.25, 100.75, 104.0] {
             let (u, v) = (exact.update(x).unwrap(), fast.update(x).unwrap());
+            let name = ind.name();
             assert!(
                 (u - v).abs() / u.abs().max(1.0) <= tol,
-                "{} continuation",
-                ind.name()
+                "{name} continuation"
             );
         }
     }
@@ -1513,11 +1513,11 @@ mod tests {
     where
         I: Indicator<Input = f64, Output = f64> + Clone,
     {
+        let name = ind.name();
         assert_eq!(
             bits(&ind.clone().batch_fast(xs)),
             bits(&ind.clone().batch_nan(xs)),
-            "{}",
-            ind.name()
+            "{name}"
         );
     }
 

@@ -316,4 +316,16 @@ mod tests {
         assert_eq!(hw.update(f64::NAN), None);
         assert_eq!(hw.update(f64::INFINITY), None);
     }
+
+    #[test]
+    fn value_is_the_last_forecast() {
+        let mut hw = HoltWinters::new(0.2, 0.1).unwrap();
+        assert_eq!(hw.value(), None);
+        hw.update(10.0);
+        assert_eq!(hw.value(), None);
+        let seeded = hw.update(12.0);
+        assert_eq!(hw.value(), seeded);
+        let next = hw.update(13.0);
+        assert_eq!(hw.value(), next);
+    }
 }

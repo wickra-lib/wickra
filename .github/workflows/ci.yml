@@ -1404,16 +1404,28 @@ jobs:
           shell: bash
 
       - name: Build the Java examples
-        run: mvn -B -f examples/java compile
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 30
+          max_attempts: 2
+          retry_wait_seconds: 30
+          shell: bash
+          command: mvn -B -f examples/java compile
 
       # Run only the offline examples (fetch_btcusdt / live_binance need network).
       - name: Run the offline Java examples
-        shell: bash
-        run: |
-          for cls in Streaming Backtest MultiTimeframe ParallelAssets \
-                     StrategyRsiMeanReversion StrategyMacdAdx StrategyBollingerSqueeze; do
-            mvn -B -q -f examples/java exec:exec -Dexec.mainClass="org.wickra.examples.$cls"
-          done
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 30
+          max_attempts: 2
+          retry_wait_seconds: 30
+          shell: bash
+          command: |
+            set -eo pipefail
+            for cls in Streaming Backtest MultiTimeframe ParallelAssets \
+                       StrategyRsiMeanReversion StrategyMacdAdx StrategyBollingerSqueeze; do
+              mvn -B -q -f examples/java exec:exec -Dexec.mainClass="org.wickra.examples.$cls"
+            done
 
   # Build a Python wheel inside both the manylinux and the musllinux container,
   # mirroring the Linux wheel build in release.yml. The 3-OS Python jobs build

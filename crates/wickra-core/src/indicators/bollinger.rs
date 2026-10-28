@@ -170,12 +170,11 @@ impl BollingerBands {
             if head == p {
                 head = 0;
             }
+            // A reseed is due every `p` pushes and the first `p` pushes fill
+            // the window, so it only ever runs on a full one: oldest at `head`.
             if moments.needs_reseed(p) {
-                let (older, newer) = if count == p {
-                    (&buf[head..], &buf[..head])
-                } else {
-                    (&buf[..count], &buf[..0])
-                };
+                debug_assert_eq!(count, p);
+                let (newer, older) = buf.split_at(head);
                 moments.reseed(older.iter().chain(newer).copied());
             }
             if count == p {
@@ -278,12 +277,11 @@ impl Indicator for BollingerBands {
         if self.moments.needs_reseed(self.period) {
             // Reseed in chronological order (oldest at `head`) so the accumulator
             // matches a fresh from-scratch pass and the reference point is
-            // re-anchored on the live window.
-            let (older, newer) = if self.count == self.period {
-                (&self.buf[self.head..], &self.buf[..self.head])
-            } else {
-                (&self.buf[..self.count], &self.buf[..0])
-            };
+            // re-anchored on the live window. A reseed is due every `period`
+            // pushes and the first `period` pushes fill the window, so the
+            // window is always full here.
+            debug_assert_eq!(self.count, self.period);
+            let (newer, older) = self.buf.split_at(self.head);
             self.moments.reseed(older.iter().chain(newer).copied());
         }
         self.current()

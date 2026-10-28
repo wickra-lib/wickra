@@ -155,19 +155,16 @@ mod tests {
         // the first value arrives, so it has to equal what update emits.
         let mut ind = VolumeByTimeProfile::new(6, 0).unwrap();
         let width = ind.width();
-        let mut emitted = 0;
         for i in 0..40 {
             #[allow(clippy::cast_precision_loss)]
             let step = i as f64;
             let price = 100.0 + step;
             let candle =
                 Candle::new(price, price + 1.0, price - 1.0, price, 10.0, i * 3_600_000).unwrap();
-            if let Some(out) = ind.update(candle) {
-                assert_eq!(out.bins.len(), width);
-                emitted += 1;
-            }
+            // Warmup is one candle, so every update emits a profile.
+            let out = ind.update(candle).expect("warmup is a single candle");
+            assert_eq!(out.bins.len(), width);
         }
-        assert!(emitted > 0, "the fixture must clear warmup");
     }
     use crate::traits::BatchExt;
     use approx::assert_relative_eq;
