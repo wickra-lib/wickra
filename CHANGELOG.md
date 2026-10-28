@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-10-28
+
+A patch release that brings the Java binding to Maven Central. The indicators,
+the bindings and every other registry's artefacts are the same as in 2.1.0.
+
+### Fixed
+
+- **`central-publishing-maven-plugin` 0.12.0** for the Java binding. Since
+  early October the GitHub runners carry Maven 3.10.0, which writes
+  `maven-metadata-local.xml` and `_remote.repositories` into the staging
+  directory; 0.11.0 bundles them, and Central rejected the 2.1.0 deployment
+  with "Bundle has content that does NOT have a .pom file". 2.1.0 is therefore
+  not on Maven Central and has no GitHub Release; 2.1.1 carries both.
+
 ## [2.1.0] - 2026-10-28
 
 A minor release: one new indicator, `RunningDrawdown`, and `MaxDrawdown` in
@@ -4037,7 +4051,8 @@ public API changes.
   optional Binance live feed.
 - Bindings for Python, Node.js, and WebAssembly.
 
-[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/wickra-lib/wickra/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/wickra-lib/wickra/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/wickra-lib/wickra/compare/v1.0.7...v2.0.0
 [1.0.7]: https://github.com/wickra-lib/wickra/compare/v1.0.6...v1.0.7
