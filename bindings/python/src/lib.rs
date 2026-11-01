@@ -486,7 +486,7 @@ type IchimokuLines = (
 
 // ============================== SMA ==============================
 
-#[pyclass(name = "SMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySma {
     inner: wc::Sma,
@@ -541,7 +541,7 @@ impl PySma {
 
 // ============================== EMA ==============================
 
-#[pyclass(name = "EMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "EMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEma {
     inner: wc::Ema,
@@ -600,7 +600,7 @@ impl PyEma {
 
 // ============================== WMA ==============================
 
-#[pyclass(name = "WMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "WMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWma {
     inner: wc::Wma,
@@ -655,7 +655,7 @@ impl PyWma {
 
 // ============================== RSI ==============================
 
-#[pyclass(name = "RSI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RSI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRsi {
     inner: wc::Rsi,
@@ -711,7 +711,7 @@ impl PyRsi {
 
 // ============================== MACD ==============================
 
-#[pyclass(name = "MACD", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MACD", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMacd {
     inner: wc::MacdIndicator,
@@ -771,11 +771,7 @@ impl PyMacd {
 
 // ============================== Bollinger Bands ==============================
 
-#[pyclass(
-    name = "BollingerBands",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "BollingerBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBb {
     inner: wc::BollingerBands,
@@ -873,7 +869,7 @@ fn extract_candle(d: &Bound<'_, PyAny>) -> PyResult<wc::Candle> {
     ))
 }
 
-#[pyclass(name = "ATR", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ATR", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAtr {
     inner: wc::Atr,
@@ -967,7 +963,7 @@ impl PyAtr {
 
 // ============================== Plus DM ==============================
 
-#[pyclass(name = "PLUS_DM", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PLUS_DM", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPlusDm {
     inner: wc::PlusDm,
@@ -1033,7 +1029,7 @@ impl PyPlusDm {
 
 // ============================== Minus DM ==============================
 
-#[pyclass(name = "MINUS_DM", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MINUS_DM", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMinusDm {
     inner: wc::MinusDm,
@@ -1099,7 +1095,7 @@ impl PyMinusDm {
 
 // ============================== PlusDi ==============================
 
-#[pyclass(name = "PLUS_DI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PLUS_DI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPlusDi {
     inner: wc::PlusDi,
@@ -1165,7 +1161,7 @@ impl PyPlusDi {
 
 // ============================== MinusDi ==============================
 
-#[pyclass(name = "MINUS_DI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MINUS_DI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMinusDi {
     inner: wc::MinusDi,
@@ -1231,7 +1227,7 @@ impl PyMinusDi {
 
 // ============================== Dx ==============================
 
-#[pyclass(name = "DX", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDx {
     inner: wc::Dx,
@@ -1297,7 +1293,7 @@ impl PyDx {
 
 // ============================== MidPrice ==============================
 
-#[pyclass(name = "MIDPRICE", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MIDPRICE", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMidPrice {
     inner: wc::MidPrice,
@@ -1363,7 +1359,7 @@ impl PyMidPrice {
 
 // ============================== MidPoint ==============================
 
-#[pyclass(name = "MIDPOINT", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MIDPOINT", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMidPoint {
     inner: wc::MidPoint,
@@ -1413,7 +1409,7 @@ impl PyMidPoint {
 
 // ============================== Avg Price ==============================
 
-#[pyclass(name = "AVGPRICE", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AVGPRICE", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAvgPrice {
     inner: wc::AvgPrice,
@@ -1476,7 +1472,7 @@ impl PyAvgPrice {
 
 // ============================== Rocp ==============================
 
-#[pyclass(name = "ROCP", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ROCP", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRocp {
     inner: wc::Rocp,
@@ -1526,7 +1522,7 @@ impl PyRocp {
 
 // ============================== Rocr ==============================
 
-#[pyclass(name = "ROCR", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ROCR", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRocr {
     inner: wc::Rocr,
@@ -1576,7 +1572,7 @@ impl PyRocr {
 
 // ============================== Rocr100 ==============================
 
-#[pyclass(name = "ROCR100", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ROCR100", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRocr100 {
     inner: wc::Rocr100,
@@ -1626,11 +1622,7 @@ impl PyRocr100 {
 
 // ============================== LinRegIntercept ==============================
 
-#[pyclass(
-    name = "LINEARREG_INTERCEPT",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "LINEARREG_INTERCEPT", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLinRegIntercept {
     inner: wc::LinRegIntercept,
@@ -1680,7 +1672,7 @@ impl PyLinRegIntercept {
 
 // ============================== Tsf ==============================
 
-#[pyclass(name = "TSF", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TSF", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTsf {
     inner: wc::Tsf,
@@ -1730,7 +1722,7 @@ impl PyTsf {
 
 // ============================== MACD Fix ==============================
 
-#[pyclass(name = "MACDFIX", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MACDFIX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMacdFix {
     inner: wc::MacdFix,
@@ -1791,7 +1783,7 @@ impl PyMacdFix {
 
 // ============================== SAR Extended ==============================
 
-#[pyclass(name = "SAREXT", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SAREXT", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySarExt {
     inner: wc::SarExt,
@@ -1882,7 +1874,7 @@ impl PySarExt {
 
 // ============================== MACD Extended ==============================
 
-#[pyclass(name = "MACDEXT", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MACDEXT", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMacdExt {
     inner: wc::MacdExt,
@@ -1962,7 +1954,7 @@ impl PyMacdExt {
 
 // ============================== HT Phasor ==============================
 
-#[pyclass(name = "HT_PHASOR", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HT_PHASOR", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHtPhasor {
     inner: wc::HtPhasor,
@@ -2014,7 +2006,7 @@ impl PyHtPhasor {
 
 // ============================== LogReturn ==============================
 
-#[pyclass(name = "LogReturn", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "LogReturn", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLogReturn {
     inner: wc::LogReturn,
@@ -2064,11 +2056,7 @@ impl PyLogReturn {
 
 // ============================== RealizedVolatility ==============================
 
-#[pyclass(
-    name = "RealizedVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RealizedVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRealizedVolatility {
     inner: wc::RealizedVolatility,
@@ -2118,7 +2106,7 @@ impl PyRealizedVolatility {
 
 // ============================== RollingIqr ==============================
 
-#[pyclass(name = "RollingIqr", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RollingIqr", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRollingIqr {
     inner: wc::RollingIqr,
@@ -2168,11 +2156,7 @@ impl PyRollingIqr {
 
 // ============================== RollingPercentileRank ==============================
 
-#[pyclass(
-    name = "RollingPercentileRank",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RollingPercentileRank", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRollingPercentileRank {
     inner: wc::RollingPercentileRank,
@@ -2222,11 +2206,7 @@ impl PyRollingPercentileRank {
 
 // ============================== RollingQuantile ==============================
 
-#[pyclass(
-    name = "RollingQuantile",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RollingQuantile", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRollingQuantile {
     inner: wc::RollingQuantile,
@@ -2284,7 +2264,7 @@ impl PyRollingQuantile {
 
 // ============================== CloseVsOpen ==============================
 
-#[pyclass(name = "CloseVsOpen", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "CloseVsOpen", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCloseVsOpen {
     inner: wc::CloseVsOpen,
@@ -2347,7 +2327,7 @@ impl PyCloseVsOpen {
 
 // ============================== BodySizePct ==============================
 
-#[pyclass(name = "BodySizePct", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "BodySizePct", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBodySizePct {
     inner: wc::BodySizePct,
@@ -2410,7 +2390,7 @@ impl PyBodySizePct {
 
 // ============================== WickRatio ==============================
 
-#[pyclass(name = "WickRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "WickRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWickRatio {
     inner: wc::WickRatio,
@@ -2473,7 +2453,7 @@ impl PyWickRatio {
 
 // ============================== HighLowRange ==============================
 
-#[pyclass(name = "HighLowRange", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HighLowRange", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHighLowRange {
     inner: wc::HighLowRange,
@@ -2536,7 +2516,7 @@ impl PyHighLowRange {
 
 // ============================== TrendLabel ==============================
 
-#[pyclass(name = "TrendLabel", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TrendLabel", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTrendLabel {
     inner: wc::TrendLabel,
@@ -2586,7 +2566,7 @@ impl PyTrendLabel {
 
 // ============================== JumpIndicator ==============================
 
-#[pyclass(name = "JumpIndicator", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "JumpIndicator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyJumpIndicator {
     inner: wc::JumpIndicator,
@@ -2641,7 +2621,7 @@ impl PyJumpIndicator {
 
 // ============================== RegimeLabel ==============================
 
-#[pyclass(name = "RegimeLabel", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RegimeLabel", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRegimeLabel {
     inner: wc::RegimeLabel,
@@ -2696,7 +2676,7 @@ impl PyRegimeLabel {
 
 // ============================== WinRate ==============================
 
-#[pyclass(name = "WinRate", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "WinRate", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWinRate {
     inner: wc::WinRate,
@@ -2746,7 +2726,7 @@ impl PyWinRate {
 
 // ============================== Expectancy ==============================
 
-#[pyclass(name = "Expectancy", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Expectancy", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyExpectancy {
     inner: wc::Expectancy,
@@ -2796,7 +2776,7 @@ impl PyExpectancy {
 
 // ============================== SineWeightedMa ==============================
 
-#[pyclass(name = "SWMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SWMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySineWeightedMa {
     inner: wc::SineWeightedMa,
@@ -2846,7 +2826,7 @@ impl PySineWeightedMa {
 
 // ============================== GeometricMa ==============================
 
-#[pyclass(name = "GMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "GMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGeometricMa {
     inner: wc::GeometricMa,
@@ -2896,7 +2876,7 @@ impl PyGeometricMa {
 
 // ============================== Ehma ==============================
 
-#[pyclass(name = "EHMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "EHMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEhma {
     inner: wc::Ehma,
@@ -2946,7 +2926,7 @@ impl PyEhma {
 
 // ============================== MedianMa ==============================
 
-#[pyclass(name = "MedianMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MedianMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMedianMa {
     inner: wc::MedianMa,
@@ -2996,11 +2976,7 @@ impl PyMedianMa {
 
 // ============================== AdaptiveLaguerreFilter ==============================
 
-#[pyclass(
-    name = "AdaptiveLaguerre",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AdaptiveLaguerre", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdaptiveLaguerreFilter {
     inner: wc::AdaptiveLaguerreFilter,
@@ -3050,11 +3026,7 @@ impl PyAdaptiveLaguerreFilter {
 
 // ============================== DisparityIndex ==============================
 
-#[pyclass(
-    name = "DisparityIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "DisparityIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDisparityIndex {
     inner: wc::DisparityIndex,
@@ -3104,7 +3076,7 @@ impl PyDisparityIndex {
 
 // ============================== FisherRsi ==============================
 
-#[pyclass(name = "FisherRSI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FisherRSI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFisherRsi {
     inner: wc::FisherRsi,
@@ -3154,7 +3126,7 @@ impl PyFisherRsi {
 
 // ============================== Rsx ==============================
 
-#[pyclass(name = "RSX", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RSX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRsx {
     inner: wc::Rsx,
@@ -3204,11 +3176,7 @@ impl PyRsx {
 
 // ============================== DynamicMomentumIndex ==============================
 
-#[pyclass(
-    name = "DynamicMomentumIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "DynamicMomentumIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDynamicMomentumIndex {
     inner: wc::DynamicMomentumIndex,
@@ -3258,7 +3226,7 @@ impl PyDynamicMomentumIndex {
 
 // ============================== StochasticCci ==============================
 
-#[pyclass(name = "StochasticCCI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "StochasticCCI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStochasticCci {
     inner: wc::StochasticCci,
@@ -3324,7 +3292,7 @@ impl PyStochasticCci {
 
 // ============================== TtmTrend ==============================
 
-#[pyclass(name = "TTM_TREND", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TTM_TREND", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTtmTrend {
     inner: wc::TtmTrend,
@@ -3390,11 +3358,7 @@ impl PyTtmTrend {
 
 // ============================== TrendStrengthIndex ==============================
 
-#[pyclass(
-    name = "TREND_STRENGTH_INDEX",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TREND_STRENGTH_INDEX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTrendStrengthIndex {
     inner: wc::TrendStrengthIndex,
@@ -3444,7 +3408,7 @@ impl PyTrendStrengthIndex {
 
 // ============================== Qstick ==============================
 
-#[pyclass(name = "Qstick", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Qstick", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyQstick {
     inner: wc::Qstick,
@@ -3506,11 +3470,7 @@ impl PyQstick {
 
 // ============================== PolarizedFractalEfficiency ==============================
 
-#[pyclass(
-    name = "POLARIZED_FRACTAL_EFFICIENCY",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "POLARIZED_FRACTAL_EFFICIENCY", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPolarizedFractalEfficiency {
     inner: wc::PolarizedFractalEfficiency,
@@ -3561,7 +3521,7 @@ impl PyPolarizedFractalEfficiency {
 
 // ============================== WavePm ==============================
 
-#[pyclass(name = "WAVE_PM", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "WAVE_PM", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWavePm {
     inner: wc::WavePm,
@@ -3612,11 +3572,7 @@ impl PyWavePm {
 
 // ============================== GatorOscillator ==============================
 
-#[pyclass(
-    name = "GatorOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "GatorOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGatorOscillator {
     inner: wc::GatorOscillator,
@@ -3681,11 +3637,7 @@ impl PyGatorOscillator {
 
 // ============================== KasePermissionStochastic ==============================
 
-#[pyclass(
-    name = "KasePermissionStochastic",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "KasePermissionStochastic", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKasePermissionStochastic {
     inner: wc::KasePermissionStochastic,
@@ -3749,7 +3701,7 @@ impl PyKasePermissionStochastic {
 
 // ============================== TsfOscillator ==============================
 
-#[pyclass(name = "TsfOscillator", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TsfOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTsfOscillator {
     inner: wc::TsfOscillator,
@@ -3799,7 +3751,7 @@ impl PyTsfOscillator {
 
 // ============================== MacdHistogram ==============================
 
-#[pyclass(name = "MacdHistogram", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MacdHistogram", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMacdHistogram {
     inner: wc::MacdHistogram,
@@ -3846,7 +3798,7 @@ impl PyMacdHistogram {
 
 // ============================== PpoHistogram ==============================
 
-#[pyclass(name = "PpoHistogram", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PpoHistogram", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPpoHistogram {
     inner: wc::PpoHistogram,
@@ -3893,11 +3845,7 @@ impl PyPpoHistogram {
 
 // ============================== BipowerVariation ==============================
 
-#[pyclass(
-    name = "BipowerVariation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "BipowerVariation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBipowerVariation {
     inner: wc::BipowerVariation,
@@ -3947,11 +3895,7 @@ impl PyBipowerVariation {
 
 // ============================== VolatilityRatio ==============================
 
-#[pyclass(
-    name = "VolatilityRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VolatilityRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolatilityRatio {
     inner: wc::VolatilityRatio,
@@ -4017,11 +3961,7 @@ impl PyVolatilityRatio {
 
 // ============================== ProjectionOscillator ==============================
 
-#[pyclass(
-    name = "ProjectionOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ProjectionOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyProjectionOscillator {
     inner: wc::ProjectionOscillator,
@@ -4087,7 +4027,7 @@ impl PyProjectionOscillator {
 
 // ============================== TimeBasedStop ==============================
 
-#[pyclass(name = "TimeBasedStop", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TimeBasedStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTimeBasedStop {
     inner: wc::TimeBasedStop,
@@ -4154,7 +4094,7 @@ impl PyTimeBasedStop {
 
 // ============================== JarqueBera ==============================
 
-#[pyclass(name = "JARQUEBERA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "JARQUEBERA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyJarqueBera {
     inner: wc::JarqueBera,
@@ -4204,7 +4144,7 @@ impl PyJarqueBera {
 
 // ============================== RollingMinMaxScaler ==============================
 
-#[pyclass(name = "ROLLINGMINMAX", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ROLLINGMINMAX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRollingMinMaxScaler {
     inner: wc::RollingMinMaxScaler,
@@ -4254,7 +4194,7 @@ impl PyRollingMinMaxScaler {
 
 // ============================== HighpassFilter ==============================
 
-#[pyclass(name = "HIGHPASS", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HIGHPASS", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHighpassFilter {
     inner: wc::HighpassFilter,
@@ -4304,7 +4244,7 @@ impl PyHighpassFilter {
 
 // ============================== Reflex ==============================
 
-#[pyclass(name = "REFLEX", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "REFLEX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyReflex {
     inner: wc::Reflex,
@@ -4354,7 +4294,7 @@ impl PyReflex {
 
 // ============================== Trendflex ==============================
 
-#[pyclass(name = "TRENDFLEX", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TRENDFLEX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTrendflex {
     inner: wc::Trendflex,
@@ -4404,7 +4344,7 @@ impl PyTrendflex {
 
 // ============================== CorrelationTrendIndicator ==============================
 
-#[pyclass(name = "CTI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "CTI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCorrelationTrendIndicator {
     inner: wc::CorrelationTrendIndicator,
@@ -4454,7 +4394,7 @@ impl PyCorrelationTrendIndicator {
 
 // ============================== AdaptiveRsi ==============================
 
-#[pyclass(name = "ADAPTIVERSI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ADAPTIVERSI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdaptiveRsi {
     inner: wc::AdaptiveRsi,
@@ -4504,7 +4444,7 @@ impl PyAdaptiveRsi {
 
 // ============================== UniversalOscillator ==============================
 
-#[pyclass(name = "UNIVERSALOSC", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "UNIVERSALOSC", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyUniversalOscillator {
     inner: wc::UniversalOscillator,
@@ -4554,7 +4494,7 @@ impl PyUniversalOscillator {
 
 // ============================== AdaptiveCci ==============================
 
-#[pyclass(name = "ADAPTIVECCI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ADAPTIVECCI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdaptiveCci {
     inner: wc::AdaptiveCci,
@@ -4620,7 +4560,7 @@ impl PyAdaptiveCci {
 
 // ============================== SterlingRatio ==============================
 
-#[pyclass(name = "SterlingRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SterlingRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySterlingRatio {
     inner: wc::SterlingRatio,
@@ -4670,7 +4610,7 @@ impl PySterlingRatio {
 
 // ============================== BurkeRatio ==============================
 
-#[pyclass(name = "BurkeRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "BurkeRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBurkeRatio {
     inner: wc::BurkeRatio,
@@ -4720,7 +4660,7 @@ impl PyBurkeRatio {
 
 // ============================== MartinRatio ==============================
 
-#[pyclass(name = "MartinRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MartinRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMartinRatio {
     inner: wc::MartinRatio,
@@ -4770,7 +4710,7 @@ impl PyMartinRatio {
 
 // ============================== TailRatio ==============================
 
-#[pyclass(name = "TailRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TailRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTailRatio {
     inner: wc::TailRatio,
@@ -4820,7 +4760,7 @@ impl PyTailRatio {
 
 // ============================== KRatio ==============================
 
-#[pyclass(name = "KRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "KRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKRatio {
     inner: wc::KRatio,
@@ -4870,11 +4810,7 @@ impl PyKRatio {
 
 // ============================== CommonSenseRatio ==============================
 
-#[pyclass(
-    name = "CommonSenseRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "CommonSenseRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCommonSenseRatio {
     inner: wc::CommonSenseRatio,
@@ -4924,11 +4860,7 @@ impl PyCommonSenseRatio {
 
 // ============================== GainToPainRatio ==============================
 
-#[pyclass(
-    name = "GainToPainRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "GainToPainRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGainToPainRatio {
     inner: wc::GainToPainRatio,
@@ -4978,7 +4910,7 @@ impl PyGainToPainRatio {
 
 // ============================== Stochastic ==============================
 
-#[pyclass(name = "IMI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "IMI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyImi {
     inner: wc::IntradayMomentumIndex,
@@ -5041,7 +4973,7 @@ impl PyImi {
     }
 }
 
-#[pyclass(name = "QQE", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "QQE", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyQqe {
     inner: wc::Qqe,
@@ -5095,7 +5027,7 @@ impl PyQqe {
     }
 }
 
-#[pyclass(name = "ElderRay", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ElderRay", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyElderRay {
     inner: wc::ElderRay,
@@ -5161,7 +5093,7 @@ impl PyElderRay {
     }
 }
 
-#[pyclass(name = "Stochastic", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Stochastic", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStoch {
     inner: wc::Stochastic,
@@ -5232,7 +5164,7 @@ impl PyStoch {
 
 // ============================== OBV ==============================
 
-#[pyclass(name = "OBV", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "OBV", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyObv {
     inner: wc::Obv,
@@ -5295,7 +5227,7 @@ impl PyObv {
 
 // ============================== DEMA ==============================
 
-#[pyclass(name = "DEMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DEMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDema {
     inner: wc::Dema,
@@ -5344,7 +5276,7 @@ impl PyDema {
 
 // ============================== TEMA ==============================
 
-#[pyclass(name = "TEMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TEMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTema {
     inner: wc::Tema,
@@ -5393,7 +5325,7 @@ impl PyTema {
 
 // ============================== HMA ==============================
 
-#[pyclass(name = "HMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHma {
     inner: wc::Hma,
@@ -5442,7 +5374,7 @@ impl PyHma {
 
 // ============================== KAMA ==============================
 
-#[pyclass(name = "KAMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "KAMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKama {
     inner: wc::Kama,
@@ -5488,7 +5420,7 @@ impl PyKama {
 
 // ============================== Inertia ==============================
 
-#[pyclass(name = "Inertia", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Inertia", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyInertia {
     inner: wc::Inertia,
@@ -5552,7 +5484,7 @@ impl PyInertia {
 
 // ============================== Connors RSI ==============================
 
-#[pyclass(name = "ConnorsRSI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ConnorsRSI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyConnorsRsi {
     inner: wc::ConnorsRsi,
@@ -5599,7 +5531,7 @@ impl PyConnorsRsi {
 
 // ============================== Laguerre RSI ==============================
 
-#[pyclass(name = "LaguerreRSI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "LaguerreRSI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLaguerreRsi {
     inner: wc::LaguerreRsi,
@@ -5649,7 +5581,7 @@ impl PyLaguerreRsi {
 
 // ============================== SMI ==============================
 
-#[pyclass(name = "SMI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SMI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySmi {
     inner: wc::Smi,
@@ -5711,7 +5643,7 @@ impl PySmi {
 
 // ============================== KST ==============================
 
-#[pyclass(name = "KST", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "KST", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKst {
     inner: wc::Kst,
@@ -5779,7 +5711,7 @@ impl PyKst {
 
 // ============================== PGO ==============================
 
-#[pyclass(name = "PGO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PGO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPgo {
     inner: wc::Pgo,
@@ -5844,7 +5776,7 @@ impl PyPgo {
 
 // ============================== RVI ==============================
 
-#[pyclass(name = "RVI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RVI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRvi {
     inner: wc::Rvi,
@@ -5911,7 +5843,7 @@ impl PyRvi {
 
 // ============================== FRAMA ==============================
 
-#[pyclass(name = "FRAMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FRAMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFrama {
     inner: wc::Frama,
@@ -5961,7 +5893,7 @@ impl PyFrama {
 
 // ============================== EVWMA ==============================
 
-#[pyclass(name = "EVWMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "EVWMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEvwma {
     inner: wc::Evwma,
@@ -6024,7 +5956,7 @@ impl PyEvwma {
 
 // ============================== Alligator ==============================
 
-#[pyclass(name = "Alligator", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Alligator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAlligator {
     inner: wc::Alligator,
@@ -6087,7 +6019,7 @@ impl PyAlligator {
 
 // ============================== JMA ==============================
 
-#[pyclass(name = "JMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "JMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyJma {
     inner: wc::Jma,
@@ -6134,7 +6066,7 @@ impl PyJma {
 
 // ============================== VIDYA ==============================
 
-#[pyclass(name = "VIDYA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VIDYA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVidya {
     inner: wc::Vidya,
@@ -6181,11 +6113,7 @@ impl PyVidya {
 
 // ============================== McGinley Dynamic ==============================
 
-#[pyclass(
-    name = "McGinleyDynamic",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "McGinleyDynamic", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMcGinleyDynamic {
     inner: wc::McGinleyDynamic,
@@ -6235,7 +6163,7 @@ impl PyMcGinleyDynamic {
 
 // ============================== ALMA ==============================
 
-#[pyclass(name = "ALMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ALMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAlma {
     inner: wc::Alma,
@@ -6298,11 +6226,7 @@ impl PyAlma {
 
 // ============================== AwesomeOscillatorHistogram ==============================
 
-#[pyclass(
-    name = "AwesomeOscillatorHistogram",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AwesomeOscillatorHistogram", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAoHist {
     inner: wc::AwesomeOscillatorHistogram,
@@ -6360,7 +6284,7 @@ impl PyAoHist {
 
 // ============================== STC ==============================
 
-#[pyclass(name = "STC", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "STC", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStc {
     inner: wc::Stc,
@@ -6407,7 +6331,7 @@ impl PyStc {
 
 // ============================== ElderImpulse ==============================
 
-#[pyclass(name = "ElderImpulse", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ElderImpulse", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyElderImpulse {
     inner: wc::ElderImpulse,
@@ -6460,7 +6384,7 @@ impl PyElderImpulse {
 
 // ============================== ZeroLagMACD ==============================
 
-#[pyclass(name = "ZeroLagMACD", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ZeroLagMACD", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyZeroLagMacd {
     inner: wc::ZeroLagMacd,
@@ -6514,7 +6438,7 @@ impl PyZeroLagMacd {
 
 // ============================== CFO ==============================
 
-#[pyclass(name = "CFO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "CFO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCfo {
     inner: wc::Cfo,
@@ -6564,7 +6488,7 @@ impl PyCfo {
 
 // ============================== APO ==============================
 
-#[pyclass(name = "APO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "APO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyApo {
     inner: wc::Apo,
@@ -6611,7 +6535,7 @@ impl PyApo {
 
 // ============================== CCI ==============================
 
-#[pyclass(name = "CCI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "CCI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCci {
     inner: wc::Cci,
@@ -6676,7 +6600,7 @@ impl PyCci {
 
 // ============================== ROC ==============================
 
-#[pyclass(name = "ROC", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ROC", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRoc {
     inner: wc::Roc,
@@ -6726,7 +6650,7 @@ impl PyRoc {
 
 // ============================== Williams %R ==============================
 
-#[pyclass(name = "WilliamsR", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "WilliamsR", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWilliamsR {
     inner: wc::WilliamsR,
@@ -6784,7 +6708,7 @@ impl PyWilliamsR {
 
 // ============================== ADX ==============================
 
-#[pyclass(name = "ADX", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ADX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdx {
     inner: wc::Adx,
@@ -6849,7 +6773,7 @@ impl PyAdx {
 
 // ============================== ADXR ==============================
 
-#[pyclass(name = "ADXR", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ADXR", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdxr {
     inner: wc::Adxr,
@@ -6921,7 +6845,7 @@ impl PyAdxr {
 
 // ============================== MFI ==============================
 
-#[pyclass(name = "MFI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MFI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMfi {
     inner: wc::Mfi,
@@ -6981,7 +6905,7 @@ impl PyMfi {
 
 // ============================== TRIX ==============================
 
-#[pyclass(name = "TRIX", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TRIX", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTrix {
     inner: wc::Trix,
@@ -7024,7 +6948,7 @@ impl PyTrix {
 
 // ============================== PSAR ==============================
 
-#[pyclass(name = "PSAR", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PSAR", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPsar {
     inner: wc::Psar,
@@ -7082,7 +7006,7 @@ impl PyPsar {
 
 // ============================== Keltner Channels ==============================
 
-#[pyclass(name = "Keltner", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Keltner", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKeltner {
     inner: wc::Keltner,
@@ -7147,7 +7071,7 @@ impl PyKeltner {
 
 // ============================== Donchian Channels ==============================
 
-#[pyclass(name = "Donchian", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Donchian", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDonchian {
     inner: wc::Donchian,
@@ -7206,7 +7130,7 @@ impl PyDonchian {
 
 // ============================== VWAP ==============================
 
-#[pyclass(name = "VWAP", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VWAP", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVwap {
     inner: wc::Vwap,
@@ -7265,7 +7189,7 @@ impl PyVwap {
 
 // ============================== Rolling VWAP ==============================
 
-#[pyclass(name = "RollingVWAP", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RollingVWAP", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRollingVwap {
     inner: wc::RollingVwap,
@@ -7331,11 +7255,7 @@ impl PyRollingVwap {
 
 // ============================== Awesome Oscillator ==============================
 
-#[pyclass(
-    name = "AwesomeOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AwesomeOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAo {
     inner: wc::AwesomeOscillator,
@@ -7389,7 +7309,7 @@ impl PyAo {
 
 // ============================== Aroon ==============================
 
-#[pyclass(name = "Aroon", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Aroon", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAroon {
     inner: wc::Aroon,
@@ -7447,7 +7367,7 @@ impl PyAroon {
 
 // ============================== ADL ==============================
 
-#[pyclass(name = "ADL", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ADL", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdl {
     inner: wc::Adl,
@@ -7514,11 +7434,7 @@ impl PyAdl {
 
 // ============================== Volume-Price Trend ==============================
 
-#[pyclass(
-    name = "VolumePriceTrend",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VolumePriceTrend", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolumePriceTrend {
     inner: wc::VolumePriceTrend,
@@ -7581,11 +7497,7 @@ impl PyVolumePriceTrend {
 
 // ============================== Bollinger Bandwidth ==============================
 
-#[pyclass(
-    name = "BollingerBandwidth",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "BollingerBandwidth", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBollingerBandwidth {
     inner: wc::BollingerBandwidth,
@@ -7649,7 +7561,7 @@ impl PyBollingerBandwidth {
 
 // ============================== Percent B ==============================
 
-#[pyclass(name = "PercentB", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PercentB", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPercentB {
     inner: wc::PercentB,
@@ -7713,7 +7625,7 @@ impl PyPercentB {
 
 // ============================== NATR ==============================
 
-#[pyclass(name = "NATR", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "NATR", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyNatr {
     inner: wc::Natr,
@@ -7783,7 +7695,7 @@ impl PyNatr {
 
 // ============================== StdDev ==============================
 
-#[pyclass(name = "StdDev", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "StdDev", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStdDev {
     inner: wc::StdDev,
@@ -7839,7 +7751,7 @@ impl PyStdDev {
 
 // ============================== Ulcer Index ==============================
 
-#[pyclass(name = "UlcerIndex", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "UlcerIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyUlcerIndex {
     inner: wc::UlcerIndex,
@@ -7895,11 +7807,7 @@ impl PyUlcerIndex {
 
 // ============================== Historical Volatility ==============================
 
-#[pyclass(
-    name = "HistoricalVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "HistoricalVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHistoricalVolatility {
     inner: wc::HistoricalVolatility,
@@ -7956,11 +7864,7 @@ impl PyHistoricalVolatility {
 
 // ============================== Aroon Oscillator ==============================
 
-#[pyclass(
-    name = "AroonOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AroonOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAroonOscillator {
     inner: wc::AroonOscillator,
@@ -8026,7 +7930,7 @@ impl PyAroonOscillator {
 
 // ============================== Vortex ==============================
 
-#[pyclass(name = "Vortex", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Vortex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVortex {
     inner: wc::Vortex,
@@ -8097,7 +8001,7 @@ impl PyVortex {
 
 // ============================== RWI ==============================
 
-#[pyclass(name = "RWI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RWI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRwi {
     inner: wc::Rwi,
@@ -8168,7 +8072,7 @@ impl PyRwi {
 
 // ============================== WaveTrend ==============================
 
-#[pyclass(name = "WaveTrend", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "WaveTrend", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWaveTrend {
     inner: wc::WaveTrend,
@@ -8245,7 +8149,7 @@ impl PyWaveTrend {
 
 // ============================== Mass Index ==============================
 
-#[pyclass(name = "MassIndex", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MassIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMassIndex {
     inner: wc::MassIndex,
@@ -8312,7 +8216,7 @@ impl PyMassIndex {
 
 // ============================== PPO ==============================
 
-#[pyclass(name = "PPO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PPO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPpo {
     inner: wc::Ppo,
@@ -8369,7 +8273,7 @@ impl PyPpo {
 
 // ============================== DPO ==============================
 
-#[pyclass(name = "DPO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DPO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDpo {
     inner: wc::Dpo,
@@ -8429,7 +8333,7 @@ impl PyDpo {
 
 // ============================== Coppock ==============================
 
-#[pyclass(name = "Coppock", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Coppock", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCoppock {
     inner: wc::Coppock,
@@ -8486,7 +8390,7 @@ impl PyCoppock {
 
 // ============================== StochRSI ==============================
 
-#[pyclass(name = "StochRSI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "StochRSI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStochRsi {
     inner: wc::StochRsi,
@@ -8543,11 +8447,7 @@ impl PyStochRsi {
 
 // ============================== Ultimate Oscillator ==============================
 
-#[pyclass(
-    name = "UltimateOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "UltimateOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyUltimateOscillator {
     inner: wc::UltimateOscillator,
@@ -8618,7 +8518,7 @@ impl PyUltimateOscillator {
 
 // ============================== MOM ==============================
 
-#[pyclass(name = "MOM", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MOM", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMom {
     inner: wc::Mom,
@@ -8674,7 +8574,7 @@ impl PyMom {
 
 // ============================== CMO ==============================
 
-#[pyclass(name = "CMO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "CMO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCmo {
     inner: wc::Cmo,
@@ -8730,7 +8630,7 @@ impl PyCmo {
 
 // ============================== TSI ==============================
 
-#[pyclass(name = "TSI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TSI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTsi {
     inner: wc::Tsi,
@@ -8787,7 +8687,7 @@ impl PyTsi {
 
 // ============================== PMO ==============================
 
-#[pyclass(name = "PMO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PMO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPmo {
     inner: wc::Pmo,
@@ -8844,7 +8744,7 @@ impl PyPmo {
 
 // ============================== TII ==============================
 
-#[pyclass(name = "TII", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TII", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTii {
     inner: wc::Tii,
@@ -8901,7 +8801,7 @@ impl PyTii {
 
 // ============================== ZLEMA ==============================
 
-#[pyclass(name = "ZLEMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ZLEMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyZlema {
     inner: wc::Zlema,
@@ -8960,7 +8860,7 @@ impl PyZlema {
 
 // ============================== T3 ==============================
 
-#[pyclass(name = "T3", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "T3", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyT3 {
     inner: wc::T3,
@@ -9024,7 +8924,7 @@ impl PyT3 {
 
 // ============================== GD ==============================
 
-#[pyclass(name = "GD", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "GD", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGeneralizedDema {
     inner: wc::GeneralizedDema,
@@ -9084,7 +8984,7 @@ impl PyGeneralizedDema {
 
 // ============================== HoltWinters ==============================
 
-#[pyclass(name = "HoltWinters", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HoltWinters", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHoltWinters {
     inner: wc::HoltWinters,
@@ -9156,7 +9056,7 @@ impl PyHoltWinters {
 
 // ============================== RMI ==============================
 
-#[pyclass(name = "RMI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RMI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRmi {
     inner: wc::Rmi,
@@ -9216,11 +9116,7 @@ impl PyRmi {
 
 // ============================== DerivativeOscillator ==============================
 
-#[pyclass(
-    name = "DerivativeOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "DerivativeOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDerivativeOscillator {
     inner: wc::DerivativeOscillator,
@@ -9271,7 +9167,7 @@ impl PyDerivativeOscillator {
 
 // ============================== VWMA ==============================
 
-#[pyclass(name = "VWMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VWMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVwma {
     inner: wc::Vwma,
@@ -9338,7 +9234,7 @@ impl PyVwma {
 
 // ============================== SMMA ==============================
 
-#[pyclass(name = "SMMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SMMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySmma {
     inner: wc::Smma,
@@ -9393,7 +9289,7 @@ impl PySmma {
 
 // ============================== TRIMA ==============================
 
-#[pyclass(name = "TRIMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TRIMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTrima {
     inner: wc::Trima,
@@ -9448,11 +9344,7 @@ impl PyTrima {
 
 // ============================== Chaikin Money Flow ==============================
 
-#[pyclass(
-    name = "ChaikinMoneyFlow",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ChaikinMoneyFlow", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyChaikinMoneyFlow {
     inner: wc::ChaikinMoneyFlow,
@@ -9520,11 +9412,7 @@ impl PyChaikinMoneyFlow {
 
 // ============================== Chaikin Oscillator ==============================
 
-#[pyclass(
-    name = "ChaikinOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ChaikinOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyChaikinOscillator {
     inner: wc::ChaikinOscillator,
@@ -9627,7 +9515,7 @@ impl PyChaikinOscillator {
 
 // ============================== Force Index ==============================
 
-#[pyclass(name = "ForceIndex", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ForceIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyForceIndex {
     inner: wc::ForceIndex,
@@ -9691,7 +9579,7 @@ impl PyForceIndex {
 
 // ============================== Negative Volume Index ==============================
 
-#[pyclass(name = "NVI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "NVI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyNvi {
     inner: wc::Nvi,
@@ -9751,7 +9639,7 @@ impl PyNvi {
 
 // ============================== Positive Volume Index ==============================
 
-#[pyclass(name = "PVI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PVI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPvi {
     inner: wc::Pvi,
@@ -9810,11 +9698,7 @@ impl PyPvi {
 
 // ============================== Volume Oscillator ==============================
 
-#[pyclass(
-    name = "VolumeOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VolumeOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolumeOscillator {
     inner: wc::VolumeOscillator,
@@ -9868,7 +9752,7 @@ impl PyVolumeOscillator {
 
 // ============================== Klinger Volume Oscillator ==============================
 
-#[pyclass(name = "KVO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "KVO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKvo {
     inner: wc::Kvo,
@@ -9937,7 +9821,7 @@ impl PyKvo {
 
 // ============================== Williams A/D Oscillator ==============================
 
-#[pyclass(name = "AdOscillator", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AdOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdOscillator {
     inner: wc::AdOscillator,
@@ -9998,7 +9882,7 @@ impl PyAdOscillator {
 
 // ============================== Anchored RSI ==============================
 
-#[pyclass(name = "AnchoredRSI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AnchoredRSI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAnchoredRsi {
     inner: wc::AnchoredRsi,
@@ -10054,7 +9938,7 @@ impl PyAnchoredRsi {
 
 // ============================== Anchored VWAP ==============================
 
-#[pyclass(name = "AnchoredVWAP", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AnchoredVWAP", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAnchoredVwap {
     inner: wc::AnchoredVwap,
@@ -10121,7 +10005,7 @@ impl PyAnchoredVwap {
 
 // ============================== Demand Index ==============================
 
-#[pyclass(name = "DemandIndex", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DemandIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDemandIndex {
     inner: wc::DemandIndex,
@@ -10189,7 +10073,7 @@ impl PyDemandIndex {
 
 // ============================== Time Segmented Volume ==============================
 
-#[pyclass(name = "TSV", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TSV", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTsv {
     inner: wc::Tsv,
@@ -10253,7 +10137,7 @@ impl PyTsv {
 
 // ============================== Volume Zone Oscillator ==============================
 
-#[pyclass(name = "VZO", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VZO", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVzo {
     inner: wc::Vzo,
@@ -10317,11 +10201,7 @@ impl PyVzo {
 
 // ============================== Market Facilitation Index ==============================
 
-#[pyclass(
-    name = "MarketFacilitationIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "MarketFacilitationIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMarketFacilitationIndex {
     inner: wc::MarketFacilitationIndex,
@@ -10382,11 +10262,7 @@ impl PyMarketFacilitationIndex {
 
 // ============================== Ease of Movement ==============================
 
-#[pyclass(
-    name = "EaseOfMovement",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "EaseOfMovement", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEaseOfMovement {
     inner: wc::EaseOfMovement,
@@ -10460,7 +10336,7 @@ impl PyEaseOfMovement {
 
 // ============================== SuperTrend ==============================
 
-#[pyclass(name = "SuperTrend", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SuperTrend", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySuperTrend {
     inner: wc::SuperTrend,
@@ -10532,11 +10408,7 @@ impl PySuperTrend {
 
 // ============================== Chandelier Exit ==============================
 
-#[pyclass(
-    name = "ChandelierExit",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ChandelierExit", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyChandelierExit {
     inner: wc::ChandelierExit,
@@ -10608,11 +10480,7 @@ impl PyChandelierExit {
 
 // ============================== Chande Kroll Stop ==============================
 
-#[pyclass(
-    name = "ChandeKrollStop",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ChandeKrollStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyChandeKrollStop {
     inner: wc::ChandeKrollStop,
@@ -10687,11 +10555,7 @@ impl PyChandeKrollStop {
 
 // ============================== ATR Trailing Stop ==============================
 
-#[pyclass(
-    name = "AtrTrailingStop",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AtrTrailingStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAtrTrailingStop {
     inner: wc::AtrTrailingStop,
@@ -10758,7 +10622,7 @@ impl PyAtrTrailingStop {
 
 // ============================== HiLo Activator ==============================
 
-#[pyclass(name = "HiLoActivator", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HiLoActivator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHiLoActivator {
     inner: wc::HiLoActivator,
@@ -10823,7 +10687,7 @@ impl PyHiLoActivator {
 
 // ============================== Volty Stop ==============================
 
-#[pyclass(name = "VoltyStop", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VoltyStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVoltyStop {
     inner: wc::VoltyStop,
@@ -10889,7 +10753,7 @@ impl PyVoltyStop {
 
 // ============================== Yo-Yo Exit ==============================
 
-#[pyclass(name = "YoyoExit", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "YoyoExit", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyYoyoExit {
     inner: wc::YoyoExit,
@@ -10959,7 +10823,7 @@ impl PyYoyoExit {
 
 // ============================== Donchian Stop ==============================
 
-#[pyclass(name = "DonchianStop", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DonchianStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDonchianStop {
     inner: wc::DonchianStop,
@@ -11024,11 +10888,7 @@ impl PyDonchianStop {
 
 // ============================== Percentage Trailing Stop ==============================
 
-#[pyclass(
-    name = "PercentageTrailingStop",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "PercentageTrailingStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPercentageTrailingStop {
     inner: wc::PercentageTrailingStop,
@@ -11080,11 +10940,7 @@ impl PyPercentageTrailingStop {
 
 // ============================== Step Trailing Stop ==============================
 
-#[pyclass(
-    name = "StepTrailingStop",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "StepTrailingStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStepTrailingStop {
     inner: wc::StepTrailingStop,
@@ -11136,11 +10992,7 @@ impl PyStepTrailingStop {
 
 // ============================== Renko Trailing Stop ==============================
 
-#[pyclass(
-    name = "RenkoTrailingStop",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RenkoTrailingStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRenkoTrailingStop {
     inner: wc::RenkoTrailingStop,
@@ -11192,7 +11044,7 @@ impl PyRenkoTrailingStop {
 
 // ============================== Kase DevStop ==============================
 
-#[pyclass(name = "KaseDevStop", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "KaseDevStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKaseDevStop {
     inner: wc::KaseDevStop,
@@ -11264,7 +11116,7 @@ impl PyKaseDevStop {
 
 // ============================== Elder SafeZone ==============================
 
-#[pyclass(name = "ElderSafeZone", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ElderSafeZone", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyElderSafeZone {
     inner: wc::ElderSafeZone,
@@ -11336,7 +11188,7 @@ impl PyElderSafeZone {
 
 // ============================== ATR Ratchet ==============================
 
-#[pyclass(name = "AtrRatchet", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AtrRatchet", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAtrRatchet {
     inner: wc::AtrRatchet,
@@ -11410,7 +11262,7 @@ impl PyAtrRatchet {
 
 // ============================== NRTR ==============================
 
-#[pyclass(name = "Nrtr", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Nrtr", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyNrtr {
     inner: wc::Nrtr,
@@ -11481,11 +11333,7 @@ impl PyNrtr {
 
 // ============================== Modified MA Stop ==============================
 
-#[pyclass(
-    name = "ModifiedMaStop",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ModifiedMaStop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyModifiedMaStop {
     inner: wc::ModifiedMaStop,
@@ -11556,7 +11404,7 @@ impl PyModifiedMaStop {
 
 // ============================== Typical Price ==============================
 
-#[pyclass(name = "TypicalPrice", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TypicalPrice", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTypicalPrice {
     inner: wc::TypicalPrice,
@@ -11617,7 +11465,7 @@ impl PyTypicalPrice {
 
 // ============================== Median Price ==============================
 
-#[pyclass(name = "MedianPrice", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MedianPrice", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMedianPrice {
     inner: wc::MedianPrice,
@@ -11674,7 +11522,7 @@ impl PyMedianPrice {
 
 // ============================== Weighted Close ==============================
 
-#[pyclass(name = "WeightedClose", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "WeightedClose", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWeightedClose {
     inner: wc::WeightedClose,
@@ -11735,11 +11583,7 @@ impl PyWeightedClose {
 
 // ============================== Linear Regression ==============================
 
-#[pyclass(
-    name = "LinearRegression",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "LinearRegression", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLinearRegression {
     inner: wc::LinearRegression,
@@ -11791,7 +11635,7 @@ impl PyLinearRegression {
 
 // ============================== Linear Regression Slope ==============================
 
-#[pyclass(name = "LinRegSlope", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "LinRegSlope", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLinRegSlope {
     inner: wc::LinRegSlope,
@@ -11843,11 +11687,7 @@ impl PyLinRegSlope {
 
 // ============================== Accelerator Oscillator ==============================
 
-#[pyclass(
-    name = "AcceleratorOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AcceleratorOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAcceleratorOscillator {
     inner: wc::AcceleratorOscillator,
@@ -11911,11 +11751,7 @@ impl PyAcceleratorOscillator {
 
 // ============================== Balance of Power ==============================
 
-#[pyclass(
-    name = "BalanceOfPower",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "BalanceOfPower", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBalanceOfPower {
     inner: wc::BalanceOfPower,
@@ -11978,11 +11814,7 @@ impl PyBalanceOfPower {
 
 // ============================== Choppiness Index ==============================
 
-#[pyclass(
-    name = "ChoppinessIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ChoppinessIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyChoppinessIndex {
     inner: wc::ChoppinessIndex,
@@ -12048,11 +11880,7 @@ impl PyChoppinessIndex {
 
 // ============================== Vertical Horizontal Filter ==============================
 
-#[pyclass(
-    name = "VerticalHorizontalFilter",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VerticalHorizontalFilter", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVerticalHorizontalFilter {
     inner: wc::VerticalHorizontalFilter,
@@ -12104,7 +11932,7 @@ impl PyVerticalHorizontalFilter {
 
 // ============================== True Range ==============================
 
-#[pyclass(name = "TrueRange", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TrueRange", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTrueRange {
     inner: wc::TrueRange,
@@ -12165,11 +11993,7 @@ impl PyTrueRange {
 
 // ============================== Chaikin Volatility ==============================
 
-#[pyclass(
-    name = "ChaikinVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ChaikinVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyChaikinVolatility {
     inner: wc::ChaikinVolatility,
@@ -12232,7 +12056,7 @@ impl PyChaikinVolatility {
 
 // ============================== Z-Score ==============================
 
-#[pyclass(name = "ZScore", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ZScore", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyZScore {
     inner: wc::ZScore,
@@ -12284,7 +12108,7 @@ impl PyZScore {
 
 // ============================== Linear Regression Angle ==============================
 
-#[pyclass(name = "LinRegAngle", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "LinRegAngle", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLinRegAngle {
     inner: wc::LinRegAngle,
@@ -12334,11 +12158,7 @@ impl PyLinRegAngle {
     }
 }
 
-#[pyclass(
-    name = "YangZhangVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "YangZhangVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyYangZhangVolatility {
     inner: wc::YangZhangVolatility,
@@ -12411,11 +12231,7 @@ impl PyYangZhangVolatility {
 
 // ============================== Rogers-Satchell Volatility ==============================
 
-#[pyclass(
-    name = "RogersSatchellVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RogersSatchellVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRogersSatchellVolatility {
     inner: wc::RogersSatchellVolatility,
@@ -12484,11 +12300,7 @@ impl PyRogersSatchellVolatility {
 
 // ============================== Garman-Klass Volatility ==============================
 
-#[pyclass(
-    name = "GarmanKlassVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "GarmanKlassVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGarmanKlassVolatility {
     inner: wc::GarmanKlassVolatility,
@@ -12557,11 +12369,7 @@ impl PyGarmanKlassVolatility {
 
 // ============================== Parkinson Volatility ==============================
 
-#[pyclass(
-    name = "ParkinsonVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ParkinsonVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyParkinsonVolatility {
     inner: wc::ParkinsonVolatility,
@@ -12628,7 +12436,7 @@ impl PyParkinsonVolatility {
 // Relative Vigor Index (a separate momentum indicator that lives in
 // Family 02 with the shorter `RVI` name).
 
-#[pyclass(name = "RVIVolatility", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RVIVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRviVolatility {
     inner: wc::RviVolatility,
@@ -12682,7 +12490,7 @@ impl PyRviVolatility {
 
 // ============================== MA Envelope ==============================
 
-#[pyclass(name = "MaEnvelope", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MaEnvelope", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMaEnvelope {
     inner: wc::MaEnvelope,
@@ -12734,11 +12542,7 @@ impl PyMaEnvelope {
 
 // ============================== Acceleration Bands ==============================
 
-#[pyclass(
-    name = "AccelerationBands",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AccelerationBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAccelerationBands {
     inner: wc::AccelerationBands,
@@ -12801,7 +12605,7 @@ impl PyAccelerationBands {
 
 // ============================== STARC Bands ==============================
 
-#[pyclass(name = "StarcBands", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "StarcBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStarcBands {
     inner: wc::StarcBands,
@@ -12864,7 +12668,7 @@ impl PyStarcBands {
 
 // ============================== ATR Bands ==============================
 
-#[pyclass(name = "AtrBands", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AtrBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAtrBands {
     inner: wc::AtrBands,
@@ -12927,7 +12731,7 @@ impl PyAtrBands {
 
 // ============================== Hurst Channel ==============================
 
-#[pyclass(name = "HurstChannel", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HurstChannel", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHurstChannel {
     inner: wc::HurstChannel,
@@ -12990,7 +12794,7 @@ impl PyHurstChannel {
 
 // ============================== LinReg Channel ==============================
 
-#[pyclass(name = "LinRegChannel", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "LinRegChannel", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLinRegChannel {
     inner: wc::LinRegChannel,
@@ -13040,11 +12844,7 @@ impl PyLinRegChannel {
 
 // ============================== Standard Error Bands ==============================
 
-#[pyclass(
-    name = "StandardErrorBands",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "StandardErrorBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStandardErrorBands {
     inner: wc::StandardErrorBands,
@@ -13094,7 +12894,7 @@ impl PyStandardErrorBands {
 
 // ============================== Quartile Bands ==============================
 
-#[pyclass(name = "QuartileBands", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "QuartileBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyQuartileBands {
     inner: wc::QuartileBands,
@@ -13144,7 +12944,7 @@ impl PyQuartileBands {
 
 // ============================== Bomar Bands ==============================
 
-#[pyclass(name = "BomarBands", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "BomarBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBomarBands {
     inner: wc::BomarBands,
@@ -13194,7 +12994,7 @@ impl PyBomarBands {
 
 // ============================== Median Channel ==============================
 
-#[pyclass(name = "MedianChannel", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MedianChannel", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMedianChannel {
     inner: wc::MedianChannel,
@@ -13244,11 +13044,7 @@ impl PyMedianChannel {
 
 // ============================== Projection Bands ==============================
 
-#[pyclass(
-    name = "ProjectionBands",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ProjectionBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyProjectionBands {
     inner: wc::ProjectionBands,
@@ -13307,11 +13103,7 @@ impl PyProjectionBands {
 
 // ============================== Central Pivot Range ==============================
 
-#[pyclass(
-    name = "CentralPivotRange",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "CentralPivotRange", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCentralPivotRange {
     inner: wc::CentralPivotRange,
@@ -13374,11 +13166,7 @@ impl PyCentralPivotRange {
 
 // ============================== Murrey Math Lines ==============================
 
-#[pyclass(
-    name = "MurreyMathLines",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "MurreyMathLines", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMurreyMathLines {
     inner: wc::MurreyMathLines,
@@ -13452,11 +13240,7 @@ impl PyMurreyMathLines {
 
 // ============================== Andrews Pitchfork ==============================
 
-#[pyclass(
-    name = "AndrewsPitchfork",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AndrewsPitchfork", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAndrewsPitchfork {
     inner: wc::AndrewsPitchfork,
@@ -13516,11 +13300,7 @@ impl PyAndrewsPitchfork {
 
 // ============================== Volume-Weighted S/R ==============================
 
-#[pyclass(
-    name = "VolumeWeightedSr",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VolumeWeightedSr", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolumeWeightedSr {
     inner: wc::VolumeWeightedSr,
@@ -13583,7 +13363,7 @@ impl PyVolumeWeightedSr {
 
 // ============================== Pivot Reversal ==============================
 
-#[pyclass(name = "PivotReversal", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PivotReversal", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPivotReversal {
     inner: wc::PivotReversal,
@@ -13642,11 +13422,7 @@ impl PyPivotReversal {
 
 // ============================== Double Bollinger ==============================
 
-#[pyclass(
-    name = "DoubleBollinger",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "DoubleBollinger", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDoubleBollinger {
     inner: wc::DoubleBollinger,
@@ -13707,7 +13483,7 @@ impl PyDoubleBollinger {
 
 // ============================== TTM Squeeze ==============================
 
-#[pyclass(name = "TtmSqueeze", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TtmSqueeze", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTtmSqueeze {
     inner: wc::TtmSqueeze,
@@ -13772,11 +13548,7 @@ impl PyTtmSqueeze {
 
 // ============================== Fractal Chaos Bands ==============================
 
-#[pyclass(
-    name = "FractalChaosBands",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "FractalChaosBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFractalChaosBands {
     inner: wc::FractalChaosBands,
@@ -13836,11 +13608,7 @@ impl PyFractalChaosBands {
 
 // ============================== VWAP StdDev Bands ==============================
 
-#[pyclass(
-    name = "VwapStdDevBands",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VwapStdDevBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVwapStdDevBands {
     inner: wc::VwapStdDevBands,
@@ -13912,7 +13680,7 @@ impl PyVwapStdDevBands {
 
 // ============================== Classic Pivots ==============================
 
-#[pyclass(name = "ClassicPivots", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ClassicPivots", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyClassicPivots {
     inner: wc::ClassicPivots,
@@ -13984,11 +13752,7 @@ impl PyClassicPivots {
 
 // ============================== Fibonacci Pivots ==============================
 
-#[pyclass(
-    name = "FibonacciPivots",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "FibonacciPivots", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibonacciPivots {
     inner: wc::FibonacciPivots,
@@ -14057,7 +13821,7 @@ impl PyFibonacciPivots {
 
 // ============================== Camarilla Pivots ==============================
 
-#[pyclass(name = "Camarilla", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Camarilla", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCamarilla {
     inner: wc::Camarilla,
@@ -14135,7 +13899,7 @@ impl PyCamarilla {
 
 // ============================== Woodie Pivots ==============================
 
-#[pyclass(name = "WoodiePivots", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "WoodiePivots", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWoodiePivots {
     inner: wc::WoodiePivots,
@@ -14202,7 +13966,7 @@ impl PyWoodiePivots {
 
 // ============================== DeMark Pivots ==============================
 
-#[pyclass(name = "DemarkPivots", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DemarkPivots", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDemarkPivots {
     inner: wc::DemarkPivots,
@@ -14269,11 +14033,7 @@ impl PyDemarkPivots {
 
 // ============================== Williams Fractals ==============================
 
-#[pyclass(
-    name = "WilliamsFractals",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "WilliamsFractals", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWilliamsFractals {
     inner: wc::WilliamsFractals,
@@ -14343,7 +14103,7 @@ impl PyWilliamsFractals {
 
 // ============================== ZigZag ==============================
 
-#[pyclass(name = "ZigZag", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ZigZag", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyZigZag {
     inner: wc::ZigZag,
@@ -14408,7 +14168,7 @@ impl PyZigZag {
 }
 // ============================== TD Setup ==============================
 
-#[pyclass(name = "TDSetup", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDSetup", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdSetup {
     inner: wc::TdSetup,
@@ -14474,7 +14234,7 @@ impl PyTdSetup {
 
 // ============================== TD Sequential ==============================
 
-#[pyclass(name = "TDSequential", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDSequential", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdSequential {
     inner: wc::TdSequential,
@@ -14553,7 +14313,7 @@ impl PyTdSequential {
 
 // ============================== TD DeMarker ==============================
 
-#[pyclass(name = "TDDeMarker", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDDeMarker", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdDeMarker {
     inner: wc::TdDeMarker,
@@ -14618,7 +14378,7 @@ impl PyTdDeMarker {
 
 // ============================== TD REI ==============================
 
-#[pyclass(name = "TDREI", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDREI", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdRei {
     inner: wc::TdRei,
@@ -14687,7 +14447,7 @@ impl PyTdRei {
 
 // ============================== TD Pressure ==============================
 
-#[pyclass(name = "TDPressure", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDPressure", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdPressure {
     inner: wc::TdPressure,
@@ -14761,7 +14521,7 @@ impl PyTdPressure {
 
 // ============================== TD Combo ==============================
 
-#[pyclass(name = "TDCombo", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDCombo", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdCombo {
     inner: wc::TdCombo,
@@ -14830,7 +14590,7 @@ impl PyTdCombo {
 
 // ============================== TD D-Wave ==============================
 
-#[pyclass(name = "TDDWave", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDDWave", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdDWave {
     inner: wc::TdDWave,
@@ -14888,11 +14648,7 @@ impl PyTdDWave {
 
 // ============================== TD Moving Averages ==============================
 
-#[pyclass(
-    name = "TDMovingAverage",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TDMovingAverage", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdMovingAverage {
     inner: wc::TdMovingAverage,
@@ -14951,7 +14707,7 @@ impl PyTdMovingAverage {
 
 // ============================== TD Countdown ==============================
 
-#[pyclass(name = "TDCountdown", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDCountdown", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdCountdown {
     inner: wc::TdCountdown,
@@ -15020,7 +14776,7 @@ impl PyTdCountdown {
 
 // ============================== TD Lines ==============================
 
-#[pyclass(name = "TDLines", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDLines", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdLines {
     inner: wc::TdLines,
@@ -15085,11 +14841,7 @@ impl PyTdLines {
 
 // ============================== TD Range Projection ==============================
 
-#[pyclass(
-    name = "TDRangeProjection",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TDRangeProjection", module = "wickra._wickra")]
 #[derive(Clone, Default)]
 struct PyTdRangeProjection {
     inner: wc::TdRangeProjection,
@@ -15154,11 +14906,7 @@ impl PyTdRangeProjection {
 
 // ============================== TD Differential ==============================
 
-#[pyclass(
-    name = "TDDifferential",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TDDifferential", module = "wickra._wickra")]
 #[derive(Clone, Default)]
 struct PyTdDifferential {
     inner: wc::TdDifferential,
@@ -15215,7 +14963,7 @@ impl PyTdDifferential {
 
 // ============================== TD Open ==============================
 
-#[pyclass(name = "TDOpen", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDOpen", module = "wickra._wickra")]
 #[derive(Clone, Default)]
 struct PyTdOpen {
     inner: wc::TdOpen,
@@ -15274,7 +15022,7 @@ impl PyTdOpen {
 
 // ============================== TD Risk Level ==============================
 
-#[pyclass(name = "TDRiskLevel", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TDRiskLevel", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTdRiskLevel {
     inner: wc::TdRiskLevel,
@@ -15341,7 +15089,7 @@ impl PyTdRiskLevel {
 
 macro_rules! py_scalar_one_period {
     ($wrapper:ident, $py_name:literal, $rust_ty:ty) => {
-        #[pyclass(name = $py_name, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $py_name, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $wrapper {
             inner: $rust_ty,
@@ -15414,11 +15162,7 @@ py_scalar_one_period!(PyEhlersStochastic, "EhlersStochastic", wc::EhlersStochast
 
 // --- InverseFisherTransform: single f64 `scale` param ---
 
-#[pyclass(
-    name = "InverseFisherTransform",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "InverseFisherTransform", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyInverseFisherTransform {
     inner: wc::InverseFisherTransform,
@@ -15474,11 +15218,7 @@ impl PyInverseFisherTransform {
 
 // --- DecyclerOscillator: two-period ---
 
-#[pyclass(
-    name = "DecyclerOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "DecyclerOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDecyclerOscillator {
     inner: wc::DecyclerOscillator,
@@ -15530,7 +15270,7 @@ impl PyDecyclerOscillator {
 
 // --- RoofingFilter: two-period (lp, hp) ---
 
-#[pyclass(name = "RoofingFilter", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RoofingFilter", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRoofingFilter {
     inner: wc::RoofingFilter,
@@ -15583,11 +15323,7 @@ impl PyRoofingFilter {
 
 // --- EmpiricalModeDecomposition: period + fraction ---
 
-#[pyclass(
-    name = "EmpiricalModeDecomposition",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "EmpiricalModeDecomposition", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEmd {
     inner: wc::EmpiricalModeDecomposition,
@@ -15659,7 +15395,7 @@ impl PyEmd {
 
 macro_rules! py_no_params_scalar {
     ($wrapper:ident, $py_name:literal, $rust_ty:ty) => {
-        #[pyclass(name = $py_name, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $py_name, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $wrapper {
             inner: $rust_ty,
@@ -15725,7 +15461,7 @@ py_no_params_scalar!(PyHtTrendMode, "HT_TRENDMODE", wc::HtTrendMode);
 
 // SineWave needs a `lead` accessor in addition to scalar value, but otherwise
 // matches the parameterless surface.
-#[pyclass(name = "SineWave", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SineWave", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySineWave {
     inner: wc::SineWave,
@@ -15780,7 +15516,7 @@ impl PySineWave {
 
 // --- MAMA: multi-output (mama, fama), shape (n, 2) ---
 
-#[pyclass(name = "MAMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MAMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMama {
     inner: wc::Mama,
@@ -15837,7 +15573,7 @@ impl PyMama {
 
 // --- FAMA: scalar wrapper exposing only the fama line ---
 
-#[pyclass(name = "FAMA", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FAMA", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFama {
     inner: wc::Fama,
@@ -15894,7 +15630,7 @@ impl PyFama {
 
 // ============================== Ichimoku ==============================
 
-#[pyclass(name = "Ichimoku", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Ichimoku", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyIchimoku {
     inner: wc::Ichimoku,
@@ -15993,7 +15729,7 @@ impl PyIchimoku {
 
 // ============================== Heikin-Ashi ==============================
 
-#[pyclass(name = "HeikinAshi", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HeikinAshi", module = "wickra._wickra")]
 #[derive(Clone, Default)]
 struct PyHeikinAshi {
     inner: wc::HeikinAshi,
@@ -16063,7 +15799,7 @@ impl PyHeikinAshi {
     }
 }
 
-#[pyclass(name = "Variance", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Variance", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVariance {
     inner: wc::Variance,
@@ -16113,11 +15849,7 @@ impl PyVariance {
 
 // ============================== Heikin-Ashi Oscillator ==============================
 
-#[pyclass(
-    name = "HeikinAshiOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "HeikinAshiOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHeikinAshiOscillator {
     inner: wc::HeikinAshiOscillator,
@@ -16177,11 +15909,7 @@ impl PyHeikinAshiOscillator {
 
 // ============================== Three Line Break ==============================
 
-#[pyclass(
-    name = "ThreeLineBreak",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ThreeLineBreak", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyThreeLineBreak {
     inner: wc::ThreeLineBreak,
@@ -16239,11 +15967,7 @@ impl PyThreeLineBreak {
 
 // ============================== Smoothed Heikin-Ashi ==============================
 
-#[pyclass(
-    name = "SmoothedHeikinAshi",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "SmoothedHeikinAshi", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySmoothedHeikinAshi {
     inner: wc::SmoothedHeikinAshi,
@@ -16313,7 +16037,7 @@ impl PySmoothedHeikinAshi {
 
 // ============================== Equivolume ==============================
 
-#[pyclass(name = "Equivolume", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Equivolume", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEquivolume {
     inner: wc::Equivolume,
@@ -16376,7 +16100,7 @@ impl PyEquivolume {
 
 // ============================== CandleVolume ==============================
 
-#[pyclass(name = "CandleVolume", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "CandleVolume", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCandleVolume {
     inner: wc::CandleVolume,
@@ -16441,7 +16165,7 @@ impl PyCandleVolume {
 
 // ============================== Frying Pan Bottom ==============================
 
-#[pyclass(name = "FryPanBottom", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FryPanBottom", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFryPanBottom {
     inner: wc::FryPanBottom,
@@ -16499,7 +16223,7 @@ impl PyFryPanBottom {
 
 // ============================== Dumpling Top ==============================
 
-#[pyclass(name = "DumplingTop", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DumplingTop", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDumplingTop {
     inner: wc::DumplingTop,
@@ -16557,7 +16281,7 @@ impl PyDumplingTop {
 
 // ============================== New Price Lines ==============================
 
-#[pyclass(name = "NewPriceLines", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "NewPriceLines", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyNewPriceLines {
     inner: wc::NewPriceLines,
@@ -16615,11 +16339,7 @@ impl PyNewPriceLines {
 
 // ============================== CoefficientOfVariation ==============================
 
-#[pyclass(
-    name = "CoefficientOfVariation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "CoefficientOfVariation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCoefficientOfVariation {
     inner: wc::CoefficientOfVariation,
@@ -16669,7 +16389,7 @@ impl PyCoefficientOfVariation {
 
 // ============================== Skewness ==============================
 
-#[pyclass(name = "Skewness", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Skewness", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySkewness {
     inner: wc::Skewness,
@@ -16719,7 +16439,7 @@ impl PySkewness {
 
 // ============================== Kurtosis ==============================
 
-#[pyclass(name = "Kurtosis", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Kurtosis", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKurtosis {
     inner: wc::Kurtosis,
@@ -16769,7 +16489,7 @@ impl PyKurtosis {
 
 // ============================== StandardError ==============================
 
-#[pyclass(name = "StandardError", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "StandardError", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyStandardError {
     inner: wc::StandardError,
@@ -16819,11 +16539,7 @@ impl PyStandardError {
 
 // ============================== DetrendedStdDev ==============================
 
-#[pyclass(
-    name = "DetrendedStdDev",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "DetrendedStdDev", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDetrendedStdDev {
     inner: wc::DetrendedStdDev,
@@ -16873,7 +16589,7 @@ impl PyDetrendedStdDev {
 
 // ============================== RSquared ==============================
 
-#[pyclass(name = "RSquared", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RSquared", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRSquared {
     inner: wc::RSquared,
@@ -16923,11 +16639,7 @@ impl PyRSquared {
 
 // ============================== Autocorrelation ==============================
 
-#[pyclass(
-    name = "Autocorrelation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "Autocorrelation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAutocorrelation {
     inner: wc::Autocorrelation,
@@ -16985,11 +16697,7 @@ impl PyAutocorrelation {
 
 // ============================== MedianAbsoluteDeviation ==============================
 
-#[pyclass(
-    name = "MedianAbsoluteDeviation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "MedianAbsoluteDeviation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMedianAbsoluteDeviation {
     inner: wc::MedianAbsoluteDeviation,
@@ -17039,7 +16747,7 @@ impl PyMedianAbsoluteDeviation {
 
 // ============================== HurstExponent ==============================
 
-#[pyclass(name = "HurstExponent", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HurstExponent", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHurstExponent {
     inner: wc::HurstExponent,
@@ -17097,11 +16805,7 @@ impl PyHurstExponent {
 
 // ============================== PearsonCorrelation ==============================
 
-#[pyclass(
-    name = "PearsonCorrelation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "PearsonCorrelation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPearsonCorrelation {
     inner: wc::PearsonCorrelation,
@@ -17167,7 +16871,7 @@ impl PyPearsonCorrelation {
 
 // ============================== Beta ==============================
 
-#[pyclass(name = "Beta", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Beta", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBeta {
     inner: wc::Beta,
@@ -17229,7 +16933,7 @@ impl PyBeta {
 
 // ============================== PairwiseBeta ==============================
 
-#[pyclass(name = "PairwiseBeta", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PairwiseBeta", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPairwiseBeta {
     inner: wc::PairwiseBeta,
@@ -17284,11 +16988,7 @@ impl PyPairwiseBeta {
 
 // ============================== SpreadAr1Coefficient ==============================
 
-#[pyclass(
-    name = "SpreadAr1Coefficient",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "SpreadAr1Coefficient", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySpreadAr1Coefficient {
     inner: wc::SpreadAr1Coefficient,
@@ -17343,11 +17043,7 @@ impl PySpreadAr1Coefficient {
 
 // ============================== PairSpreadZScore ==============================
 
-#[pyclass(
-    name = "PairSpreadZScore",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "PairSpreadZScore", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPairSpreadZScore {
     inner: wc::PairSpreadZScore,
@@ -17410,11 +17106,7 @@ impl PyPairSpreadZScore {
 
 // ============================== LeadLagCrossCorrelation ==============================
 
-#[pyclass(
-    name = "LeadLagCrossCorrelation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "LeadLagCrossCorrelation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLeadLagCrossCorrelation {
     inner: wc::LeadLagCrossCorrelation,
@@ -17484,7 +17176,7 @@ impl PyLeadLagCrossCorrelation {
 
 // ============================== Cointegration ==============================
 
-#[pyclass(name = "Cointegration", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Cointegration", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCointegration {
     inner: wc::Cointegration,
@@ -17557,11 +17249,7 @@ impl PyCointegration {
 
 // ============================== RelativeStrengthAB ==============================
 
-#[pyclass(
-    name = "RelativeStrengthAB",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RelativeStrengthAB", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRelativeStrengthAB {
     inner: wc::RelativeStrengthAB,
@@ -17634,11 +17322,7 @@ impl PyRelativeStrengthAB {
 
 // ============================== RollingCorrelation ==============================
 
-#[pyclass(
-    name = "RollingCorrelation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RollingCorrelation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRollingCorrelation {
     inner: wc::RollingCorrelation,
@@ -17693,11 +17377,7 @@ impl PyRollingCorrelation {
 
 // ========================= HasbrouckInformationShare =========================
 
-#[pyclass(
-    name = "HasbrouckInformationShare",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "HasbrouckInformationShare", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHasbrouckInformationShare {
     inner: wc::HasbrouckInformationShare,
@@ -17752,11 +17432,7 @@ impl PyHasbrouckInformationShare {
 
 // ============================== RollingCovariance ==============================
 
-#[pyclass(
-    name = "RollingCovariance",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RollingCovariance", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRollingCovariance {
     inner: wc::RollingCovariance,
@@ -17811,7 +17487,7 @@ impl PyRollingCovariance {
 
 // ============================== OuHalfLife ==============================
 
-#[pyclass(name = "OuHalfLife", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "OuHalfLife", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOuHalfLife {
     inner: wc::OuHalfLife,
@@ -17866,7 +17542,7 @@ impl PyOuHalfLife {
 
 // ============================== SpreadHurst ==============================
 
-#[pyclass(name = "SpreadHurst", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SpreadHurst", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySpreadHurst {
     inner: wc::SpreadHurst,
@@ -17921,7 +17597,7 @@ impl PySpreadHurst {
 
 // ============================== DistanceSsd ==============================
 
-#[pyclass(name = "DistanceSsd", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DistanceSsd", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDistanceSsd {
     inner: wc::DistanceSsd,
@@ -17976,11 +17652,7 @@ impl PyDistanceSsd {
 
 // ============================== BetaNeutralSpread ==============================
 
-#[pyclass(
-    name = "BetaNeutralSpread",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "BetaNeutralSpread", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBetaNeutralSpread {
     inner: wc::BetaNeutralSpread,
@@ -18035,7 +17707,7 @@ impl PyBetaNeutralSpread {
 
 // ============================== VarianceRatio ==============================
 
-#[pyclass(name = "VarianceRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VarianceRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVarianceRatio {
     inner: wc::VarianceRatio,
@@ -18098,11 +17770,7 @@ impl PyVarianceRatio {
 
 // ============================== GrangerCausality ==============================
 
-#[pyclass(
-    name = "GrangerCausality",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "GrangerCausality", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGrangerCausality {
     inner: wc::GrangerCausality,
@@ -18165,11 +17833,7 @@ impl PyGrangerCausality {
 
 // ============================== KalmanHedgeRatio ==============================
 
-#[pyclass(
-    name = "KalmanHedgeRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "KalmanHedgeRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKalmanHedgeRatio {
     inner: wc::KalmanHedgeRatio,
@@ -18242,11 +17906,7 @@ impl PyKalmanHedgeRatio {
 
 // ============================== SpreadBollingerBands ==============================
 
-#[pyclass(
-    name = "SpreadBollingerBands",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "SpreadBollingerBands", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySpreadBollingerBands {
     inner: wc::SpreadBollingerBands,
@@ -18320,11 +17980,7 @@ impl PySpreadBollingerBands {
 
 // ============================== SpearmanCorrelation ==============================
 
-#[pyclass(
-    name = "SpearmanCorrelation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "SpearmanCorrelation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySpearmanCorrelation {
     inner: wc::SpearmanCorrelation,
@@ -18379,7 +18035,7 @@ impl PySpearmanCorrelation {
 
 // ============================== ValueArea ==============================
 
-#[pyclass(name = "ValueArea", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ValueArea", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyValueArea {
     inner: wc::ValueArea,
@@ -18459,7 +18115,7 @@ impl PyValueArea {
 /// counts).
 type ProfileHistogram<'py> = Option<(f64, f64, Bound<'py, PyAny>)>;
 
-#[pyclass(name = "VolumeProfile", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VolumeProfile", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolumeProfile {
     inner: wc::VolumeProfile,
@@ -18544,7 +18200,7 @@ impl PyVolumeProfile {
 
 // ============================== TpoProfile ==============================
 
-#[pyclass(name = "TpoProfile", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TpoProfile", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTpoProfile {
     inner: wc::TpoProfile,
@@ -18625,11 +18281,7 @@ impl PyTpoProfile {
 
 // ============================== InitialBalance ==============================
 
-#[pyclass(
-    name = "InitialBalance",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "InitialBalance", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyInitialBalance {
     inner: wc::InitialBalance,
@@ -18700,7 +18352,7 @@ impl PyInitialBalance {
 
 // ============================== OpeningRange ==============================
 
-#[pyclass(name = "OpeningRange", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "OpeningRange", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOpeningRange {
     inner: wc::OpeningRange,
@@ -18777,7 +18429,7 @@ impl PyOpeningRange {
 }
 
 // Naked POC: most recent untouched point-of-control level (Candle -> f64).
-#[pyclass(name = "NakedPoc", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "NakedPoc", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyNakedPoc {
     inner: wc::NakedPoc,
@@ -18841,7 +18493,7 @@ impl PyNakedPoc {
 }
 
 // Single Prints: count of single-print price levels in the profile (Candle -> f64).
-#[pyclass(name = "SinglePrints", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SinglePrints", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySinglePrints {
     inner: wc::SinglePrints,
@@ -18900,7 +18552,7 @@ impl PySinglePrints {
 }
 
 // Profile Shape: b/P/D shape classification as a numeric code (Candle -> f64).
-#[pyclass(name = "ProfileShape", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ProfileShape", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyProfileShape {
     inner: wc::ProfileShape,
@@ -18963,11 +18615,7 @@ impl PyProfileShape {
 }
 
 // High/Low Volume Nodes: highest- and lowest-volume price nodes (Candle -> struct).
-#[pyclass(
-    name = "HighLowVolumeNodes",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "HighLowVolumeNodes", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHighLowVolumeNodes {
     inner: wc::HighLowVolumeNodes,
@@ -19034,11 +18682,7 @@ impl PyHighLowVolumeNodes {
 }
 
 // Composite Profile: multi-session composite volume profile (Candle -> struct).
-#[pyclass(
-    name = "CompositeProfile",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "CompositeProfile", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCompositeProfile {
     inner: wc::CompositeProfile,
@@ -19114,7 +18758,7 @@ impl PyCompositeProfile {
 
 macro_rules! candle_pattern_no_param {
     ($name:ident, $inner:ty, $repr:expr) => {
-        #[pyclass(name = $repr, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $repr, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $name {
             inner: $inner,
@@ -19179,7 +18823,7 @@ macro_rules! candle_pattern_no_param {
 
 // Doji is the one pattern with an opt-in signed mode, so it is hand-written
 // rather than generated by `candle_pattern_no_param!`.
-#[pyclass(name = "Doji", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Doji", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDoji {
     inner: wc::Doji,
@@ -19419,7 +19063,7 @@ fn build_order_book(
 
 macro_rules! py_ob_indicator {
     ($name:ident, $inner:ty, $repr:expr) => {
-        #[pyclass(name = $repr, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $repr, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $name {
             inner: $inner,
@@ -19491,11 +19135,7 @@ py_ob_indicator!(PyQuotedSpread, wc::QuotedSpread, "QuotedSpread");
 py_ob_indicator!(PyDepthSlope, wc::DepthSlope, "DepthSlope");
 
 // Top-N imbalance carries a `levels` parameter, so it is hand-written.
-#[pyclass(
-    name = "OrderBookImbalanceTopN",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "OrderBookImbalanceTopN", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOrderBookImbalanceTopN {
     inner: wc::OrderBookImbalanceTopN,
@@ -19567,7 +19207,7 @@ fn build_trade(price: f64, size: f64, is_buy: bool) -> PyResult<wc::Trade> {
 
 macro_rules! py_trade_indicator {
     ($name:ident, $inner:ty, $repr:expr) => {
-        #[pyclass(name = $repr, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $repr, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $name {
             inner: $inner,
@@ -19631,11 +19271,7 @@ py_trade_indicator!(
 );
 
 // Trade imbalance carries a `window` parameter, so it is hand-written.
-#[pyclass(
-    name = "TradeImbalance",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TradeImbalance", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTradeImbalance {
     inner: wc::TradeImbalance,
@@ -19690,11 +19326,7 @@ impl PyTradeImbalance {
 }
 
 // Trade-sign autocorrelation carries a `period` parameter, so it is hand-written.
-#[pyclass(
-    name = "TradeSignAutocorrelation",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TradeSignAutocorrelation", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTradeSignAutocorrelation {
     inner: wc::TradeSignAutocorrelation,
@@ -19749,7 +19381,7 @@ impl PyTradeSignAutocorrelation {
 }
 
 // PIN carries a `window` parameter, so it is hand-written.
-#[pyclass(name = "Pin", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Pin", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPin {
     inner: wc::Pin,
@@ -19805,11 +19437,7 @@ impl PyPin {
 
 // Order Flow Imbalance carries a `period` parameter and an order-book input,
 // so it is hand-written.
-#[pyclass(
-    name = "OrderFlowImbalance",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "OrderFlowImbalance", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOrderFlowImbalance {
     inner: wc::OrderFlowImbalance,
@@ -19865,7 +19493,7 @@ impl PyOrderFlowImbalance {
 }
 
 // VPIN buckets trades by volume; it carries `(bucket_volume, num_buckets)`.
-#[pyclass(name = "Vpin", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Vpin", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVpin {
     inner: wc::Vpin,
@@ -19921,11 +19549,7 @@ impl PyVpin {
 }
 
 // Amihud illiquidity carries a `period` parameter and a trade input.
-#[pyclass(
-    name = "AmihudIlliquidity",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AmihudIlliquidity", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAmihudIlliquidity {
     inner: wc::AmihudIlliquidity,
@@ -19980,7 +19604,7 @@ impl PyAmihudIlliquidity {
 }
 
 // Roll measure carries a `period` parameter and a trade input.
-#[pyclass(name = "RollMeasure", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RollMeasure", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRollMeasure {
     inner: wc::RollMeasure,
@@ -20048,7 +19672,7 @@ fn build_trade_quote(price: f64, size: f64, is_buy: bool, mid: f64) -> PyResult<
 
 macro_rules! py_trade_quote_indicator {
     ($name:ident, $inner:ty, $repr:expr) => {
-        #[pyclass(name = $repr, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $repr, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $name {
             inner: $inner,
@@ -20119,11 +19743,7 @@ macro_rules! py_trade_quote_indicator {
 py_trade_quote_indicator!(PyEffectiveSpread, wc::EffectiveSpread, "EffectiveSpread");
 
 // Realized spread carries a `horizon` parameter, so it is hand-written.
-#[pyclass(
-    name = "RealizedSpread",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RealizedSpread", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRealizedSpread {
     inner: wc::RealizedSpread,
@@ -20181,7 +19801,7 @@ impl PyRealizedSpread {
 }
 
 // Kyle's lambda carries a `window` parameter, so it is hand-written.
-#[pyclass(name = "KylesLambda", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "KylesLambda", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKylesLambda {
     inner: wc::KylesLambda,
@@ -20260,7 +19880,7 @@ fn footprint_to_array<'py>(
     matrix(py, data, rows, 3)
 }
 
-#[pyclass(name = "Footprint", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Footprint", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFootprint {
     inner: wc::Footprint,
@@ -20512,7 +20132,7 @@ fn deriv_futures_mark(futures_price: f64, mark_price: f64) -> PyResult<wc::Deriv
 
 // FundingRate takes no parameters; streaming `update(funding_rate)`, `batch`
 // over one funding-rate array.
-#[pyclass(name = "FundingRate", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FundingRate", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFundingRate {
     inner: wc::FundingRate,
@@ -20559,11 +20179,7 @@ impl PyFundingRate {
 }
 
 // FundingRateMean carries a `window` parameter.
-#[pyclass(
-    name = "FundingRateMean",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "FundingRateMean", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFundingRateMean {
     inner: wc::FundingRateMean,
@@ -20610,11 +20226,7 @@ impl PyFundingRateMean {
 }
 
 // FundingRateZScore carries a `window` parameter.
-#[pyclass(
-    name = "FundingRateZScore",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "FundingRateZScore", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFundingRateZScore {
     inner: wc::FundingRateZScore,
@@ -20661,7 +20273,7 @@ impl PyFundingRateZScore {
 }
 
 // FundingBasis takes no parameters; streaming `update(mark_price, index_price)`.
-#[pyclass(name = "FundingBasis", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FundingBasis", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFundingBasis {
     inner: wc::FundingBasis,
@@ -20718,11 +20330,7 @@ impl PyFundingBasis {
 }
 
 // OpenInterestDelta takes no parameters; streaming `update(open_interest)`.
-#[pyclass(
-    name = "OpenInterestDelta",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "OpenInterestDelta", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOpenInterestDelta {
     inner: wc::OpenInterestDelta,
@@ -20770,11 +20378,7 @@ impl PyOpenInterestDelta {
 
 // OIPriceDivergence carries a `window` parameter; streaming
 // `update(open_interest, mark_price)`.
-#[pyclass(
-    name = "OIPriceDivergence",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "OIPriceDivergence", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOIPriceDivergence {
     inner: wc::OIPriceDivergence,
@@ -20831,7 +20435,7 @@ impl PyOIPriceDivergence {
 }
 
 // OIWeighted takes no parameters; streaming `update(mark_price, open_interest)`.
-#[pyclass(name = "OIWeighted", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "OIWeighted", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOIWeighted {
     inner: wc::OIWeighted,
@@ -20888,11 +20492,7 @@ impl PyOIWeighted {
 }
 
 // LongShortRatio takes no parameters; streaming `update(long_size, short_size)`.
-#[pyclass(
-    name = "LongShortRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "LongShortRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLongShortRatio {
     inner: wc::LongShortRatio,
@@ -20950,11 +20550,7 @@ impl PyLongShortRatio {
 
 // TakerBuySellRatio takes no parameters; streaming
 // `update(taker_buy_volume, taker_sell_volume)`.
-#[pyclass(
-    name = "TakerBuySellRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TakerBuySellRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTakerBuySellRatio {
     inner: wc::TakerBuySellRatio,
@@ -21015,11 +20611,7 @@ impl PyTakerBuySellRatio {
 // LiquidationFeatures is a multi-output indicator: streaming
 // `update(long_liquidation, short_liquidation)` returns a 5-tuple
 // `(long, short, net, total, imbalance)`; `batch` returns an `(n, 5)` array.
-#[pyclass(
-    name = "LiquidationFeatures",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "LiquidationFeatures", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyLiquidationFeatures {
     inner: wc::LiquidationFeatures,
@@ -21094,11 +20686,7 @@ impl PyLiquidationFeatures {
 
 // TermStructureBasis takes no parameters; streaming
 // `update(futures_price, index_price)`.
-#[pyclass(
-    name = "TermStructureBasis",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TermStructureBasis", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTermStructureBasis {
     inner: wc::TermStructureBasis,
@@ -21157,11 +20745,7 @@ impl PyTermStructureBasis {
 }
 
 // CalendarSpread takes no parameters; streaming `update(futures_price, mark_price)`.
-#[pyclass(
-    name = "CalendarSpread",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "CalendarSpread", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCalendarSpread {
     inner: wc::CalendarSpread,
@@ -21220,11 +20804,7 @@ impl PyCalendarSpread {
 }
 
 // Estimated leverage ratio: open interest over the exchange's coin reserve.
-#[pyclass(
-    name = "EstimatedLeverageRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "EstimatedLeverageRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEstimatedLeverageRatio {
     inner: wc::EstimatedLeverageRatio,
@@ -21279,11 +20859,7 @@ impl PyEstimatedLeverageRatio {
 }
 
 // OI-to-volume ratio: open interest over taker buy+sell volume.
-#[pyclass(
-    name = "OiToVolumeRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "OiToVolumeRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOiToVolumeRatio {
     inner: wc::OiToVolumeRatio,
@@ -21356,11 +20932,7 @@ impl PyOiToVolumeRatio {
 }
 
 // Perpetual premium index: relative premium of mark over index price.
-#[pyclass(
-    name = "PerpetualPremiumIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "PerpetualPremiumIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPerpetualPremiumIndex {
     inner: wc::PerpetualPremiumIndex,
@@ -21417,11 +20989,7 @@ impl PyPerpetualPremiumIndex {
 }
 
 // Funding-implied APR: per-interval funding annualised.
-#[pyclass(
-    name = "FundingImpliedApr",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "FundingImpliedApr", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFundingImpliedApr {
     inner: wc::FundingImpliedApr,
@@ -21471,11 +21039,7 @@ impl PyFundingImpliedApr {
 }
 
 // Open-interest momentum: rate-of-change of open interest over a window.
-#[pyclass(
-    name = "OpenInterestMomentum",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "OpenInterestMomentum", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOpenInterestMomentum {
     inner: wc::OpenInterestMomentum,
@@ -21550,11 +21114,7 @@ fn build_cross_section(
 
 // AdvanceDecline takes no parameters; streaming `update(change, volume, new_high,
 // new_low)` over one universe, `batch` over one such array group per tick.
-#[pyclass(
-    name = "AdvanceDecline",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AdvanceDecline", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdvanceDecline {
     inner: wc::AdvanceDecline,
@@ -21682,11 +21242,7 @@ fn build_cross_section_buy(
     wc::CrossSection::new(members, 0).map_err(map_err)
 }
 
-#[pyclass(
-    name = "AdvanceDeclineRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AdvanceDeclineRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdvanceDeclineRatio {
     inner: wc::AdvanceDeclineRatio,
@@ -21752,7 +21308,7 @@ impl PyAdvanceDeclineRatio {
     }
 }
 
-#[pyclass(name = "AdVolumeLine", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AdVolumeLine", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAdVolumeLine {
     inner: wc::AdVolumeLine,
@@ -21818,11 +21374,7 @@ impl PyAdVolumeLine {
     }
 }
 
-#[pyclass(
-    name = "McClellanOscillator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "McClellanOscillator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMcClellanOscillator {
     inner: wc::McClellanOscillator,
@@ -21888,11 +21440,7 @@ impl PyMcClellanOscillator {
     }
 }
 
-#[pyclass(
-    name = "McClellanSummationIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "McClellanSummationIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMcClellanSummationIndex {
     inner: wc::McClellanSummationIndex,
@@ -21958,7 +21506,7 @@ impl PyMcClellanSummationIndex {
     }
 }
 
-#[pyclass(name = "Trin", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Trin", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTrin {
     inner: wc::Trin,
@@ -22024,7 +21572,7 @@ impl PyTrin {
     }
 }
 
-#[pyclass(name = "BreadthThrust", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "BreadthThrust", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBreadthThrust {
     inner: wc::BreadthThrust,
@@ -22090,11 +21638,7 @@ impl PyBreadthThrust {
     }
 }
 
-#[pyclass(
-    name = "NewHighsNewLows",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "NewHighsNewLows", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyNewHighsNewLows {
     inner: wc::NewHighsNewLows,
@@ -22160,7 +21704,7 @@ impl PyNewHighsNewLows {
     }
 }
 
-#[pyclass(name = "HighLowIndex", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "HighLowIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyHighLowIndex {
     inner: wc::HighLowIndex,
@@ -22226,11 +21770,7 @@ impl PyHighLowIndex {
     }
 }
 
-#[pyclass(
-    name = "PercentAboveMa",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "PercentAboveMa", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPercentAboveMa {
     inner: wc::PercentAboveMa,
@@ -22305,11 +21845,7 @@ impl PyPercentAboveMa {
     }
 }
 
-#[pyclass(
-    name = "UpDownVolumeRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "UpDownVolumeRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyUpDownVolumeRatio {
     inner: wc::UpDownVolumeRatio,
@@ -22375,11 +21911,7 @@ impl PyUpDownVolumeRatio {
     }
 }
 
-#[pyclass(
-    name = "BullishPercentIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "BullishPercentIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBullishPercentIndex {
     inner: wc::BullishPercentIndex,
@@ -22458,11 +21990,7 @@ impl PyBullishPercentIndex {
     }
 }
 
-#[pyclass(
-    name = "CumulativeVolumeIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "CumulativeVolumeIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCumulativeVolumeIndex {
     inner: wc::CumulativeVolumeIndex,
@@ -22528,11 +22056,7 @@ impl PyCumulativeVolumeIndex {
     }
 }
 
-#[pyclass(
-    name = "AbsoluteBreadthIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AbsoluteBreadthIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAbsoluteBreadthIndex {
     inner: wc::AbsoluteBreadthIndex,
@@ -22598,7 +22122,7 @@ impl PyAbsoluteBreadthIndex {
     }
 }
 
-#[pyclass(name = "TickIndex", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TickIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTickIndex {
     inner: wc::TickIndex,
@@ -22666,11 +22190,7 @@ impl PyTickIndex {
 
 // ============================== Family 15: Risk / Performance ==============================
 
-#[pyclass(
-    name = "UpsidePotentialRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "UpsidePotentialRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyUpsidePotentialRatio {
     inner: wc::UpsidePotentialRatio,
@@ -22728,7 +22248,7 @@ impl PyUpsidePotentialRatio {
     }
 }
 
-#[pyclass(name = "M2Measure", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "M2Measure", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyM2Measure {
     inner: wc::M2Measure,
@@ -22791,7 +22311,7 @@ impl PyM2Measure {
     }
 }
 
-#[pyclass(name = "SharpeRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SharpeRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySharpeRatio {
     inner: wc::SharpeRatio,
@@ -22849,7 +22369,7 @@ impl PySharpeRatio {
     }
 }
 
-#[pyclass(name = "SortinoRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SortinoRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySortinoRatio {
     inner: wc::SortinoRatio,
@@ -22907,7 +22427,7 @@ impl PySortinoRatio {
     }
 }
 
-#[pyclass(name = "CalmarRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "CalmarRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCalmarRatio {
     inner: wc::CalmarRatio,
@@ -22956,7 +22476,7 @@ impl PyCalmarRatio {
     }
 }
 
-#[pyclass(name = "OmegaRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "OmegaRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOmegaRatio {
     inner: wc::OmegaRatio,
@@ -23014,7 +22534,7 @@ impl PyOmegaRatio {
     }
 }
 
-#[pyclass(name = "MaxDrawdown", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "MaxDrawdown", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyMaxDrawdown {
     inner: wc::MaxDrawdown,
@@ -23063,11 +22583,7 @@ impl PyMaxDrawdown {
     }
 }
 
-#[pyclass(
-    name = "AverageDrawdown",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AverageDrawdown", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAverageDrawdown {
     inner: wc::AverageDrawdown,
@@ -23116,11 +22632,7 @@ impl PyAverageDrawdown {
     }
 }
 
-#[pyclass(
-    name = "DrawdownDuration",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "DrawdownDuration", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDrawdownDuration {
     inner: wc::DrawdownDuration,
@@ -23165,11 +22677,7 @@ impl PyDrawdownDuration {
     }
 }
 
-#[pyclass(
-    name = "RunningDrawdown",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RunningDrawdown", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRunningDrawdown {
     inner: wc::RunningDrawdown,
@@ -23226,7 +22734,7 @@ impl PyRunningDrawdown {
     }
 }
 
-#[pyclass(name = "PainIndex", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "PainIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPainIndex {
     inner: wc::PainIndex,
@@ -23275,7 +22783,7 @@ impl PyPainIndex {
     }
 }
 
-#[pyclass(name = "ValueAtRisk", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ValueAtRisk", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyValueAtRisk {
     inner: wc::ValueAtRisk,
@@ -23333,11 +22841,7 @@ impl PyValueAtRisk {
     }
 }
 
-#[pyclass(
-    name = "ConditionalValueAtRisk",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ConditionalValueAtRisk", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyConditionalValueAtRisk {
     inner: wc::ConditionalValueAtRisk,
@@ -23395,7 +22899,7 @@ impl PyConditionalValueAtRisk {
     }
 }
 
-#[pyclass(name = "ProfitFactor", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ProfitFactor", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyProfitFactor {
     inner: wc::ProfitFactor,
@@ -23444,7 +22948,7 @@ impl PyProfitFactor {
     }
 }
 
-#[pyclass(name = "GainLossRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "GainLossRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGainLossRatio {
     inner: wc::GainLossRatio,
@@ -23493,11 +22997,7 @@ impl PyGainLossRatio {
     }
 }
 
-#[pyclass(
-    name = "RecoveryFactor",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "RecoveryFactor", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRecoveryFactor {
     inner: wc::RecoveryFactor,
@@ -23542,11 +23042,7 @@ impl PyRecoveryFactor {
     }
 }
 
-#[pyclass(
-    name = "KellyCriterion",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "KellyCriterion", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKellyCriterion {
     inner: wc::KellyCriterion,
@@ -23597,7 +23093,7 @@ impl PyKellyCriterion {
 
 // --- Pair (asset, benchmark) indicators ---
 
-#[pyclass(name = "TreynorRatio", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TreynorRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTreynorRatio {
     inner: wc::TreynorRatio,
@@ -23664,11 +23160,7 @@ impl PyTreynorRatio {
     }
 }
 
-#[pyclass(
-    name = "InformationRatio",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "InformationRatio", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyInformationRatio {
     inner: wc::InformationRatio,
@@ -23726,7 +23218,7 @@ impl PyInformationRatio {
     }
 }
 
-#[pyclass(name = "Alpha", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Alpha", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAlpha {
     inner: wc::Alpha,
@@ -23799,7 +23291,7 @@ impl PyAlpha {
 // per input. `update(close)` returns the bars finished on that close; `batch`
 // returns a `(k, 3)` array of all completed bars concatenated.
 
-#[pyclass(name = "RenkoBars", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RenkoBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRenkoBars {
     inner: wc::RenkoBars,
@@ -23855,7 +23347,7 @@ impl PyRenkoBars {
     }
 }
 
-#[pyclass(name = "KagiBars", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "KagiBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKagiBars {
     inner: wc::KagiBars,
@@ -23911,11 +23403,7 @@ impl PyKagiBars {
     }
 }
 
-#[pyclass(
-    name = "PointAndFigureBars",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "PointAndFigureBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyPointAndFigureBars {
     inner: wc::PointAndFigureBars,
@@ -23980,7 +23468,7 @@ impl PyPointAndFigureBars {
     }
 }
 
-#[pyclass(name = "RangeBars", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RangeBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRangeBars {
     inner: wc::RangeBars,
@@ -24036,7 +23524,7 @@ impl PyRangeBars {
     }
 }
 
-#[pyclass(name = "TickBars", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TickBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTickBars {
     inner: wc::TickBars,
@@ -24106,7 +23594,7 @@ impl PyTickBars {
     }
 }
 
-#[pyclass(name = "VolumeBars", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VolumeBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolumeBars {
     inner: wc::VolumeBars,
@@ -24176,7 +23664,7 @@ impl PyVolumeBars {
     }
 }
 
-#[pyclass(name = "DollarBars", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "DollarBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyDollarBars {
     inner: wc::DollarBars,
@@ -24246,7 +23734,7 @@ impl PyDollarBars {
     }
 }
 
-#[pyclass(name = "ImbalanceBars", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "ImbalanceBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyImbalanceBars {
     inner: wc::ImbalanceBars,
@@ -24323,7 +23811,7 @@ impl PyImbalanceBars {
     }
 }
 
-#[pyclass(name = "RunBars", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "RunBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyRunBars {
     inner: wc::RunBars,
@@ -24401,11 +23889,7 @@ impl PyRunBars {
     }
 }
 
-#[pyclass(
-    name = "ThreeLineBreakBars",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "ThreeLineBreakBars", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyThreeLineBreakBars {
     inner: wc::ThreeLineBreakBars,
@@ -24502,7 +23986,7 @@ fn build_seasonality_candles(
 
 macro_rules! py_seasonality_offset_scalar {
     ($pytype:ident, $name:literal, $rust:ident) => {
-        #[pyclass(name = $name, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $name, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $pytype {
             inner: wc::$rust,
@@ -24568,7 +24052,7 @@ macro_rules! py_seasonality_offset_scalar {
 
 macro_rules! py_seasonality_bucket_profile {
     ($pytype:ident, $name:literal, $rust:ident) => {
-        #[pyclass(name = $name, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $name, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $pytype {
             inner: wc::$rust,
@@ -24645,7 +24129,7 @@ macro_rules! py_seasonality_bucket_profile {
 
 macro_rules! py_seasonality_offset_profile {
     ($pytype:ident, $name:literal, $rust:ident, $k:expr) => {
-        #[pyclass(name = $name, module = "wickra._wickra", skip_from_py_object)]
+        #[pyclass(name = $name, module = "wickra._wickra")]
         #[derive(Clone)]
         struct $pytype {
             inner: wc::$rust,
@@ -24743,11 +24227,7 @@ py_seasonality_bucket_profile!(
 );
 py_seasonality_offset_profile!(PyDayOfWeekProfile, "DayOfWeekProfile", DayOfWeekProfile, 7);
 
-#[pyclass(
-    name = "AverageDailyRange",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "AverageDailyRange", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAverageDailyRange {
     inner: wc::AverageDailyRange,
@@ -24805,7 +24285,7 @@ impl PyAverageDailyRange {
     }
 }
 
-#[pyclass(name = "TurnOfMonth", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "TurnOfMonth", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTurnOfMonth {
     inner: wc::TurnOfMonth,
@@ -24863,11 +24343,7 @@ impl PyTurnOfMonth {
     }
 }
 
-#[pyclass(
-    name = "SessionHighLow",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "SessionHighLow", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySessionHighLow {
     inner: wc::SessionHighLow,
@@ -24932,7 +24408,7 @@ impl PySessionHighLow {
     }
 }
 
-#[pyclass(name = "SessionRange", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SessionRange", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySessionRange {
     inner: wc::SessionRange,
@@ -24998,11 +24474,7 @@ impl PySessionRange {
     }
 }
 
-#[pyclass(
-    name = "OvernightIntradayReturn",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "OvernightIntradayReturn", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyOvernightIntradayReturn {
     inner: wc::OvernightIntradayReturn,
@@ -25077,11 +24549,7 @@ fn swing_candle(high: f64, low: f64) -> Result<wc::Candle, wc::Error> {
     wc::Candle::new(mid, high, low, mid, 0.0, 0)
 }
 
-#[pyclass(
-    name = "FibRetracement",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "FibRetracement", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibRetracement {
     inner: wc::FibRetracement,
@@ -25158,7 +24626,7 @@ impl PyFibRetracement {
     }
 }
 
-#[pyclass(name = "FibExtension", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FibExtension", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibExtension {
     inner: wc::FibExtension,
@@ -25231,7 +24699,7 @@ impl PyFibExtension {
     }
 }
 
-#[pyclass(name = "FibProjection", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FibProjection", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibProjection {
     inner: wc::FibProjection,
@@ -25298,7 +24766,7 @@ impl PyFibProjection {
     }
 }
 
-#[pyclass(name = "AutoFib", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AutoFib", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAutoFib {
     inner: wc::AutoFib,
@@ -25375,7 +24843,7 @@ impl PyAutoFib {
     }
 }
 
-#[pyclass(name = "GoldenPocket", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "GoldenPocket", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGoldenPocket {
     inner: wc::GoldenPocket,
@@ -25438,7 +24906,7 @@ impl PyGoldenPocket {
     }
 }
 
-#[pyclass(name = "FibConfluence", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FibConfluence", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibConfluence {
     inner: wc::FibConfluence,
@@ -25500,7 +24968,7 @@ impl PyFibConfluence {
     }
 }
 
-#[pyclass(name = "FibFan", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FibFan", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibFan {
     inner: wc::FibFan,
@@ -25566,7 +25034,7 @@ impl PyFibFan {
     }
 }
 
-#[pyclass(name = "FibArcs", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FibArcs", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibArcs {
     inner: wc::FibArcs,
@@ -25632,7 +25100,7 @@ impl PyFibArcs {
     }
 }
 
-#[pyclass(name = "FibChannel", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FibChannel", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibChannel {
     inner: wc::FibChannel,
@@ -25699,7 +25167,7 @@ impl PyFibChannel {
     }
 }
 
-#[pyclass(name = "FibTimeZones", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "FibTimeZones", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyFibTimeZones {
     inner: wc::FibTimeZones,
@@ -25763,11 +25231,7 @@ impl PyFibTimeZones {
 
 // ============================== EWMA Volatility ==============================
 
-#[pyclass(
-    name = "EwmaVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "EwmaVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEwmaVolatility {
     inner: wc::EwmaVolatility,
@@ -25820,7 +25284,7 @@ impl PyEwmaVolatility {
 
 // ============================== GARCH(1,1) ==============================
 
-#[pyclass(name = "Garch11", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Garch11", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyGarch11 {
     inner: wc::Garch11,
@@ -25877,11 +25341,7 @@ impl PyGarch11 {
 
 // ============================== Volatility of Volatility ==============================
 
-#[pyclass(
-    name = "VolatilityOfVolatility",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VolatilityOfVolatility", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolatilityOfVolatility {
     inner: wc::VolatilityOfVolatility,
@@ -25934,11 +25394,7 @@ impl PyVolatilityOfVolatility {
 
 // ============================== Volatility Cone ==============================
 
-#[pyclass(
-    name = "VolatilityCone",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VolatilityCone", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolatilityCone {
     inner: wc::VolatilityCone,
@@ -26010,7 +25466,7 @@ impl PyVolatilityCone {
 
 // ============================== Volume RSI ==============================
 
-#[pyclass(name = "VolumeRsi", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "VolumeRsi", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolumeRsi {
     inner: wc::VolumeRsi,
@@ -26074,7 +25530,7 @@ impl PyVolumeRsi {
 
 // ============================== Williams A/D ==============================
 
-#[pyclass(name = "Wad", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Wad", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyWad {
     inner: wc::Wad,
@@ -26135,11 +25591,7 @@ impl PyWad {
 
 // ============================== Twiggs Money Flow ==============================
 
-#[pyclass(
-    name = "TwiggsMoneyFlow",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TwiggsMoneyFlow", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTwiggsMoneyFlow {
     inner: wc::TwiggsMoneyFlow,
@@ -26207,11 +25659,7 @@ impl PyTwiggsMoneyFlow {
 
 // ============================== Trade Volume Index ==============================
 
-#[pyclass(
-    name = "TradeVolumeIndex",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TradeVolumeIndex", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTradeVolumeIndex {
     inner: wc::TradeVolumeIndex,
@@ -26275,11 +25723,7 @@ impl PyTradeVolumeIndex {
 
 // ============================== Intraday Intensity ==============================
 
-#[pyclass(
-    name = "IntradayIntensity",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "IntradayIntensity", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyIntradayIntensity {
     inner: wc::IntradayIntensity,
@@ -26342,7 +25786,7 @@ impl PyIntradayIntensity {
 
 // ============================== Better Volume ==============================
 
-#[pyclass(name = "BetterVolume", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "BetterVolume", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBetterVolume {
     inner: wc::BetterVolume,
@@ -26412,11 +25856,7 @@ impl PyBetterVolume {
 
 // ============================== Volume-Weighted MACD ==============================
 
-#[pyclass(
-    name = "VolumeWeightedMacd",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "VolumeWeightedMacd", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyVolumeWeightedMacd {
     inner: wc::VolumeWeightedMacd,
@@ -26490,7 +25930,7 @@ impl PyVolumeWeightedMacd {
 
 // ============================== Shannon Entropy ==============================
 
-#[pyclass(name = "SHANNONENT", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SHANNONENT", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyShannonEntropy {
     inner: wc::ShannonEntropy,
@@ -26547,7 +25987,7 @@ impl PyShannonEntropy {
 
 // ============================== Sample Entropy ==============================
 
-#[pyclass(name = "SAMPLEENT", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "SAMPLEENT", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PySampleEntropy {
     inner: wc::SampleEntropy,
@@ -26604,7 +26044,7 @@ impl PySampleEntropy {
 
 // ============================== Kendall Tau ==============================
 
-#[pyclass(name = "KendallTau", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "KendallTau", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyKendallTau {
     inner: wc::KendallTau,
@@ -26663,7 +26103,7 @@ impl PyKendallTau {
 
 // ============================== Bandpass Filter ==============================
 
-#[pyclass(name = "BANDPASS", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "BANDPASS", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyBandpassFilter {
     inner: wc::BandpassFilter,
@@ -26720,11 +26160,7 @@ impl PyBandpassFilter {
 
 // ============================== Even Better Sinewave ==============================
 
-#[pyclass(
-    name = "EVENBETTERSINE",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "EVENBETTERSINE", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyEvenBetterSinewave {
     inner: wc::EvenBetterSinewave,
@@ -26781,7 +26217,7 @@ impl PyEvenBetterSinewave {
 
 // ============================== Autocorrelation Periodogram ==============================
 
-#[pyclass(name = "AUTOCORRPGRAM", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "AUTOCORRPGRAM", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyAutocorrelationPeriodogram {
     inner: wc::AutocorrelationPeriodogram,
@@ -27421,7 +26857,7 @@ type KlineTuple = (String, f64, f64, f64, f64, f64, i64, bool);
 /// A live Binance kline feed (blocking poll). The connect / read / reconnect
 /// pipeline is the mock-server-tested wickra-data `BinanceKlineStream`, driven on
 /// a single-thread tokio runtime; `next` releases the GIL while it waits.
-#[pyclass(name = "BinanceFeed", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "BinanceFeed", module = "wickra._wickra")]
 struct PyBinanceFeed {
     runtime: tokio::runtime::Runtime,
     inner: wickra_data::live::binance::BinanceKlineStream,
@@ -27540,11 +26976,7 @@ fn fetch_binance_klines(
 }
 
 /// Roll trade ticks up into fixed-timeframe OHLCV candles.
-#[pyclass(
-    name = "TickAggregator",
-    module = "wickra._wickra",
-    skip_from_py_object
-)]
+#[pyclass(name = "TickAggregator", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyTickAggregator {
     inner: wickra_data::aggregator::TickAggregator,
@@ -27589,7 +27021,7 @@ impl PyTickAggregator {
 // ===== Data layer: resampling (candle -> higher-timeframe candle) =====
 
 /// Resample candles into a higher timeframe (e.g. 1m -> 5m).
-#[pyclass(name = "Resampler", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "Resampler", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyResampler {
     inner: wickra_data::resample::Resampler,
@@ -27650,7 +27082,7 @@ impl PyResampler {
 
 /// Parse OHLCV candles from a CSV string (header `timestamp,open,high,low,close,
 /// volume`; a leading UTF-8 BOM is stripped).
-#[pyclass(name = "CandleReader", module = "wickra._wickra", skip_from_py_object)]
+#[pyclass(name = "CandleReader", module = "wickra._wickra")]
 #[derive(Clone)]
 struct PyCandleReader {
     candles: Vec<wc::Candle>,
