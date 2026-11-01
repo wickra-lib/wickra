@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **pyo3 0.30.1**, the line the rest of the family is already on. pyo3 0.30
+  makes `skip_from_py_object` the default and deprecates the option, which
+  `-D warnings` turns into an error, so it is dropped from every `#[pyclass]`.
+  The classes still do not derive `FromPyObject`, exactly as before.
+
 ## [2.1.1] - 2026-10-28
 
 A patch release that brings the Java binding to Maven Central. The indicators,
