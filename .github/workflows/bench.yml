@@ -84,6 +84,15 @@ jobs:
           cache-dependency-path: .github/requirements/bench.txt
 
       - name: Install Python deps + peer libs
+        # tulipy 0.4.0 ships only as an sdist and is compiled here. Its Cython
+        # call passes `double **` where the C function takes
+        # `double const *const *`: a const-only difference C does not convert
+        # implicitly. GCC 14 made -Wincompatible-pointer-types an error by
+        # default, and ubuntu-latest moved to 26.04 with such a GCC, so the
+        # build broke there. The indicator only reads its inputs, so the
+        # diagnostic goes back to being a warning.
+        env:
+          CFLAGS: -Wno-error=incompatible-pointer-types
         run: |
           python -m pip install --upgrade pip
           # Hash-locked deps (OpenSSF Scorecard PinnedDependencies). bench.yml
