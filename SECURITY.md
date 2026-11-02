@@ -141,6 +141,8 @@ only the latest release is supported.
 Advisories reported by `cargo-deny`/Dependabot for third-party dependencies that
 do **not** affect Wickra (e.g. the vulnerable code path is not reachable, or the
 affected feature is not enabled) are triaged and recorded — with the
-not-affected justification — in the `cargo-deny` configuration (`deny.toml`) and
-the relevant pull request, rather than forcing an unnecessary dependency bump.
+not-affected justification — in the `cargo-deny` configuration (`deny.toml`) for
+the Rust graph, in the OSV-Scanner configuration (`osv-scanner.toml`) for every
+other ecosystem, and in the relevant pull request, rather than forcing an
+unnecessary dependency bump.
 This serves as the project's exploitability (VEX) record.

@@ -439,18 +439,7 @@ jobs:
         with:
           command: check
 
-  # The published API is a promise. wickra-core, wickra-data and wickra are on
-  # crates.io, and since 1.0.0 the version number says what may change: a patch
-  # release must not move the public surface. Nothing checked that, and the
-  # surface is 515 exported types that ten language bindings sit on top of --
-  # exactly the shape where a rename slips through review and out to six
-  # registries in one irreversible run.
-  #
-  # The baseline is the newest version already on crates.io, fetched by the tool
-  # itself. On a release that has not moved the API this finds nothing; the run
-  # that matters is the one where it does.
-
-      # osv-scanner.toml existed and nothing ran it. The file records two
+      # osv-scanner.toml existed and nothing ran it. The file records the
       # advisories assessed as not affecting this project, with the reasoning
       # next to each -- and that assessment was load-bearing for nobody,
       # because no workflow ever consulted it. It only had an effect if
@@ -476,6 +465,15 @@ jobs:
       # package-lock.json, go.mod -- is still scanned in full, transitively,
       # because a lockfile needs no resolution. wickra-backtest reached the same
       # flag by the same route.
+      #
+      # The --lockfile arguments are not redundant with --recursive. OSV-Scanner
+      # discovers lockfiles by *filename*, and none of bench.txt, ci-dev-py3.txt
+      # and ci-dev-py39.txt matches a pattern it recognises, so the recursive
+      # walk skipped every hash-locked file in .github/requirements/ and the
+      # Python CI dependencies were never scanned. They are named after what
+      # they install, which is the right name for a reader and the wrong one for
+      # the scanner, so the format is stated explicitly instead of renaming
+      # them. A new file there needs a line here.
       - name: osv-scanner
         uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
         with:
@@ -483,7 +481,21 @@ jobs:
             --recursive
             --no-resolve
             --config=osv-scanner.toml
+            --lockfile=requirements.txt:.github/requirements/bench.txt
+            --lockfile=requirements.txt:.github/requirements/ci-dev-py3.txt
+            --lockfile=requirements.txt:.github/requirements/ci-dev-py39.txt
             ./
+
+  # The published API is a promise. wickra-core, wickra-data and wickra are on
+  # crates.io, and since 1.0.0 the version number says what may change: a patch
+  # release must not move the public surface. Nothing checked that, and the
+  # surface is 515 exported types that ten language bindings sit on top of --
+  # exactly the shape where a rename slips through review and out to six
+  # registries in one irreversible run.
+  #
+  # The baseline is the newest version already on crates.io, fetched by the tool
+  # itself. On a release that has not moved the API this finds nothing; the run
+  # that matters is the one where it does.
   semver:
     name: Public API (cargo-semver-checks)
     runs-on: ubuntu-latest

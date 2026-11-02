@@ -14,6 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-D warnings` turns into an error, so it is dropped from every `#[pyclass]`.
   The classes still do not derive `FromPyObject`, exactly as before.
 
+### Security
+
+- **osv-scanner now scans the Python CI dependencies.** It discovers lockfiles
+  by filename and recognises none of `bench.txt`, `ci-dev-py3.txt` and
+  `ci-dev-py39.txt`, so the recursive walk skipped all of
+  `.github/requirements/`. The pytest waiver (`GHSA-6w46-j5rx-g56g`) in
+  `osv-scanner.toml` therefore applied to nothing; the files are now passed
+  explicitly and it is load-bearing again. No other finding surfaces.
+- **The `GHSA-72hv-8253-57qq` (jackson-core) waiver is gone**, from
+  `osv-scanner.toml` and from the two configs next to the Maven manifests. Its
+  reasoning, that only jackson 2.x was present and 2.x is not affected, stopped
+  being true when the advisory was extended to
+  `com.fasterxml.jackson.core:jackson-core` from 2.15.0 (fixed in 2.18.6 and
+  2.21.1). Nor is it
+  needed: the examples' `jackson-databind` left with the native data layer, and
+  no scan of the project's dependency graph finds jackson any more. The one
+  jackson that remains is inside `central-publishing-maven-plugin` 0.12.0, the
+  newest release, which runs in Maven on the release runner and is not a
+  dependency of anything published.
+
 ## [2.1.1] - 2026-10-28
 
 A patch release that brings the Java binding to Maven Central. The indicators,
