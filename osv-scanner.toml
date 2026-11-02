@@ -1,16 +1,10 @@
-# OSV-Scanner suppressions (VEX record). Consumed by the OpenSSF Scorecard
-# Vulnerabilities check, which runs OSV-Scanner over this repository. Each entry
-# is an advisory assessed as not affecting Wickra; this mirrors the cargo-deny
-# `ignore` list in deny.toml at the OSV layer. See the "Vulnerability
-# exploitability (VEX)" section of SECURITY.md.
-
-# jackson-core 3.x async-parser DoS — tools.jackson.core:jackson-core 3.x is not
-# a dependency of this project. No manifest, Maven plugin, or the GitHub
-# dependency-graph SBOM references jackson 3.x; the only jackson present is
-# com.fasterxml.jackson.core:jackson-databind 2.17.1 (examples only). Not affected.
-[[IgnoredVulns]]
-id = "GHSA-72hv-8253-57qq"
-reason = "tools.jackson.core:jackson-core 3.x is not a dependency of this project; only jackson-databind 2.17.1 is present. Not affected."
+# OSV-Scanner suppressions (VEX record). Read by the osv-scanner step of the
+# supply-chain job in .github/workflows/ci.yml, which passes it with --config so
+# it applies to every file that step scans, and by the OpenSSF Scorecard
+# Vulnerabilities check. Each entry is an advisory assessed as not affecting
+# Wickra, with the reasoning next to it. The Rust graph is covered by cargo-deny
+# and deny.toml. See the "Vulnerability exploitability (VEX)" section of
+# SECURITY.md.
 
 # pytest tmpdir handling (CVSS 6.8, fixed in pytest 9.0.3) -- pytest through
 # 9.0.2 on UNIX uses predictable /tmp/pytest-of-{user} directories, which a
