@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-D warnings` turns into an error, so it is dropped from every `#[pyclass]`.
   The classes still do not derive `FromPyObject`, exactly as before.
 
+### Fixed
+
+- **`LogReturn` docs match its behaviour** (#511). The type docs and the
+  inline comment said a non-finite or non-positive price returns the last
+  computed value; `update` returns `None` for such a tick, as the tests pin.
+  The text now says so, and the never-read `last` field is gone. No output
+  changes.
+
 ### Security
 
 - **osv-scanner now scans the Python CI dependencies.** It discovers lockfiles
