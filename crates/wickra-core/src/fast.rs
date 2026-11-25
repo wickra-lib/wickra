@@ -695,8 +695,9 @@ kernel! {
 
 kernel! {
     /// RSI: the exact seed over the first `period` changes, then blocks of
-    /// gains and losses smoothed by two Wilder scans and combined as
-    /// `100 · ag / (ag + al)` (50 when both are zero). Returns the averages.
+    /// gains and losses smoothed by two Wilder scans and combined by
+    /// `Rsi::rsi_from_avgs`, `100 · (ag / (ag + al))` (50 when both are zero).
+    /// Returns the averages.
     RsiFast {
         x: &'a [f64],
         period: usize,
@@ -726,8 +727,7 @@ kernel! {
             avg_loss = lin_scan(simd, decay, gain, &losses[..len], avg_loss, &mut smoothed_losses[..len]);
             let smoothed = smoothed_gains[..len].iter().zip(&smoothed_losses[..len]);
             for (slot, (&up, &down)) in dest.iter_mut().zip(smoothed) {
-                let denom = up + down;
-                *slot = if denom == 0.0 { 50.0 } else { 100.0 * up / denom };
+                *slot = crate::indicators::Rsi::rsi_from_avgs(up, down);
             }
             pos += len;
         }

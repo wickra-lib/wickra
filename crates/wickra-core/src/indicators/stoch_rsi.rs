@@ -107,7 +107,9 @@ impl Indicator for StochRsi {
             // Flat RSI window: report the neutral midpoint.
             50.0
         } else {
-            100.0 * (rsi_value - min) / range
+            // Divide before scaling: at the window maximum the quotient is
+            // exactly 1, so the output is exactly 100 and never one ulp above.
+            100.0 * ((rsi_value - min) / range)
         };
         self.last = Some(stoch);
         Some(stoch)
@@ -197,6 +199,43 @@ mod tests {
         for v in out.iter().skip(9).flatten() {
             assert_relative_eq!(*v, 50.0, epsilon = 1e-12);
         }
+    }
+
+    #[test]
+    fn irregular_uptrend_yields_exactly_50() {
+        // Uneven up-steps keep RSI saturated at 100, but the average gain takes
+        // many values; one-ulp noise on the saturated RSI used to give the
+        // window a tiny range, so StochRSI read 0 or 100 instead of the flat 50
+        // (#509).
+        let mut price = 100.0;
+        let prices: Vec<f64> = (0..200)
+            .map(|i| {
+                price += 0.1 + 0.37 * (f64::from(i) * 1.3).sin().abs();
+                price
+            })
+            .collect();
+        let mut sr = StochRsi::new(7, 10).unwrap();
+        let out: Vec<f64> = sr.batch(&prices).into_iter().flatten().collect();
+        assert_eq!(out.len(), 200 - 16);
+        assert!(out.iter().all(|&v| v == 50.0));
+    }
+
+    #[test]
+    fn window_maximum_reads_exactly_100() {
+        // Whenever the current RSI is the window maximum the output is
+        // `100 · (range / range)`; scaling before dividing put it one ulp above
+        // 100 on some bars.
+        let prices: Vec<f64> = (1..=600)
+            .map(|i| 100.0 + (f64::from(i) * 0.3).sin() * 15.0 + (f64::from(i) * 0.07).cos() * 6.0)
+            .collect();
+        let out: Vec<f64> = StochRsi::new(14, 14)
+            .unwrap()
+            .batch(&prices)
+            .into_iter()
+            .flatten()
+            .collect();
+        assert!(out.iter().all(|&v| (0.0..=100.0).contains(&v)));
+        assert!(out.iter().filter(|&&v| v == 100.0).count() > 10);
     }
 
     #[test]

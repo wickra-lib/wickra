@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-D warnings` turns into an error, so it is dropped from every `#[pyclass]`.
   The classes still do not derive `FromPyObject`, exactly as before.
 
+### Fixed
+
+- **A saturated `Rsi` is exactly 100, so `StochRsi` sees a flat window**
+  (#509). `Rsi` computed `(100 · ag) / (ag + al)`, which for `al == 0` rounds
+  to `100.00000000000001` for about one average gain in eight. `StochRsi`
+  tests its window for a zero range, so a saturated stretch with that one-ulp
+  noise read `0` or `100` instead of the documented flat `50`. Both the exact
+  paths and the `batch_fast` kernel now compute `100 · (ag / (ag + al))`, which
+  is exact at saturation. `StochRsi` had the same pattern in its own scaling,
+  so a bar at the window maximum read `100.00000000000001`, above its
+  documented `[0, 100]`; it now divides first as well. Unsaturated values of
+  both, and of indicators built on `Rsi` (`ConnorsRsi`, `FisherRsi`, `Qqe`,
+  `RelativeStrengthAB`), can move by one ulp; the golden fixtures are
+  regenerated.
+
 ### Security
 
 - **osv-scanner now scans the Python CI dependencies.** It discovers lockfiles
