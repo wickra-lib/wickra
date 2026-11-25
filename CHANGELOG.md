@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-D warnings` turns into an error, so it is dropped from every `#[pyclass]`.
   The classes still do not derive `FromPyObject`, exactly as before.
 
+### Fixed
+
+- **`Ichimoku` docs state the displacement convention** (#510). The docs said
+  the Senkou spans and the Chikou move by `displacement` bars; the code (and
+  the 77-bar warmup) moves them by `displacement - 1`, counting the current bar
+  as bar 1 the way `TradingView` does. The behaviour stays; the docs now name
+  the inclusive count, and a new test pins the Senkou shift. No output changes.
+
 ### Security
 
 - **osv-scanner now scans the Python CI dependencies.** It discovers lockfiles
