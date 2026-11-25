@@ -7,18 +7,24 @@
 //!   highs and lows (default 9).
 //! - **Kijun-sen** (Base Line): midpoint over `kijun_period` (default 26).
 //! - **Senkou Span A** (Leading A): `(tenkan + kijun) / 2`, shifted *forward*
-//!   `displacement` bars.
+//!   by the displacement.
 //! - **Senkou Span B** (Leading B): midpoint over `senkou_b_period` (default
-//!   52), also shifted forward `displacement` bars.
-//! - **Chikou Span** (Lagging Span): the current close, displayed `displacement`
-//!   bars *backwards*.
+//!   52), also shifted forward by the displacement.
+//! - **Chikou Span** (Lagging Span): the current close, shifted *backwards* by
+//!   the displacement.
+//!
+//! # Displacement is counted inclusively
+//!
+//! The displacement counts the current bar as bar 1, the way the built-in
+//! Ichimoku on `TradingView` does (it plots with `offset = displacement - 1`). The
+//! shift in bars is therefore `displacement - 1`: 25 bars at the classic
+//! setting of 26, and no shift at all for `displacement = 1`.
 //!
 //! The two Senkou Spans form the **Kumo** (cloud). At step *n* the visible
-//! Senkou A/B are computed from data at step *n − displacement*; the visible
-//! Chikou is the close from step *n + displacement* in a chart, but in a
-//! streaming setting the only Chikou we can emit at step *n* is the close from
-//! *n − displacement*. That convention matches every TA library that processes
-//! candles in chronological order.
+//! Senkou A/B are the values computed at step *n − (displacement − 1)*. A chart
+//! draws the Chikou *displacement − 1* bars to the left of the close it shows;
+//! in a streaming setting the only Chikou we can emit at step *n* is the close
+//! from step *n − (displacement − 1)*, which is what `chikou` holds.
 
 #![allow(clippy::too_many_arguments)]
 
@@ -32,8 +38,9 @@ use crate::traits::Indicator;
 ///
 /// `tenkan` and `kijun` reflect data up to and including the current bar.
 /// `senkou_a` / `senkou_b` are the leading-span values *visible at the current
-/// bar*, computed from `displacement` bars ago. `chikou` is the close from
-/// `displacement` bars ago (its "lagging" placement on charts).
+/// bar*, computed `displacement - 1` bars ago. `chikou` is the close from
+/// `displacement - 1` bars ago (its "lagging" placement on charts). The
+/// displacement is counted inclusively; see the module docs.
 ///
 /// Any field that is not yet defined (insufficient history) is `None`.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,12 +50,12 @@ pub struct IchimokuOutput {
     /// Kijun-sen — midpoint of the last `kijun_period` highs/lows.
     pub kijun: Option<f64>,
     /// Senkou Span A as visible at the current bar (computed from
-    /// `(tenkan + kijun) / 2` at step `n - displacement`).
+    /// `(tenkan + kijun) / 2` at step `n - (displacement - 1)`).
     pub senkou_a: Option<f64>,
     /// Senkou Span B as visible at the current bar (computed from the
-    /// `senkou_b_period` midpoint at step `n - displacement`).
+    /// `senkou_b_period` midpoint at step `n - (displacement - 1)`).
     pub senkou_b: Option<f64>,
-    /// Chikou Span — the close from `displacement` bars ago.
+    /// Chikou Span — the close from `displacement - 1` bars ago.
     pub chikou: Option<f64>,
 }
 
@@ -57,7 +64,8 @@ pub struct IchimokuOutput {
 /// Standard parameters are `(9, 26, 52, 26)`. The first fully-populated output
 /// (every field `Some`) appears after `senkou_b_period + displacement - 1`
 /// candles — 77 bars at the defaults — because Senkou B needs its own 52-bar
-/// midpoint *and* a 26-bar history of those midpoints to displace from.
+/// midpoint and is then shifted forward 25 bars (the displacement of 26 counts
+/// the current bar; see the module docs).
 ///
 /// # Example
 ///
@@ -102,7 +110,8 @@ impl Ichimoku {
     ///
     /// `tenkan_period` is the short midpoint window (default 9), `kijun_period`
     /// the medium (default 26), `senkou_b_period` the long (default 52), and
-    /// `displacement` the forward/backward shift in bars (default 26).
+    /// `displacement` the forward/backward shift (default 26), counted
+    /// inclusively: the spans move `displacement - 1` bars.
     ///
     /// # Errors
     ///
@@ -196,14 +205,14 @@ impl Indicator for Ichimoku {
             (self.highs.len() >= self.senkou_b_period).then(|| self.midpoint(self.senkou_b_period));
 
         // Today's contribution to the leading spans (will become visible after
-        // `displacement` more bars).
+        // `displacement - 1` more bars).
         let senkou_a_now = match (tenkan, kijun) {
             (Some(t), Some(k)) => Some(f64::midpoint(t, k)),
             _ => None,
         };
 
         // The currently-visible Senkou A/B at this bar are the values that were
-        // computed `displacement` bars ago. We always push the freshly-computed
+        // computed `displacement - 1` bars ago. We always push the freshly-computed
         // `senkou_a_now` / `senkou_b_now` to keep the history aligned 1:1 with
         // bars; NaN encodes "no value yet" so the buffer indices stay simple.
         let push_or_nan = |q: &mut VecDeque<f64>, v: Option<f64>, cap: usize| {
@@ -215,9 +224,9 @@ impl Indicator for Ichimoku {
         push_or_nan(&mut self.senkou_a_history, senkou_a_now, self.displacement);
         push_or_nan(&mut self.senkou_b_history, senkou_b_now, self.displacement);
 
-        // The visible Senkou A/B at the current bar were buffered exactly
-        // `displacement` updates ago, which is `self.senkou_*_history.front()`
-        // once the buffer is full.
+        // The buffer holds `displacement` values including the one just
+        // pushed, so once it is full `self.senkou_*_history.front()` is the
+        // value buffered `displacement - 1` updates ago: the inclusive count.
         let take_front = |q: &VecDeque<f64>, cap: usize| -> Option<f64> {
             if q.len() == cap {
                 let v = q[0];
@@ -233,7 +242,7 @@ impl Indicator for Ichimoku {
         let senkou_a = take_front(&self.senkou_a_history, self.displacement);
         let senkou_b = take_front(&self.senkou_b_history, self.displacement);
 
-        // Chikou: close from `displacement` bars ago.
+        // Chikou: close from `displacement - 1` bars ago (same inclusive count).
         if self.close_history.len() == self.displacement {
             self.close_history.pop_front();
         }
@@ -392,15 +401,50 @@ mod tests {
     }
 
     #[test]
-    fn chikou_is_close_displacement_bars_back() {
+    fn chikou_is_close_displacement_minus_one_bars_back() {
         let mut ichi = Ichimoku::classic();
         let candles = ramp(60);
         let out = ichi.batch(&candles);
-        // Displacement = 26; at bar index 25, chikou is the close from bar 0.
+        // Displacement = 26, counted inclusively: at bar index 25, chikou is
+        // the close from bar 0, 25 bars back.
+        assert!(out[24].unwrap().chikou.is_none());
         let v = out[25].unwrap();
         assert_relative_eq!(v.chikou.unwrap(), candles[0].close, epsilon = 1e-12);
         let v = out[50].unwrap();
         assert_relative_eq!(v.chikou.unwrap(), candles[25].close, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn senkou_spans_shift_forward_displacement_minus_one_bars() {
+        let mut ichi = Ichimoku::classic();
+        let candles = ramp(120);
+        let out = ichi.batch(&candles);
+        // Senkou A first exists at index 25 (kijun's first bar), so it becomes
+        // visible 25 bars later, at index 50, and not one bar before.
+        assert!(out[49].unwrap().senkou_a.is_none());
+        let past = out[25].unwrap();
+        let expected_a = f64::midpoint(past.tenkan.unwrap(), past.kijun.unwrap());
+        assert_relative_eq!(
+            out[50].unwrap().senkou_a.unwrap(),
+            expected_a,
+            epsilon = 1e-12
+        );
+        // Senkou B: the 52-bar midpoint computed at index 51 is visible at 76,
+        // the 77th bar.
+        assert!(out[75].unwrap().senkou_b.is_none());
+        let hi = candles[..52]
+            .iter()
+            .map(|c| c.high)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let lo = candles[..52]
+            .iter()
+            .map(|c| c.low)
+            .fold(f64::INFINITY, f64::min);
+        assert_relative_eq!(
+            out[76].unwrap().senkou_b.unwrap(),
+            f64::midpoint(hi, lo),
+            epsilon = 1e-12
+        );
     }
 
     #[test]

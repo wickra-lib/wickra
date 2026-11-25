@@ -26272,9 +26272,13 @@ impl PyAutocorrelationPeriodogram {
     }
 }
 
+// The extension module is `wickra._wickra`; the Rust function carries a plain
+// name and `pyo3(name)` sets the Python one, because the macro's references to
+// an underscore-prefixed item trip `clippy::used_underscore_items`.
 #[pymodule]
+#[pyo3(name = "_wickra")]
 #[allow(clippy::too_many_lines)]
-fn _wickra(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn wickra_extension(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     // The result type of every multi-output `batch`. It was documented but
     // never registered, so callers could neither import it nor name it in a

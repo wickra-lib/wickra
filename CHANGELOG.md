@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`LogReturn` docs match its behaviour** (#511). The type docs and the
+  inline comment said a non-finite or non-positive price returns the last
+  computed value; `update` returns `None` for such a tick, as the tests pin.
+  The text now says so, and the never-read `last` field is gone. No output
+  changes.
+- **`Ichimoku` docs state the displacement convention** (#510). The docs said
+  the Senkou spans and the Chikou move by `displacement` bars; the code (and
+  the 77-bar warmup) moves them by `displacement - 1`, counting the current bar
+  as bar 1 the way `TradingView` does. The behaviour stays; the docs now name
+  the inclusive count, and a new test pins the Senkou shift. No output changes.
 - **A saturated `Rsi` is exactly 100, so `StochRsi` sees a flat window**
   (#509). `Rsi` computed `(100 · ag) / (ag + al)`, which for `al == 0` rounds
   to `100.00000000000001` for about one average gain in eight. `StochRsi`
