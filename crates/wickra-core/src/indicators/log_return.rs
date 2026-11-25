@@ -18,9 +18,10 @@ use crate::traits::Indicator;
 /// ```
 ///
 /// Non-finite and non-positive prices are ignored: the input is dropped, state
-/// is left untouched, and the last computed value is returned instead. The log
-/// of a non-positive price is undefined, so such ticks must not enter the
-/// window — mirroring [`HistoricalVolatility`](crate::HistoricalVolatility).
+/// is left untouched, and `update` returns `None` for that tick. The log of a
+/// non-positive price is undefined, so such ticks must not enter the window —
+/// mirroring [`HistoricalVolatility`](crate::HistoricalVolatility). The next
+/// valid price is still measured against the last valid one.
 ///
 /// # Example
 ///
@@ -37,7 +38,6 @@ use crate::traits::Indicator;
 pub struct LogReturn {
     period: usize,
     window: VecDeque<f64>,
-    last: Option<f64>,
 }
 
 impl LogReturn {
@@ -57,7 +57,6 @@ impl LogReturn {
         Ok(Self {
             period,
             window: VecDeque::with_capacity(period + 1),
-            last: None,
         })
     }
 
@@ -74,8 +73,8 @@ impl Indicator for LogReturn {
     #[inline]
     fn update(&mut self, input: f64) -> Option<f64> {
         // Non-finite or non-positive prices are ignored: `ln` of a non-positive
-        // price is undefined, so the tick must not enter the window. Return the
-        // last value and leave state untouched (SMA / EMA / HV convention).
+        // price is undefined, so the tick must not enter the window. Return
+        // `None` and leave state untouched (SMA / EMA / HV convention).
         if !input.is_finite() || input <= 0.0 {
             return None;
         }
@@ -89,14 +88,11 @@ impl Indicator for LogReturn {
         // `prev` was pushed through the same guard, so it is finite and > 0 and
         // `(input / prev).ln()` is always well-defined.
         let prev = *self.window.front().expect("non-empty");
-        let r = (input / prev).ln();
-        self.last = Some(r);
-        Some(r)
+        Some((input / prev).ln())
     }
 
     fn reset(&mut self) {
         self.window.clear();
-        self.last = None;
     }
 
     #[inline]
