@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://wickra.org"><img src="https://raw.githubusercontent.com/wickra-lib/.github/main/profile/wickra-banner.svg?v=514-8" alt="Wickra — streaming-first technical indicators" width="100%"></a>
+  <a href="https://wickra.org"><img src="https://raw.githubusercontent.com/wickra-lib/.github/main/profile/wickra-banner.svg?v=515-8" alt="Wickra — streaming-first technical indicators" width="100%"></a>
 </p>
 
 [![CI](https://raw.githubusercontent.com/wickra-lib/.github/main/profile/badges/wickra/ci.svg)](https://github.com/wickra-lib/wickra/actions/workflows/ci.yml)
@@ -25,7 +25,7 @@
 
 **Streaming-first technical indicators. Install with `pip install wickra` — no system dependencies, zero third-party packages.**
 
-> **▶ Live demos:** all 514 indicators of the core over a real Binance feed — **[live.wickra.org](https://live.wickra.org)**;
+> **▶ Live demos:** all 515 indicators of the core over a real Binance feed — **[live.wickra.org](https://live.wickra.org)**;
 > the backtester compiled to WebAssembly, an equity curve building bar by bar — **[backtest-live.wickra.org](https://backtest-live.wickra.org)**;
 > one StrategySpec side by side in Python, Rust, JS and Go — **[playground.wickra.org](https://playground.wickra.org)**. Zero backend, all of them.
 
