@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-11-26
+
 ### Changed
 
 - **pyo3 0.30.1**, the line the rest of the family is already on. pyo3 0.30
@@ -4113,7 +4115,8 @@ public API changes.
   optional Binance live feed.
 - Bindings for Python, Node.js, and WebAssembly.
 
-[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/wickra-lib/wickra/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/wickra-lib/wickra/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/wickra-lib/wickra/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/wickra-lib/wickra/compare/v1.0.7...v2.0.0
