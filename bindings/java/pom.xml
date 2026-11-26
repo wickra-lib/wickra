@@ -108,6 +108,14 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
             <version>3.4.0</version>
+            <configuration>
+              <!-- The release workflow stages every platform's native library
+                   into src/main/resources/native/ before the deploy. They belong
+                   in the jar, not a second time in the sources jar, where they
+                   were nearly all of its size (and of what Maven Central counts
+                   against the monthly publishing limit). -->
+              <excludeResources>true</excludeResources>
+            </configuration>
             <executions>
               <execution>
                 <id>attach-sources</id>
