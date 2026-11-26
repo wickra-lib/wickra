@@ -432,13 +432,18 @@ jobs:
           pattern: wheels-*
           merge-multiple: true
 
+      # PyPA's publishing action, not `maturin upload`: maturin deprecated its
+      # upload and publish commands (PyO3/maturin#2334) and builds the wheels
+      # only. Same token, same dist/ files, versions already on PyPI skipped.
+      # Its PEP 740 attestations need Trusted Publishing, not a token, so they
+      # are off; the release's own provenance attestation is unaffected.
       - name: Upload to PyPI
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
-          command: upload
-          args: --skip-existing dist/*
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: dist/
+          skip-existing: true
+          attestations: false
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
   # --------------------------------------------------------------------------
   # npm: per-platform native binaries + main meta-package
