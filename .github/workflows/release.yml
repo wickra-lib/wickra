@@ -1136,7 +1136,12 @@ jobs:
           shell: bash
           command: |
             set -eo pipefail
-            version=$(mvn -B -q -f bindings/java help:evaluate -Dexpression=project.version -DforceStdout)
+            # Maven prints its errors on stdout, which the substitution takes;
+            # print it, or a failure here shows nothing in the log.
+            if ! version=$(mvn -B -q -f bindings/java help:evaluate -Dexpression=project.version -DforceStdout); then
+              echo "$version"
+              exit 1
+            fi
             url="https://repo1.maven.org/maven2/org/wickra/wickra/${version}/wickra-${version}.pom"
             if curl -sSf -o /dev/null "$url"; then
               echo "skip: org.wickra:wickra:${version} is already on Maven Central"

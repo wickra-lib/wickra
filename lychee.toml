@@ -3,12 +3,14 @@
 # scheme filter and --root-dir resolution. Loopback and private addresses are
 # skipped too.
 
-max_retries = 3
-retry_wait_time = 2
+max_retries = 4
+retry_wait_time = 30
 timeout = 20
 
-# Treat these as success: OK, partial content, and rate-limited (transient).
-accept = [200, 206, 429]
+# Treat these as success: OK, partial content, and the transient answers --
+# rate-limited (429) and a host having a moment (502/503/504). A 404 still
+# fails, because that is link rot.
+accept = [200, 206, 429, 502, 503, 504]
 
 scheme = ["https", "http"]
 exclude_all_private = true
@@ -20,6 +22,9 @@ exclude_all_private = true
 # - GitHub serves 404 for /stargazers and /network/members to anonymous clients
 #   (anti-scraping). The README social-footer badges link there; the pages are
 #   live in a browser.
+# - r-universe's HTML pages sit behind a Cloudflare challenge that answers 403
+#   to every non-browser client; live in a browser, and the package state is
+#   read from r-universe's API, which is not challenged.
 # - the CHANGELOG version-compare links point at the release tag that is created
 #   *after* the bump is merged. ci.yml runs on push/PR (never on the tag), so the
 #   tag never exists when lychee runs and the compare URL 404s. One pattern
@@ -27,6 +32,7 @@ exclude_all_private = true
 exclude = [
   'crates\.io/crates/',
   'www\.npmjs\.com/package/',
+  'wickra-lib\.r-universe\.dev',
   'github\.com/wickra-lib/wickra/compare/',
   'github\.com/wickra-lib/wickra/stargazers',
   'github\.com/wickra-lib/wickra/network/members',
