@@ -123,18 +123,22 @@ impl Rsi {
         (prev, ag, al)
     }
 
+    /// RSI from the two Wilder averages; shared with the SIMD kernel
+    /// `fast::RsiFast` so both paths saturate identically.
     #[inline]
-    fn rsi_from_avgs(avg_gain: f64, avg_loss: f64) -> f64 {
+    pub(crate) fn rsi_from_avgs(avg_gain: f64, avg_loss: f64) -> f64 {
         // Algebraically `100 - 100/(1 + ag/al)` collapses to `100·ag/(ag+al)`,
         // which needs a single division instead of two and removes the separate
-        // `rs` step. Edge cases stay exact: `al == 0, ag > 0` gives `100·ag/ag =
-        // 100`; `ag == 0, al > 0` gives `0`; both zero (no movement) is the
-        // undefined case and returns the neutral 50.
+        // `rs` step. The division comes first: `al == 0, ag > 0` gives
+        // `ag/ag = 1` exactly and so exactly 100, where `(100·ag)/ag` rounds to
+        // 100.00000000000001 for about one `ag` in eight. `ag == 0, al > 0`
+        // gives `0`; both zero (no movement) is the undefined case and returns
+        // the neutral 50.
         let denom = avg_gain + avg_loss;
         if denom == 0.0 {
             50.0
         } else {
-            100.0 * avg_gain / denom
+            100.0 * (avg_gain / denom)
         }
     }
 }
@@ -299,7 +303,7 @@ impl Indicator for Rsi {
 
     /// SIMD kernel: the exact seed, then blocks of gains and losses whose two
     /// Wilder averages run as linear-recurrence scans, combined as
-    /// `100 · ag / (ag + al)`. Agrees with the exact batch to within a few units
+    /// `100 · (ag / (ag + al))`. Agrees with the exact batch to within a few units
     /// in the last place; the seed value, warmup `NaN`s and length are
     /// identical. Afterwards the RSI continues streaming from the kernel's last
     /// averages.
@@ -679,5 +683,42 @@ mod tests {
             Rsi::new(crate::error::MAX_PERIOD + 1),
             Err(Error::InvalidPeriod { .. })
         ));
+    }
+
+    /// Irregular up-steps and never a down-close: the average loss stays 0.
+    /// The step sizes put the average gain near 0.35, where `(100·ag)/ag`
+    /// missed 100 on roughly a third of the bars.
+    fn irregular_uptrend(n: u32) -> Vec<f64> {
+        let mut price = 100.0;
+        (0..n)
+            .map(|i| {
+                price += 0.1 + 0.37 * (f64::from(i) * 1.3).sin().abs();
+                price
+            })
+            .collect()
+    }
+
+    #[test]
+    fn saturated_average_gain_is_exactly_100() {
+        // `(100·ag)/ag` rounded to 100.00000000000001 for about one `ag` in
+        // eight (#509); dividing first is exact for every `ag`.
+        let mut ag = 1e-6_f64;
+        while ag < 1e6 {
+            assert_eq!(Rsi::rsi_from_avgs(ag, 0.0), 100.0);
+            ag *= 1.000_37;
+        }
+    }
+
+    #[test]
+    fn uptrend_rsi_is_exactly_100_on_every_path() {
+        let prices = irregular_uptrend(400);
+        let mut streaming = Rsi::new(7).unwrap();
+        let streamed: Vec<f64> = prices.iter().filter_map(|&p| streaming.update(p)).collect();
+        assert_eq!(streamed.len(), 400 - 7);
+        assert!(streamed.iter().all(|&v| v == 100.0));
+        let exact = Rsi::new(7).unwrap().batch_nan(&prices);
+        assert!(exact[7..].iter().all(|&v| v == 100.0));
+        let fast = crate::traits::BatchNanExt::batch_fast(&mut Rsi::new(7).unwrap(), &prices);
+        assert!(fast[7..].iter().all(|&v| v == 100.0));
     }
 }
