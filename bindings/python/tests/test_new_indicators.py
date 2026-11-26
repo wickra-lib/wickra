@@ -2456,11 +2456,13 @@ def test_vwap_stddev_bands_reference():
 
 def test_ttm_squeeze_flat_market():
     # Zero volatility: BB and KC both collapse to a point → squeeze=1.0,
-    # momentum=0.0.
-    candles_h = np.array([10.0] * 25)
+    # momentum=0.0. The first row lands on candle 2 * period - 1 = 39.
+    candles_h = np.array([10.0] * 45)
     out = _to_np(ta.TtmSqueeze(20, 2.0, 1.5).batch(candles_h, candles_h, candles_h))
-    assert out[24, 0] == pytest.approx(1.0)
-    assert out[24, 1] == pytest.approx(0.0)
+    assert np.isnan(out[37, 1])
+    assert out[38, 0] == pytest.approx(1.0)
+    assert out[44, 0] == pytest.approx(1.0)
+    assert out[44, 1] == pytest.approx(0.0)
 
 
 def test_fractal_chaos_bands_detects_peak_and_trough():

@@ -16,8 +16,10 @@ pub struct TtmSqueezeOutput {
     /// Channel), `0.0` otherwise. The squeeze releases — the signal flips back
     /// to `0.0` — when volatility expands and BB pierce KC.
     pub squeeze: f64,
-    /// Detrended momentum: linear-regression endpoint of
-    /// `close − (midpoint(highest_high, lowest_low, period) + SMA(close, period)) / 2`.
+    /// Detrended momentum: linear-regression endpoint, over the last `period`
+    /// bars, of each bar's
+    /// `close − (midpoint(highest_high, lowest_low, period) + SMA(close, period)) / 2`,
+    /// every bar measured against its *own* baseline.
     /// Histogram-like reading that swings positive in a breakout up, negative
     /// in a breakout down; trade direction on the squeeze release follows the
     /// sign of `momentum`.
@@ -35,10 +37,15 @@ pub struct TtmSqueezeOutput {
 ///                ⊂ KeltnerChannels-like(SMA(period), ATR(period), kc_mult)
 ///            else 0.0
 ///
-/// hl_mid   = (max(high, period) + min(low, period)) / 2
-/// detrend  = close − (hl_mid + SMA(close, period)) / 2
-/// momentum = LinearRegression(detrend, period)        // endpoint
+/// hl_mid_t   = (max(high, period) + min(low, period)) / 2      // at bar t
+/// detrend_t  = close_t − (hl_mid_t + SMA(close, period)_t) / 2
+/// momentum_t = LinearRegression(detrend, period)_t           // endpoint
 /// ```
+///
+/// Each bar's detrended close uses that bar's own baseline, as in the common
+/// `linreg(close − avg(avg(highest(high, n), lowest(low, n)), sma(close, n)), n, 0)`.
+/// The baseline needs `period` bars and the regression `period` detrended
+/// values, so the first output lands on bar `2 · period − 1`.
 ///
 /// The "Keltner-like" envelope here uses an *SMA* centerline (not the EMA of
 /// typical price that [`Keltner`](crate::Keltner) uses) plus an ATR offset,
@@ -53,7 +60,7 @@ pub struct TtmSqueezeOutput {
 ///
 /// let mut indicator = TtmSqueeze::new(20, 2.0, 1.5).unwrap();
 /// let mut last = None;
-/// for i in 0..40 {
+/// for i in 0..60 {
 ///     let base = 100.0 + f64::from(i);
 ///     let candle =
 ///         Candle::new(base, base + 2.0, base - 2.0, base + 1.0, 10.0, i64::from(i)).unwrap();
@@ -70,7 +77,8 @@ pub struct TtmSqueeze {
     atr: Atr,
     highs: VecDeque<f64>,
     lows: VecDeque<f64>,
-    closes: VecDeque<f64>,
+    // The last `period` detrended closes, each against its own bar's baseline.
+    detrended: VecDeque<f64>,
     // Pre-computed OLS constants over `x = 0..period − 1`.
     sum_x: f64,
     denom: f64,
@@ -107,7 +115,7 @@ impl TtmSqueeze {
             atr: Atr::new(period)?,
             highs: VecDeque::with_capacity(period),
             lows: VecDeque::with_capacity(period),
-            closes: VecDeque::with_capacity(period),
+            detrended: VecDeque::with_capacity(period),
             sum_x,
             denom: n * sum_xx - sum_x * sum_x,
         })
@@ -133,11 +141,9 @@ impl Indicator for TtmSqueeze {
         if self.highs.len() == self.period {
             self.highs.pop_front();
             self.lows.pop_front();
-            self.closes.pop_front();
         }
         self.highs.push_back(candle.high);
         self.lows.push_back(candle.low);
-        self.closes.push_back(candle.close);
 
         // Feed all three sub-indicators unconditionally so they warm up in
         // lock-step. ATR returns its first value at bar `period` (Wilder
@@ -147,24 +153,27 @@ impl Indicator for TtmSqueeze {
         let atr = self.atr.update(candle);
         let (bb, mid, atr) = (bb?, mid?, atr?);
 
+        // This bar's detrended close: its deviation from the average of this
+        // bar's rolling high-low midpoint and SMA of close. Every bar keeps its
+        // own baseline; the regression below runs over that series.
+        let hi = self.highs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let lo = self.lows.iter().copied().fold(f64::INFINITY, f64::min);
+        let baseline = f64::midpoint(f64::midpoint(hi, lo), mid);
+        if self.detrended.len() == self.period {
+            self.detrended.pop_front();
+        }
+        self.detrended.push_back(candle.close - baseline);
+        if self.detrended.len() < self.period {
+            return None;
+        }
+
         let kc_upper = mid + self.kc_mult * atr;
         let kc_lower = mid - self.kc_mult * atr;
         let squeeze = f64::from(bb.upper <= kc_upper && bb.lower >= kc_lower);
 
-        // Detrended close. The reference forms it as the deviation of close
-        // from the average of the rolling high-low midpoint and the SMA of
-        // close, then runs a linear regression of that series.
-        let hi = self.highs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-        let lo = self.lows.iter().copied().fold(f64::INFINITY, f64::min);
-        let hl_mid = f64::midpoint(hi, lo);
-        // Build the detrended window over the closes currently in `closes`.
-        // We need all `period` closes to fit the regression, which is
-        // guaranteed once `bb` / `mid` are ready.
-        let baseline = f64::midpoint(hl_mid, mid);
         let mut sum_y = 0.0;
         let mut sum_xy = 0.0;
-        for (i, &c) in self.closes.iter().enumerate() {
-            let y = c - baseline;
+        for (i, &y) in self.detrended.iter().enumerate() {
             let x = i as f64;
             sum_y += y;
             sum_xy += x * y;
@@ -183,17 +192,19 @@ impl Indicator for TtmSqueeze {
         self.atr.reset();
         self.highs.clear();
         self.lows.clear();
-        self.closes.clear();
+        self.detrended.clear();
     }
 
     #[inline]
     fn warmup_period(&self) -> usize {
-        self.period
+        // `period` bars until the baseline exists, then `period` detrended
+        // values for the regression; the two windows share one bar.
+        2 * self.period - 1
     }
 
     #[inline]
     fn is_ready(&self) -> bool {
-        self.bb.is_ready() && self.sma_close.is_ready() && self.atr.is_ready()
+        self.detrended.len() == self.period
     }
 
     #[inline]
@@ -241,13 +252,13 @@ mod tests {
         assert_eq!(p, 20);
         assert_relative_eq!(b, 2.0, epsilon = 1e-12);
         assert_relative_eq!(k, 1.5, epsilon = 1e-12);
-        assert_eq!(s.warmup_period(), 20);
+        assert_eq!(s.warmup_period(), 39);
         assert_eq!(s.name(), "TtmSqueeze");
     }
 
     #[test]
     fn flat_market_has_zero_momentum() {
-        let candles: Vec<Candle> = (0..30).map(|_| c(10.0, 10.0, 10.0)).collect();
+        let candles: Vec<Candle> = (0..50).map(|_| c(10.0, 10.0, 10.0)).collect();
         let mut s = TtmSqueeze::new(20, 2.0, 1.5).unwrap();
         let last = s.batch(&candles).into_iter().flatten().last().unwrap();
         assert_relative_eq!(last.momentum, 0.0, epsilon = 1e-9);
@@ -258,7 +269,7 @@ mod tests {
 
     #[test]
     fn batch_equals_streaming() {
-        let candles: Vec<Candle> = (0..40)
+        let candles: Vec<Candle> = (0..60)
             .map(|i| c(f64::from(i) + 2.0, f64::from(i), f64::from(i) + 1.0))
             .collect();
         let mut a = TtmSqueeze::new(20, 2.0, 1.5).unwrap();
@@ -271,7 +282,7 @@ mod tests {
 
     #[test]
     fn reset_clears_state() {
-        let candles: Vec<Candle> = (0..30)
+        let candles: Vec<Candle> = (0..50)
             .map(|i| c(f64::from(i) + 1.0, f64::from(i) - 1.0, f64::from(i)))
             .collect();
         let mut s = TtmSqueeze::classic();
@@ -282,15 +293,95 @@ mod tests {
         assert_eq!(s.update(candles[0]), None);
     }
 
-    /// Squeeze fires only after `period` candles, never before.
+    /// The first output lands on candle `2 · period − 1`, never before.
     #[test]
     fn warmup_returns_none() {
         let mut s = TtmSqueeze::new(20, 2.0, 1.5).unwrap();
-        for i in 0..19 {
+        for i in 0..38 {
             let base = 100.0 + f64::from(i);
             assert!(s.update(c(base + 1.0, base - 1.0, base)).is_none());
+            assert!(!s.is_ready());
         }
-        assert!(s.update(c(121.0, 119.0, 120.0)).is_some());
+        assert!(s.update(c(139.0, 137.0, 138.0)).is_some());
+        assert!(s.is_ready());
+    }
+
+    /// Independent reference: every bar's detrended close from scratch against
+    /// its own baseline, then the least-squares endpoint over the last `period`.
+    fn momentum_reference(candles: &[Candle], period: usize, t: usize) -> f64 {
+        let detrend = |j: usize| {
+            let window = &candles[j + 1 - period..=j];
+            let hi = window
+                .iter()
+                .map(|k| k.high)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let lo = window.iter().map(|k| k.low).fold(f64::INFINITY, f64::min);
+            let sma = window.iter().map(|k| k.close).sum::<f64>() / period as f64;
+            candles[j].close - f64::midpoint(f64::midpoint(hi, lo), sma)
+        };
+        let ys: Vec<f64> = (t + 1 - period..=t).map(detrend).collect();
+        let len = period as f64;
+        let mean_x = (len - 1.0) / 2.0;
+        let mean_y = ys.iter().sum::<f64>() / len;
+        let (mut cov, mut var) = (0.0, 0.0);
+        for (i, y) in ys.iter().enumerate() {
+            let dx = i as f64 - mean_x;
+            cov += dx * (y - mean_y);
+            var += dx * dx;
+        }
+        mean_y + cov / var * (len - 1.0 - mean_x)
+    }
+
+    /// Momentum regresses each bar's own detrended close (#508); subtracting
+    /// the current bar's baseline from the whole window disagreed with this
+    /// by more than 1e-3, and in sign, on some bars of this path.
+    #[test]
+    fn momentum_matches_per_bar_detrend_reference() {
+        let candles: Vec<Candle> = (0..300)
+            .map(|i| {
+                let t = f64::from(i);
+                let m = 100.0 + (t * 0.11).sin() * 8.0 + (t * 0.037).cos() * 5.0 + t * 0.02;
+                let span = 0.6 + (t * 0.53).sin().abs();
+                c(m + span, m - span, m + (t * 0.9).sin() * span * 0.8)
+            })
+            .collect();
+        let period = 20;
+        let out = TtmSqueeze::new(period, 2.0, 1.5).unwrap().batch(&candles);
+        let mut widest_gap: f64 = 0.0;
+        for (t, o) in out.iter().enumerate() {
+            if t < 2 * period - 2 {
+                assert!(o.is_none());
+            } else {
+                let got = o.unwrap().momentum;
+                assert_relative_eq!(got, momentum_reference(&candles, period, t), epsilon = 1e-9);
+                widest_gap =
+                    widest_gap.max((got - momentum_current_baseline(&candles, period, t)).abs());
+            }
+        }
+        // The path really separates the two definitions.
+        assert!(widest_gap > 1e-3);
+    }
+
+    /// The pre-#508 definition: the current bar's baseline subtracted from
+    /// every close in the window, i.e. `linreg(close) − baseline_now`.
+    fn momentum_current_baseline(candles: &[Candle], period: usize, t: usize) -> f64 {
+        let window = &candles[t + 1 - period..=t];
+        let hi = window
+            .iter()
+            .map(|k| k.high)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let lo = window.iter().map(|k| k.low).fold(f64::INFINITY, f64::min);
+        let sma = window.iter().map(|k| k.close).sum::<f64>() / period as f64;
+        let baseline = f64::midpoint(f64::midpoint(hi, lo), sma);
+        let len = period as f64;
+        let mean_x = (len - 1.0) / 2.0;
+        let (mut cov, mut var) = (0.0, 0.0);
+        for (i, k) in window.iter().enumerate() {
+            let dx = i as f64 - mean_x;
+            cov += dx * (k.close - sma);
+            var += dx * dx;
+        }
+        sma + cov / var * (len - 1.0 - mean_x) - baseline
     }
 
     /// Squeeze flag is binary — `0.0` or `1.0`.

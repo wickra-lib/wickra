@@ -38,6 +38,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   both, and of indicators built on `Rsi` (`ConnorsRsi`, `FisherRsi`, `Qqe`,
   `RelativeStrengthAB`), can move by one ulp; the golden fixtures are
   regenerated.
+- **`TtmSqueeze` momentum detrends every bar against its own baseline**
+  (#508). The regression subtracted the *current* bar's baseline from every
+  close in the window, so `momentum` was `linreg(close) − baseline_now`
+  instead of the documented `linreg(close − baseline)`, off by more than 1e-3
+  and sometimes in sign. Each bar's detrended close is now kept and regressed,
+  as in `linreg(close − avg(avg(highest, lowest), sma), n, 0)`. **The warmup
+  grows from `period` to `2 · period − 1`** (39 at the classic 20): the
+  baseline needs `period` bars and the regression `period` detrended values.
+  `momentum` values change; a test checks them against an independent
+  per-bar reference.
 
 ### Security
 
