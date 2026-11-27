@@ -1400,7 +1400,18 @@ jobs:
         with:
           distribution: temurin
           java-version: "${{ matrix.java }}"
-          cache: maven
+      # The Maven repository, cached with restore-keys. setup-java's
+      # `cache: maven` keys on the pom's hash alone, so every version bump
+      # started empty and fetched every plugin from Maven Central again --
+      # all repositories at once in a release train, which Central answers
+      # with 429. Same key format as setup-java, so its caches restore.
+      - name: Cache the Maven repository
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: setup-java-${{ runner.os }}-${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            setup-java-${{ runner.os }}-${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}-maven-
 
       - name: Retry JDK setup (CDN flake)
         if: steps.setup-java.outcome == 'failure'
@@ -1415,7 +1426,19 @@ jobs:
         with:
           distribution: temurin
           java-version: "${{ matrix.java }}"
-          cache: maven
+      # The Maven repository, cached with restore-keys. setup-java's
+      # `cache: maven` keys on the pom's hash alone, so every version bump
+      # started empty and fetched every plugin from Maven Central again --
+      # all repositories at once in a release train, which Central answers
+      # with 429. Same key format as setup-java, so its caches restore.
+      - name: Cache the Maven repository
+        if: steps.setup-java.outcome == 'failure'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: setup-java-${{ runner.os }}-${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            setup-java-${{ runner.os }}-${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}-maven-
 
       - name: Java info
         run: java -version
