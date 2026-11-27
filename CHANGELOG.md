@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The Maven sources jar no longer carries the native libraries.** The release
+  workflow stages every platform's library into the resources before the
+  deploy, and the sources jar packed them a second time. A release's size on
+  Maven Central roughly halves (measured on wickra-impact 0.2.2: the sources jar
+  drops from 3.6 MB to 7 KB, the jar is unchanged).
+- **The GitHub Release no longer waits on Maven Central.** Central can refuse a
+  release over its monthly publishing limits after every other registry has
+  published it, and the release page then never appeared. It now does, and the
+  jar is attested in a job of its own once Central has taken it.
+  The jar is no longer attached to the page as well; it lives on Maven
+  Central with its signatures.
+- **PyPI uploads go through PyPA's publishing action** instead of
+  `maturin upload`, which maturin has deprecated. maturin still builds every
+  wheel; token, files and the skip of versions already on PyPI are unchanged.
+- **CI retries Maven Central's throttling** (429 and 5xx, eight times with a
+  back-off of up to five minutes), and the link check skips r-universe's pages,
+  which answer every non-browser client with a Cloudflare challenge.
+
 ## [2.2.0] - 2026-11-26
 
 ### Changed
