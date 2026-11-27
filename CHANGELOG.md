@@ -33,6 +33,11 @@ A release of the build and release pipeline; the library code is unchanged.
 - **Draft pull requests start no CI.** Every job of the workflows that run
   on pull requests skips a draft, and marking it ready for review starts
   the full run.
+- **CI caches the Maven repository with restore-keys.** setup-java's own
+  cache keyed on the pom alone, so every version bump started empty and
+  fetched every plugin from Maven Central again; in a release train that ran
+  into Central's 429 throttling. A changed pom now restores the previous
+  cache and downloads only what is new.
 
 ## [2.2.0] - 2026-11-26
 
