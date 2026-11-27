@@ -36,7 +36,7 @@ name: Check indicator count
 # head sha. Keeping the counter in the code commit avoids that entirely.)
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   workflow_dispatch:
@@ -48,6 +48,7 @@ permissions:
 
 jobs:
   sync:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 20  # backstop against a hung job, not a budget
     # Read-only throughout: the job greps two files and exits. Nothing is

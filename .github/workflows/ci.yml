@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
 
 # One run per branch. A push that supersedes an in-flight run cancels it rather
@@ -41,6 +42,7 @@ env:
 
 jobs:
   rust:
+    if: ${{ !github.event.pull_request.draft }}
     name: Rust ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -110,6 +112,7 @@ jobs:
   # each other, against the shape the C ABI header declares. Pure Python over
   # files already in the tree -- no toolchain, a few seconds.
   binding-surface:
+    if: ${{ !github.event.pull_request.draft }}
     name: Binding surface parity
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -157,6 +160,7 @@ jobs:
   # after building theirs. What is left here is the browser-WASM demos, which
   # need a browser and so can only be parsed.
   examples-smoke:
+    if: ${{ !github.event.pull_request.draft }}
     name: Examples (syntax smoke)
     runs-on: ubuntu-latest
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -247,6 +251,7 @@ jobs:
   # a Node toolchain on PATH, which the 3-OS matrix job does not provision.
   # Ubuntu-only is sufficient: the lints are platform-independent.
   clippy-bindings:
+    if: ${{ !github.event.pull_request.draft }}
     name: Clippy bindings
     runs-on: ubuntu-latest
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -331,6 +336,7 @@ jobs:
   # `cargo::` directives). Without this job an accidental use of a newer
   # API would only surface for downstream users.
   msrv:
+    if: ${{ !github.event.pull_request.draft }}
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -380,6 +386,7 @@ jobs:
 
   # Code coverage for the pure-Rust crates, uploaded to Codecov.
   coverage:
+    if: ${{ !github.event.pull_request.draft }}
     name: Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -426,6 +433,7 @@ jobs:
   # Supply-chain audit: security advisories, license policy, banned crates,
   # and source restrictions. Configured by deny.toml at the repo root.
   supply-chain:
+    if: ${{ !github.event.pull_request.draft }}
     name: Supply-chain (cargo-deny + osv-scanner)
     runs-on: ubuntu-latest
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -497,6 +505,7 @@ jobs:
   # itself. On a release that has not moved the API this finds nothing; the run
   # that matters is the one where it does.
   semver:
+    if: ${{ !github.event.pull_request.draft }}
     name: Public API (cargo-semver-checks)
     runs-on: ubuntu-latest
     timeout-minutes: 30 # backstop: it builds rustdoc JSON for each crate and its baseline
@@ -532,6 +541,7 @@ jobs:
   # discover novel bugs — long fuzz campaigns should be run on dedicated
   # infrastructure with persistent corpora.
   fuzz-smoke:
+    if: ${{ !github.event.pull_request.draft }}
     name: Fuzz (smoke)
     runs-on: ubuntu-latest
     timeout-minutes: 40 # backstop: 13 targets at 30 s each plus the build of all of them; caps a wedged job instead of GitHub's 6h default
@@ -597,6 +607,7 @@ jobs:
           done <<< "$targets"
 
   python:
+    if: ${{ !github.event.pull_request.draft }}
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -704,6 +715,7 @@ jobs:
           done
 
   wasm:
+    if: ${{ !github.event.pull_request.draft }}
     name: WASM build
     runs-on: ubuntu-latest
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -779,6 +791,7 @@ jobs:
           " "$RUNNER_TEMP/wasm-packed/package"
 
   node:
+    if: ${{ !github.event.pull_request.draft }}
     name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -910,6 +923,7 @@ jobs:
           done
 
   c-abi:
+    if: ${{ !github.event.pull_request.draft }}
     name: C ABI on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -972,6 +986,7 @@ jobs:
           ctest --test-dir examples/c/build -C Release --output-on-failure
 
   csharp:
+    if: ${{ !github.event.pull_request.draft }}
     name: C# on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -1100,6 +1115,7 @@ jobs:
           shell: bash
 
   go:
+    if: ${{ !github.event.pull_request.draft }}
     name: Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -1227,6 +1243,7 @@ jobs:
           done
 
   r:
+    if: ${{ !github.event.pull_request.draft }}
     name: R on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -1343,6 +1360,7 @@ jobs:
         run: Rscript -e 'invisible(lapply(c("examples/r/fetch_btcusdt.R", "examples/r/live_binance.R"), parse)); cat("network R examples parse OK\n")'
 
   java:
+    if: ${{ !github.event.pull_request.draft }}
     name: Java ${{ matrix.java }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30 # backstop: cap a wedged job instead of GitHub's 6h default (headroom for slow registry/package installs)
@@ -1450,6 +1468,7 @@ jobs:
   # statically compiles OpenSSL from source. This job exercises both container
   # builds on every PR, so the same class of breakage now fails CI, not release.
   python-wheel-container-smoke:
+    if: ${{ !github.event.pull_request.draft }}
     name: Python wheel (${{ matrix.manylinux }} smoke)
     runs-on: ubuntu-latest
     timeout-minutes: 30 # backstop: vendored OpenSSL adds a from-source compile
@@ -1518,6 +1537,7 @@ jobs:
   # A job-level continue-on-error would not do: the check run still concludes
   # `failure`, the commit shows red and a release gate reading check runs stops.
   links:
+    if: ${{ !github.event.pull_request.draft }}
     name: External links (non-blocking)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1546,7 +1566,7 @@ jobs:
   # checks are left out on purpose -- an outside outage must not hold a merge.
   ci-ok:
     name: ci-ok
-    if: always()
+    if: ${{ !github.event.pull_request.draft && (always()) }}
     needs:
       - rust
       - binding-surface
