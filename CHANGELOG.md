@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A draft pull request cannot be merged by accident.** The ci-ok gate
+  now runs on a draft and fails there; skipped, it counted as passed and let
+  auto-merge merge a draft the moment it was marked ready, before its CI ran.
+
 ## [2.2.1] - 2026-11-27
 
 A release of the build and release pipeline; the library code is unchanged.
