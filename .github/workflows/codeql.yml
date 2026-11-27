@@ -8,6 +8,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
   schedule:
     - cron: '31 3 * * 0' # Sundays 03:31 UTC
@@ -21,6 +22,7 @@ permissions:
 
 jobs:
   analyze:
+    if: ${{ !github.event.pull_request.draft }}
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 30  # backstop against a hung job, not a budget
