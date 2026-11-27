@@ -1589,7 +1589,7 @@ jobs:
   # checks are left out on purpose -- an outside outage must not hold a merge.
   ci-ok:
     name: ci-ok
-    if: ${{ !github.event.pull_request.draft && (always()) }}
+    if: always()
     needs:
       - rust
       - binding-surface
@@ -1613,6 +1613,15 @@ jobs:
     timeout-minutes: 5
     permissions: {}
     steps:
+      # A draft runs no job (each carries !github.event.pull_request.draft),
+      # and a skipped required check counts as passed: auto-merge merged
+      # drafts the moment they were marked ready, before their CI ran. So the
+      # gate fails on a draft and only the real run can turn it green.
+      - name: A draft pull request is never green
+        if: github.event.pull_request.draft
+        run: |
+          echo "::error::draft pull request: no job ran; mark it ready for review to run CI"
+          exit 1
       - name: Every required job passed
         env:
           RESULTS: ${{ toJSON(needs) }}
