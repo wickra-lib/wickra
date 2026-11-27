@@ -1358,6 +1358,10 @@ jobs:
     # false, shipped without them in silence. go-mirror produces no asset, but
     # the notes tell readers the Go module is live -- a release should not say so
     # before it is.
+    # java-publish is deliberately not needed: Maven Central can refuse a
+    # release (monthly publishing limits) after every other registry has
+    # published it, and the page must not wait on that. The jar lives on
+    # Central and is attested by attest-jar.
     needs:
       - cargo-publish
       - python-publish
@@ -1365,7 +1369,6 @@ jobs:
       - wasm-publish
       - c-abi-build
       - csharp-publish
-      - java-publish
       - go-mirror
     runs-on: ubuntu-latest
     permissions:
@@ -1429,7 +1432,6 @@ jobs:
           # NuGet package (the same file pushed to nuget.org).
           find artifacts -type f -name "*.nupkg" -exec cp {} release-assets/ \;
           # Java jar (the same file deployed to Maven Central).
-          find artifacts -type f -name "*.jar" -exec cp {} release-assets/ \;
           ls -lh release-assets/
           echo "asset-count=$(find release-assets -type f | wc -l)"
 
@@ -1500,7 +1502,7 @@ jobs:
     name: Attest build provenance
     timeout-minutes: 45 # backstop only: release build/publish jobs compile from source (vendored OpenSSL) and must not be killed mid-build; far above the ~10 min real runtime
     needs: [cargo-publish, python-wheels, python-sdist, c-abi-build,
-            csharp-publish, java-publish, github-release]
+            csharp-publish, github-release]
     runs-on: ubuntu-latest
     # Signed SLSA build-provenance attestations for everything published that
     # does not already carry provenance of its own. npm tarballs do -- `npm
@@ -1550,11 +1552,6 @@ jobs:
         with:
           name: nuget-package
           path: artifacts/nuget
-      - name: Download the Java jar
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: java-jar
-          path: artifacts/java
       - name: Attest build provenance
         id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
@@ -1562,7 +1559,6 @@ jobs:
           subject-path: |
             artifacts/c-abi/*.tar.gz
             artifacts/nuget/*.nupkg
-            artifacts/java/*.jar
             artifacts/crates/*.crate
             artifacts/python/*.whl
             artifacts/python/*.tar.gz
@@ -1591,6 +1587,30 @@ jobs:
           cp "$BUNDLE" "$dest"
           echo "Uploading $dest to release $TAG"
           gh release upload "$TAG" "$dest" --clobber --repo "${{ github.repository }}"
+
+  # The jar is attested on its own, once Maven Central has taken it. The
+  # attestation is recorded with GitHub and attached to nothing, so re-running
+  # the Maven job later (after a refusal) never touches the published,
+  # immutable release page.
+  attest-jar:
+    name: Attest the jar's build provenance
+    timeout-minutes: 15
+    needs: [java-publish]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
+    steps:
+      - name: Download the jar
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: java-jar
+          path: artifacts/java
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: artifacts/java/*.jar
 
   # --------------------------------------------------------------------------
   # Publish the drafted release LAST (P24 — immutability-ready).
