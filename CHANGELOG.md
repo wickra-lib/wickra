@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-11-27
+
+A release of the build and release pipeline; the library code is unchanged.
+
 ### Changed
 
 - **The Maven sources jar no longer carries the native libraries.** The release
@@ -4138,7 +4142,8 @@ public API changes.
   optional Binance live feed.
 - Bindings for Python, Node.js, and WebAssembly.
 
-[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/wickra-lib/wickra/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/wickra-lib/wickra/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/wickra-lib/wickra/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/wickra-lib/wickra/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/wickra-lib/wickra/compare/v2.0.0...v2.1.0
